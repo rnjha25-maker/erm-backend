@@ -1,0 +1,8 @@
+spring:
+  profiles:
+    active: qa
+
+# Eureka service id for erm-command-organization (used by OrganizationCommandProxyController)
+erm:
+  command-organization:
+    service-id: ERM-COMMAND-ORGANIZATION

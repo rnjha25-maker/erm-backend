@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>API Gateway Swagger UI</title>
+  <link rel="stylesheet" href="/webjars/swagger-ui/swagger-ui.css">
+</head>
+<body>
+<div id="swagger-ui"></div>
+<script src="/webjars/swagger-ui/swagger-ui-bundle.js"></script>
+<script>
+  const ui = SwaggerUIBundle({
+    urls: [
+      {url: "/swagger/org/v3/api-docs", name: "User Service"},
+    ],
+    dom_id: '#swagger-ui',
+    deepLinking: true,
+    presets: [SwaggerUIBundle.presets.apis],
+    layout: "BaseLayout"
+  });
+</script>
+</body>
+</html>

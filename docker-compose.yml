@@ -1,0 +1,225 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: erm-mysql
+    environment:
+      MYSQL_DATABASE: erm2
+      MYSQL_ROOT_PASSWORD: 2116
+    ports:
+      - "${MYSQL_HOST_PORT:-3307}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    command:
+      - --default-authentication-plugin=mysql_native_password
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: erm-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+  discovery-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_PATH: discovery-server
+    container_name: erm-discovery-server
+    ports:
+      - "8761:8761"
+    restart: unless-stopped
+
+  erm-command-organization:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_PATH: command/erm-command-organization
+    container_name: erm-command-organization
+    depends_on:
+      - mysql
+      - redis
+      - discovery-server
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 2116
+      SPRING_DATA_REDIS_HOST: redis
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+    ports:
+      - "8081:8081"
+    restart: unless-stopped
+
+  erm-query-organization:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_PATH: query/erm-query-organization
+    container_name: erm-query-organization
+    depends_on:
+      - mysql
+      - redis
+      - discovery-server
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 2116
+      SPRING_DATA_REDIS_HOST: redis
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+    ports:
+      - "8082:8082"
+    restart: unless-stopped
+
+  org-setup-command:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_PATH: command/org-setup-command
+    container_name: erm-org-setup-command
+    depends_on:
+      - mysql
+      - redis
+      - discovery-server
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 2116
+      SPRING_DATA_REDIS_HOST: redis
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+    ports:
+      - "8083:8083"
+    restart: unless-stopped
+
+  user-setup:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_PATH: command/user-command
+    container_name: erm-user-setup
+    depends_on:
+      - mysql
+      - redis
+      - discovery-server
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 2116
+      SPRING_DATA_REDIS_HOST: redis
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+    ports:
+      - "8084:8084"
+    restart: unless-stopped
+
+  storage:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_PATH: command/storage
+    container_name: erm-storage
+    depends_on:
+      - mysql
+      - redis
+      - discovery-server
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 2116
+      SPRING_DATA_REDIS_HOST: redis
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+    ports:
+      - "8085:8085"
+    restart: unless-stopped
+
+  erm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_PATH: ERM_backend
+    container_name: erm-backend
+    depends_on:
+      - mysql
+      - redis
+      - discovery-server
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 2116
+      SPRING_DATA_REDIS_HOST: redis
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+    ports:
+      - "8086:8086"
+    restart: unless-stopped
+
+  user-query:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_PATH: query/user-query
+    container_name: erm-user-query
+    environment:
+      SERVER_PORT: 8087
+      SPRING_APPLICATION_NAME: user-query
+    ports:
+      - "8087:8087"
+    restart: unless-stopped
+
+  org-setup-query:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_PATH: query/org-setup-query
+    container_name: erm-org-setup-query
+    environment:
+      SERVER_PORT: 8088
+      SPRING_APPLICATION_NAME: org-setup-query
+    ports:
+      - "8088:8088"
+    restart: unless-stopped
+
+  erm-api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_PATH: erm-api-gateway
+    container_name: erm-api-gateway
+    depends_on:
+      - mysql
+      - discovery-server
+      - erm-command-organization
+      - erm-query-organization
+      - org-setup-command
+      - user-setup
+      - storage
+      - erm
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 2116
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+  redis-data:
