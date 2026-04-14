@@ -6,11 +6,7 @@ version: '3.8'
 
 services:
   discovery-server:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        MODULE_PATH: discovery-server
+    image: ${DOCKER_USERNAME:-your-docker-username}/erm-discovery-server:latest
     container_name: erm-discovery-server
     environment:
       SPRING_PROFILES_ACTIVE: prod
@@ -25,11 +21,7 @@ services:
         awslogs-stream-prefix: "ecs"
 
   erm-api-gateway:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        MODULE_PATH: erm-api-gateway
+    image: ${DOCKER_USERNAME:-your-docker-username}/erm-api-gateway:latest
     container_name: erm-api-gateway
     environment:
       SPRING_PROFILES_ACTIVE: prod
@@ -52,11 +44,7 @@ services:
         awslogs-stream-prefix: "ecs"
 
   erm-backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        MODULE_PATH: ERM_backend
+    image: ${DOCKER_USERNAME:-your-docker-username}/erm-backend:latest
     container_name: erm-backend
     environment:
       SPRING_PROFILES_ACTIVE: prod
@@ -79,11 +67,7 @@ services:
         awslogs-stream-prefix: "ecs"
 
   erm-command-organization:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        MODULE_PATH: command/erm-command-organization
+    image: ${DOCKER_USERNAME:-your-docker-username}/erm-command-organization:latest
     container_name: erm-command-organization
     environment:
       SPRING_PROFILES_ACTIVE: prod
@@ -106,11 +90,7 @@ services:
         awslogs-stream-prefix: "ecs"
 
   erm-query-organization:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        MODULE_PATH: query/erm-query-organization
+    image: ${DOCKER_USERNAME}/erm-query-organization:latest
     container_name: erm-query-organization
     environment:
       SPRING_PROFILES_ACTIVE: prod
@@ -133,11 +113,7 @@ services:
         awslogs-stream-prefix: "ecs"
 
   org-setup-command:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        MODULE_PATH: command/org-setup-command
+    image: ${DOCKER_USERNAME}/erm-org-setup-command:latest
     container_name: erm-org-setup-command
     environment:
       SPRING_PROFILES_ACTIVE: prod
@@ -160,11 +136,7 @@ services:
         awslogs-stream-prefix: "ecs"
 
   user-setup:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        MODULE_PATH: command/user-command
+    image: ${DOCKER_USERNAME}/erm-user-setup:latest
     container_name: erm-user-setup
     environment:
       SPRING_PROFILES_ACTIVE: prod
@@ -187,11 +159,7 @@ services:
         awslogs-stream-prefix: "ecs"
 
   storage:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        MODULE_PATH: command/storage
+    image: ${DOCKER_USERNAME}/erm-storage:latest
     container_name: erm-storage
     environment:
       SPRING_PROFILES_ACTIVE: prod
@@ -214,11 +182,7 @@ services:
         awslogs-stream-prefix: "ecs"
 
   user-query:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        MODULE_PATH: query/user-query
+    image: ${DOCKER_USERNAME}/erm-user-query:latest
     container_name: erm-user-query
     environment:
       SERVER_PORT: 8087
@@ -243,11 +207,7 @@ services:
         awslogs-stream-prefix: "ecs"
 
   org-setup-query:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        MODULE_PATH: query/org-setup-query
+    image: ${DOCKER_USERNAME}/erm-org-setup-query:latest
     container_name: erm-org-setup-query
     environment:
       SERVER_PORT: 8088
