@@ -13,17 +13,19 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      
       - name: Test SSH Connection
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          port: 22
+          port: ${{ secrets.EC2_PORT || '22' }}
           debug: true
           script: |
             whoami
             hostname
+      
       - name: Copy project to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -31,23 +33,95 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT || '22' }}
-          source: ".dockerignore,Dockerfile,docker-compose.yml,pom.xml,README.md,discovery-server,erm-api-gateway,ERM_backend,command,query,docker"
+          source: ".dockerignore,Dockerfile,docker-compose.ec2.yml,pom.xml,README.md,discovery-server,erm-api-gateway,ERM_backend,command,query,docker"
           target: ${{ secrets.EC2_APP_DIR }}
           overwrite: true
           strip_components: 0
 
-      - name: Deploy with Docker Compose
+      - name: Create .env.ec2 configuration
         uses: appleboy/ssh-action@v1.0.3
-        env:
-          MYSQL_HOST_PORT: ${{ secrets.MYSQL_HOST_PORT || '3307' }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT || '22' }}
-          envs: MYSQL_HOST_PORT
+          script: |
+            mkdir -p "${{ secrets.EC2_APP_DIR }}"
+            cat > "${{ secrets.EC2_APP_DIR }}/.env.ec2" << 'EOF'
+AWS_REGION=${{ secrets.AWS_REGION }}
+AWS_RDS_ENDPOINT=${{ secrets.AWS_RDS_ENDPOINT }}
+AWS_RDS_PORT=${{ secrets.AWS_RDS_PORT || 3306 }}
+AWS_RDS_USERNAME=${{ secrets.AWS_RDS_USERNAME }}
+AWS_RDS_PASSWORD=${{ secrets.AWS_RDS_PASSWORD }}
+AWS_REDIS_ENDPOINT=${{ secrets.AWS_REDIS_ENDPOINT }}
+AWS_REDIS_PORT=${{ secrets.AWS_REDIS_PORT || 6379 }}
+EOF
+      
+      - name: Deploy Infrastructure Services (Discovery Server)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT || '22' }}
           script: |
             set -e
-            mkdir -p "${{ secrets.EC2_APP_DIR }}"
             cd "${{ secrets.EC2_APP_DIR }}"
-            docker compose up --build -d --remove-orphans
+            docker compose --env-file .env.ec2 -f docker-compose.ec2.yml -p erm up -d --build discovery-server
+            echo "Waiting for Discovery Server to be ready..."
+            sleep 10
+      
+      - name: Deploy Core Microservices
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT || '22' }}
+          script: |
+            set -e
+            cd "${{ secrets.EC2_APP_DIR }}"
+            echo "Deploying core microservices..."
+            docker compose --env-file .env.ec2 -f docker-compose.ec2.yml -p erm up -d --build \
+              erm-backend \
+              erm-command-organization \
+              erm-query-organization \
+              org-setup-command \
+              user-setup \
+              storage \
+              user-query \
+              org-setup-query
+            echo "Waiting for microservices to stabilize..."
+            sleep 15
+      
+      - name: Deploy API Gateway
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT || '22' }}
+          script: |
+            set -e
+            cd "${{ secrets.EC2_APP_DIR }}"
+            echo "Deploying API Gateway..."
+            docker compose --env-file .env.ec2 -f docker-compose.ec2.yml -p erm up -d --build erm-api-gateway
+            sleep 5
+            echo "Deployment complete!"
+            docker compose --env-file .env.ec2 -f docker-compose.ec2.yml -p erm ps
+      
+      - name: Verify Deployment
+        uses: appleboy/ssh-action@v1.0.3
+        continue-on-error: true
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT || '22' }}
+          script: |
+            cd "${{ secrets.EC2_APP_DIR }}"
+            echo "Service Status:"
+            docker compose --env-file .env.ec2 -f docker-compose.ec2.yml -p erm ps
+            echo ""
+            echo "Recent logs from API Gateway:"
+            docker compose --env-file .env.ec2 -f docker-compose.ec2.yml -p erm logs --tail=20 erm-api-gateway

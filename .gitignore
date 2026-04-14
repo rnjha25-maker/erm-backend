@@ -1,0 +1,66 @@
+# Environment files
+.env
+.env.local
+.env.ec2
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Docker
+.docker/
+docker.log
+
+# Maven
+target/
+.classpath
+.project
+.settings/
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+
+# Node
+node_modules/
+
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Build
+dist/
+build/
+
+# Dependencies
+node_modules/
+vendor/
+
+# IDE
+workspace.xml
+*.iws
+*.iml
+.gradle/
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db

@@ -1,0 +1,272 @@
+version: '3.8'
+
+# EC2 Deployment Configuration
+# Uses AWS RDS MySQL and ElastiCache Redis
+# All services are deployed separately with individual startup commands
+
+services:
+  discovery-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_PATH: discovery-server
+    container_name: erm-discovery-server
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "8761:8761"
+    restart: unless-stopped
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-group: "/ecs/erm-discovery-server"
+        awslogs-region: "${AWS_REGION:-us-east-1}"
+        awslogs-stream-prefix: "ecs"
+
+  erm-api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_PATH: erm-api-gateway
+    container_name: erm-api-gateway
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
+      SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
+      SPRING_DATA_REDIS_PORT: ${AWS_REDIS_PORT:-6379}
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://localhost:8761/eureka/
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    depends_on:
+      - discovery-server
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-group: "/ecs/erm-api-gateway"
+        awslogs-region: "${AWS_REGION:-us-east-1}"
+        awslogs-stream-prefix: "ecs"
+
+  erm-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_PATH: ERM_backend
+    container_name: erm-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
+      SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
+      SPRING_DATA_REDIS_PORT: ${AWS_REDIS_PORT:-6379}
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+    ports:
+      - "8086:8086"
+    restart: unless-stopped
+    depends_on:
+      - discovery-server
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-group: "/ecs/erm-backend"
+        awslogs-region: "${AWS_REGION:-us-east-1}"
+        awslogs-stream-prefix: "ecs"
+
+  erm-command-organization:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_PATH: command/erm-command-organization
+    container_name: erm-command-organization
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
+      SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
+      SPRING_DATA_REDIS_PORT: ${AWS_REDIS_PORT:-6379}
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+    ports:
+      - "8081:8081"
+    restart: unless-stopped
+    depends_on:
+      - discovery-server
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-group: "/ecs/erm-command-organization"
+        awslogs-region: "${AWS_REGION:-us-east-1}"
+        awslogs-stream-prefix: "ecs"
+
+  erm-query-organization:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_PATH: query/erm-query-organization
+    container_name: erm-query-organization
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
+      SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
+      SPRING_DATA_REDIS_PORT: ${AWS_REDIS_PORT:-6379}
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+    ports:
+      - "8082:8082"
+    restart: unless-stopped
+    depends_on:
+      - discovery-server
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-group: "/ecs/erm-query-organization"
+        awslogs-region: "${AWS_REGION:-us-east-1}"
+        awslogs-stream-prefix: "ecs"
+
+  org-setup-command:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_PATH: command/org-setup-command
+    container_name: erm-org-setup-command
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
+      SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
+      SPRING_DATA_REDIS_PORT: ${AWS_REDIS_PORT:-6379}
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+    ports:
+      - "8083:8083"
+    restart: unless-stopped
+    depends_on:
+      - discovery-server
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-group: "/ecs/erm-org-setup-command"
+        awslogs-region: "${AWS_REGION:-us-east-1}"
+        awslogs-stream-prefix: "ecs"
+
+  user-setup:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_PATH: command/user-command
+    container_name: erm-user-setup
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
+      SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
+      SPRING_DATA_REDIS_PORT: ${AWS_REDIS_PORT:-6379}
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+    ports:
+      - "8084:8084"
+    restart: unless-stopped
+    depends_on:
+      - discovery-server
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-group: "/ecs/erm-user-setup"
+        awslogs-region: "${AWS_REGION:-us-east-1}"
+        awslogs-stream-prefix: "ecs"
+
+  storage:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_PATH: command/storage
+    container_name: erm-storage
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
+      SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
+      SPRING_DATA_REDIS_PORT: ${AWS_REDIS_PORT:-6379}
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+    ports:
+      - "8085:8085"
+    restart: unless-stopped
+    depends_on:
+      - discovery-server
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-group: "/ecs/erm-storage"
+        awslogs-region: "${AWS_REGION:-us-east-1}"
+        awslogs-stream-prefix: "ecs"
+
+  user-query:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_PATH: query/user-query
+    container_name: erm-user-query
+    environment:
+      SERVER_PORT: 8087
+      SPRING_APPLICATION_NAME: user-query
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
+      SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
+      SPRING_DATA_REDIS_PORT: ${AWS_REDIS_PORT:-6379}
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+    ports:
+      - "8087:8087"
+    restart: unless-stopped
+    depends_on:
+      - discovery-server
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-group: "/ecs/erm-user-query"
+        awslogs-region: "${AWS_REGION:-us-east-1}"
+        awslogs-stream-prefix: "ecs"
+
+  org-setup-query:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_PATH: query/org-setup-query
+    container_name: erm-org-setup-query
+    environment:
+      SERVER_PORT: 8088
+      SPRING_APPLICATION_NAME: org-setup-query
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
+      SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
+      SPRING_DATA_REDIS_PORT: ${AWS_REDIS_PORT:-6379}
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+    ports:
+      - "8088:8088"
+    restart: unless-stopped
+    depends_on:
+      - discovery-server
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-group: "/ecs/erm-org-setup-query"
+        awslogs-region: "${AWS_REGION:-us-east-1}"
+        awslogs-stream-prefix: "ecs"
