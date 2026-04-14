@@ -47,15 +47,15 @@ jobs:
           port: ${{ secrets.EC2_PORT || '22' }}
           script: |
             mkdir -p "${{ secrets.EC2_APP_DIR }}"
-            cat > "${{ secrets.EC2_APP_DIR }}/.env.ec2" << 'EOF'
-AWS_REGION=${{ secrets.AWS_REGION }}
-AWS_RDS_ENDPOINT=${{ secrets.AWS_RDS_ENDPOINT }}
-AWS_RDS_PORT=${{ secrets.AWS_RDS_PORT || 3306 }}
-AWS_RDS_USERNAME=${{ secrets.AWS_RDS_USERNAME }}
-AWS_RDS_PASSWORD=${{ secrets.AWS_RDS_PASSWORD }}
-AWS_REDIS_ENDPOINT=${{ secrets.AWS_REDIS_ENDPOINT }}
-AWS_REDIS_PORT=${{ secrets.AWS_REDIS_PORT || 6379 }}
-EOF
+            cat > "${{ secrets.EC2_APP_DIR }}/.env.ec2" << EOF
+            AWS_REGION=${{ secrets.AWS_REGION }}
+            AWS_RDS_ENDPOINT=${{ secrets.AWS_RDS_ENDPOINT }}
+            AWS_RDS_PORT=${{ secrets.AWS_RDS_PORT != '' && secrets.AWS_RDS_PORT || '3306' }}
+            AWS_RDS_USERNAME=${{ secrets.AWS_RDS_USERNAME }}
+            AWS_RDS_PASSWORD=${{ secrets.AWS_RDS_PASSWORD }}
+            AWS_REDIS_ENDPOINT=${{ secrets.AWS_REDIS_ENDPOINT }}
+            AWS_REDIS_PORT=${{ secrets.AWS_REDIS_PORT != '' && secrets.AWS_REDIS_PORT || '6379' }}
+            EOF
       
       - name: Deploy Infrastructure Services (Discovery Server)
         uses: appleboy/ssh-action@v1.0.3
