@@ -7,67 +7,143 @@ on:
   workflow_dispatch:
 
 jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build and test with Maven
+        run: mvn clean package -DskipTests
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Build and push discovery-server image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: MODULE_PATH=discovery-server
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-discovery-server:latest,${{ secrets.DOCKER_HUB_USERNAME }}/erm-discovery-server:${{ github.sha }}
+
+      - name: Build and push erm-api-gateway image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: MODULE_PATH=erm-api-gateway
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-api-gateway:latest,${{ secrets.DOCKER_HUB_USERNAME }}/erm-api-gateway:${{ github.sha }}
+
+      - name: Build and push erm-backend image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: MODULE_PATH=ERM_backend
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-backend:latest,${{ secrets.DOCKER_HUB_USERNAME }}/erm-backend:${{ github.sha }}
+
+      - name: Build and push erm-command-organization image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: MODULE_PATH=command/erm-command-organization
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-command-organization:latest,${{ secrets.DOCKER_HUB_USERNAME }}/erm-command-organization:${{ github.sha }}
+
+      - name: Build and push erm-query-organization image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: MODULE_PATH=query/erm-query-organization
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-query-organization:latest,${{ secrets.DOCKER_HUB_USERNAME }}/erm-query-organization:${{ github.sha }}
+
+      - name: Build and push erm-org-setup-command image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: MODULE_PATH=command/org-setup-command
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-org-setup-command:latest,${{ secrets.DOCKER_HUB_USERNAME }}/erm-org-setup-command:${{ github.sha }}
+
+      - name: Build and push erm-user-setup image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: MODULE_PATH=command/user-command
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-user-setup:latest,${{ secrets.DOCKER_HUB_USERNAME }}/erm-user-setup:${{ github.sha }}
+
+      - name: Build and push erm-storage image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: MODULE_PATH=command/storage
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-storage:latest,${{ secrets.DOCKER_HUB_USERNAME }}/erm-storage:${{ github.sha }}
+
+      - name: Build and push erm-user-query image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: MODULE_PATH=query/user-query
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-user-query:latest,${{ secrets.DOCKER_HUB_USERNAME }}/erm-user-query:${{ github.sha }}
+
+      - name: Build and push erm-org-setup-query image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: MODULE_PATH=query/org-setup-query
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-org-setup-query:latest,${{ secrets.DOCKER_HUB_USERNAME }}/erm-org-setup-query:${{ github.sha }}
+
   deploy:
+    needs: build-and-push
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Test SSH connection
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: ${{ secrets.EC2_PORT || '22' }}
-          debug: true
-          script: |
-            whoami
-            hostname
-            mkdir -p "${{ secrets.EC2_APP_DIR }}"
-
-      - name: Copy project source to EC2
+      - name: Copy docker-compose file to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT || '22' }}
-          source: |
-            .dockerignore,
-            Dockerfile,
-            docker-compose.ec2.yml,
-            pom.xml,
-            discovery-server,
-            erm-api-gateway,
-            ERM_backend,
-            command,
-            query
+          source: docker-compose.ec2.yml
           target: ${{ secrets.EC2_APP_DIR }}
           overwrite: true
           strip_components: 0
 
-      - name: Create EC2 environment file
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: ${{ secrets.EC2_PORT || '22' }}
-          script: |
-            mkdir -p "${{ secrets.EC2_APP_DIR }}"
-            cat > "${{ secrets.EC2_APP_DIR }}/.env.ec2" << 'EOF'
-            AWS_REGION=${{ secrets.AWS_REGION }}
-            AWS_RDS_ENDPOINT=${{ secrets.AWS_RDS_ENDPOINT }}
-            AWS_RDS_PORT=${{ secrets.AWS_RDS_PORT != '' && secrets.AWS_RDS_PORT || '3306' }}
-            AWS_RDS_USERNAME=${{ secrets.AWS_RDS_USERNAME }}
-            AWS_RDS_PASSWORD=${{ secrets.AWS_RDS_PASSWORD }}
-            AWS_REDIS_ENDPOINT=${{ secrets.AWS_REDIS_ENDPOINT }}
-            AWS_REDIS_PORT=${{ secrets.AWS_REDIS_PORT != '' && secrets.AWS_REDIS_PORT || '6379' }}
-            EOF
-
-      - name: Deploy with Docker Compose on EC2
+      - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -77,29 +153,40 @@ jobs:
           script: |
             set -e
             cd "${{ secrets.EC2_APP_DIR }}"
+            
+            # Create environment file with Docker Hub credentials
+            cat > .env.ec2 << 'EOF'
+            DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}
+            IMAGE_TAG=latest
+            AWS_REGION=${{ secrets.AWS_REGION }}
+            AWS_RDS_ENDPOINT=${{ secrets.AWS_RDS_ENDPOINT }}
+            AWS_RDS_PORT=${{ secrets.AWS_RDS_PORT != '' && secrets.AWS_RDS_PORT || '3306' }}
+            AWS_RDS_USERNAME=${{ secrets.AWS_RDS_USERNAME }}
+            AWS_RDS_PASSWORD=${{ secrets.AWS_RDS_PASSWORD }}
+            AWS_REDIS_ENDPOINT=${{ secrets.AWS_REDIS_ENDPOINT }}
+            AWS_REDIS_PORT=${{ secrets.AWS_REDIS_PORT != '' && secrets.AWS_REDIS_PORT || '6379' }}
+            EOF
+            
+            # Source environment
             set -a
             source .env.ec2
             set +a
+            
             if command -v docker-compose >/dev/null 2>&1; then
               DC="docker-compose"
             else
               DC="docker compose"
             fi
+            
+            echo "Pulling latest images from Docker Hub..."
+            $DC -f docker-compose.ec2.yml pull
+            
             echo "Stopping existing containers if present..."
             $DC -f docker-compose.ec2.yml down || true
-            echo "Building images with docker build..."
-            docker build -t erm-discovery-server:latest --build-arg MODULE_PATH=discovery-server -f Dockerfile .
-            docker build -t erm-api-gateway:latest --build-arg MODULE_PATH=erm-api-gateway -f Dockerfile .
-            docker build -t erm-backend:latest --build-arg MODULE_PATH=ERM_backend -f Dockerfile .
-            docker build -t erm-command-organization:latest --build-arg MODULE_PATH=command/erm-command-organization -f Dockerfile .
-            docker build -t erm-query-organization:latest --build-arg MODULE_PATH=query/erm-query-organization -f Dockerfile .
-            docker build -t erm-org-setup-command:latest --build-arg MODULE_PATH=command/org-setup-command -f Dockerfile .
-            docker build -t erm-user-setup:latest --build-arg MODULE_PATH=command/user-command -f Dockerfile .
-            docker build -t erm-storage:latest --build-arg MODULE_PATH=command/storage -f Dockerfile .
-            docker build -t erm-user-query:latest --build-arg MODULE_PATH=query/user-query -f Dockerfile .
-            docker build -t erm-org-setup-query:latest --build-arg MODULE_PATH=query/org-setup-query -f Dockerfile .
-            echo "Starting containers from built images..."
+            
+            echo "Starting containers..."
             $DC -f docker-compose.ec2.yml up -d
+            
             echo "Deployment complete"
             $DC -f docker-compose.ec2.yml ps
 
