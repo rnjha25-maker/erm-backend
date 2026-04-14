@@ -1,5 +1,3 @@
-version: '3.8'
-
 # EC2 Deployment Configuration
 # Uses AWS RDS MySQL and ElastiCache Redis
 # All services are deployed separately with individual startup commands
