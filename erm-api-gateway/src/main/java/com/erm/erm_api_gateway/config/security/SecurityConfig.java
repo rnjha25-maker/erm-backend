@@ -1,7 +1,6 @@
 package com.erm.erm_api_gateway.config.security;
 
 import java.util.Arrays;
-import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -26,65 +25,71 @@ import com.erm.erm_api_gateway.filter.JwtRequestFilter;
 @EnableWebFluxSecurity
 public class SecurityConfig {
 
-	private JwtRequestFilter jwtRequestFilter;
+    private final JwtRequestFilter jwtRequestFilter;
 
-	@Value("${allowed.origins}")
-	private String[] allowedOrigin; // String allowedOrigin;
+    @Value("${allowed.origins}")
+    private String[] allowedOrigins;
 
-	public SecurityConfig(JwtRequestFilter jwtRequestFilter) {
-		this.jwtRequestFilter = jwtRequestFilter;
-	}
+    public SecurityConfig(JwtRequestFilter jwtRequestFilter) {
+        this.jwtRequestFilter = jwtRequestFilter;
+    }
 
-	@Bean
-	public SecurityWebFilterChain securityFilterChain(ServerHttpSecurity http,
-			ReactiveAuthenticationManager authManager, ServerAuthenticationConverter authConverter) throws Exception {
+    private static final String[] PUBLIC_PATHS = {
+            "/authenticate/**", "/verify-otp", "/",
+            "/swagger-ui/**", "/swagger-ui.html",
+            "/webjars/**", "/v3/api-docs/**",
+            "/favicon.ico", "/.well-known/**",
+            "/org/**", "/query-org/**", "/org-setup/**",
+            "/user-setup/**", "/storage/**", "/erm/**"
+    };
 
-		AuthenticationWebFilter authenticationWebFilter = new AuthenticationWebFilter(jwtRequestFilter);
-		authenticationWebFilter.setServerAuthenticationConverter(authConverter);
+    @Bean
+    public SecurityWebFilterChain securityFilterChain(
+            ServerHttpSecurity http,
+            ReactiveAuthenticationManager authManager,
+            ServerAuthenticationConverter authConverter) {
 
-		return http.csrf(csrf -> csrf.disable()).cors().configurationSource(request -> {
-			CorsConfiguration corsConfig = new CorsConfiguration();
-			corsConfig.setAllowedOriginPatterns(Arrays.asList(allowedOrigin));
-//                    corsConfig.addAllowedOrigin(allowedOrigin);
-			corsConfig.addAllowedMethod("*");
-			corsConfig.addAllowedHeader("*");
-			corsConfig.setAllowCredentials(true);
-			return corsConfig;
-		}).and().authorizeExchange()
-				.pathMatchers("/authenticate/**", "/verify-otp", "/",
-					    "/swagger-ui/**", "/swagger-ui.html",
-					    "/webjars/**",
-					    "/v3/api-docs", "/v3/api-docs/**",
-					    "/favicon.ico",
-					    "/org/swagger-ui/**", "/query-org/swagger-ui/**", 
-					    "/org-setup/swagger-ui/**", "/user-setup/swagger-ui/**", 
-					    "/storage/swagger-ui/**", "/erm/swagger-ui/**",
-					    "/v3/api-docs/**",
-					    "/swagger-ui.html",
-					    "/swagger-ui/**",
-					    "/webjars/**",
-					    "/favicon.ico",
-					    "/.well-known/**")
-				.permitAll().anyExchange().authenticated().and()
-				.securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
+        AuthenticationWebFilter authFilter = new AuthenticationWebFilter(jwtRequestFilter);
+        authFilter.setServerAuthenticationConverter(authConverter);
+
+        return http
+                .csrf(csrf -> csrf.disable())
+
+                // ✅ Modern CORS config (no deprecated usage)
+                .cors(cors -> cors.configurationSource(exchange -> {
+                    CorsConfiguration config = new CorsConfiguration();
+                    config.setAllowedOriginPatterns(Arrays.asList(allowedOrigins));
+                    config.addAllowedHeader("*");
+                    config.addAllowedMethod("*");
+                    config.setAllowCredentials(true);
+                    return config;
+                }))
+
+                .authorizeExchange(exchange -> exchange
+                        .pathMatchers(PUBLIC_PATHS).permitAll()
+                        .anyExchange().authenticated()
+                )
+
+                .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
 
                 .authenticationManager(jwtRequestFilter)
 
-				.addFilterAt(authenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
-				.addFilterAt(new JwtFilter(jwtRequestFilter), SecurityWebFiltersOrder.AUTHENTICATION).build();
+                .addFilterAt(authFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+                .addFilterAt(new JwtFilter(jwtRequestFilter), SecurityWebFiltersOrder.AUTHENTICATION)
 
-	}
+                .build();
+    }
 
-	@Bean
-	public WebFilter logRequestUrl() {
-	    return (exchange, chain) -> {
-	        System.out.println("Request: " + exchange.getRequest().getURI());
-	        return chain.filter(exchange);
-	    };
-	}
-	@Bean
-	public PasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder();
-	}
+    @Bean
+    public WebFilter logRequestUrl() {
+        return (exchange, chain) -> {
+            System.out.println("Request: " + exchange.getRequest().getURI());
+            return chain.filter(exchange);
+        };
+    }
 
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 }
