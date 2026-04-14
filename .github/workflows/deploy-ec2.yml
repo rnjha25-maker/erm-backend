@@ -67,7 +67,8 @@ jobs:
           script: |
             set -e
             cd "${{ secrets.EC2_APP_DIR }}"
-            docker compose --env-file .env.ec2 -f docker-compose.ec2.yml -p erm up -d --build discovery-server
+            export $(cat .env.ec2 | grep -v '^#' | xargs)
+            docker-compose -f docker-compose.ec2.yml -p erm up -d --build discovery-server
             echo "Waiting for Discovery Server to be ready..."
             sleep 10
       
@@ -81,8 +82,9 @@ jobs:
           script: |
             set -e
             cd "${{ secrets.EC2_APP_DIR }}"
+            export $(cat .env.ec2 | grep -v '^#' | xargs)
             echo "Deploying core microservices..."
-            docker compose --env-file .env.ec2 -f docker-compose.ec2.yml -p erm up -d --build \
+            docker-compose -f docker-compose.ec2.yml -p erm up -d --build \
               erm-backend \
               erm-command-organization \
               erm-query-organization \
@@ -104,11 +106,12 @@ jobs:
           script: |
             set -e
             cd "${{ secrets.EC2_APP_DIR }}"
+            export $(cat .env.ec2 | grep -v '^#' | xargs)
             echo "Deploying API Gateway..."
-            docker compose --env-file .env.ec2 -f docker-compose.ec2.yml -p erm up -d --build erm-api-gateway
+            docker-compose -f docker-compose.ec2.yml -p erm up -d --build erm-api-gateway
             sleep 5
             echo "Deployment complete!"
-            docker compose --env-file .env.ec2 -f docker-compose.ec2.yml -p erm ps
+            docker-compose -f docker-compose.ec2.yml -p erm ps
       
       - name: Verify Deployment
         uses: appleboy/ssh-action@v1.0.3
@@ -120,8 +123,9 @@ jobs:
           port: ${{ secrets.EC2_PORT || '22' }}
           script: |
             cd "${{ secrets.EC2_APP_DIR }}"
+            export $(cat .env.ec2 | grep -v '^#' | xargs)
             echo "Service Status:"
-            docker compose --env-file .env.ec2 -f docker-compose.ec2.yml -p erm ps
+            docker-compose -f docker-compose.ec2.yml -p erm ps
             echo ""
             echo "Recent logs from API Gateway:"
-            docker compose --env-file .env.ec2 -f docker-compose.ec2.yml -p erm logs --tail=20 erm-api-gateway
+            docker-compose -f docker-compose.ec2.yml -p erm logs --tail=20 erm-api-gateway
