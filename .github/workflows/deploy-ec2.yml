@@ -87,8 +87,19 @@ jobs:
             fi
             echo "Stopping existing containers if present..."
             $DC -f docker-compose.ec2.yml down || true
-            echo "Building and starting containers..."
-            $DC -f docker-compose.ec2.yml up -d --build
+            echo "Building images with docker build..."
+            docker build -t erm-discovery-server:latest --build-arg MODULE_PATH=discovery-server -f Dockerfile .
+            docker build -t erm-api-gateway:latest --build-arg MODULE_PATH=erm-api-gateway -f Dockerfile .
+            docker build -t erm-backend:latest --build-arg MODULE_PATH=ERM_backend -f Dockerfile .
+            docker build -t erm-command-organization:latest --build-arg MODULE_PATH=command/erm-command-organization -f Dockerfile .
+            docker build -t erm-query-organization:latest --build-arg MODULE_PATH=query/erm-query-organization -f Dockerfile .
+            docker build -t erm-org-setup-command:latest --build-arg MODULE_PATH=command/org-setup-command -f Dockerfile .
+            docker build -t erm-user-setup:latest --build-arg MODULE_PATH=command/user-command -f Dockerfile .
+            docker build -t erm-storage:latest --build-arg MODULE_PATH=command/storage -f Dockerfile .
+            docker build -t erm-user-query:latest --build-arg MODULE_PATH=query/user-query -f Dockerfile .
+            docker build -t erm-org-setup-query:latest --build-arg MODULE_PATH=query/org-setup-query -f Dockerfile .
+            echo "Starting containers from built images..."
+            $DC -f docker-compose.ec2.yml up -d
             echo "Deployment complete"
             $DC -f docker-compose.ec2.yml ps
 
