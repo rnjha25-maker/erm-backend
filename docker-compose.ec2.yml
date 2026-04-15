@@ -223,8 +223,7 @@ services:
     depends_on:
       - discovery-server
     logging:
-      driver: "awslogs"
+      driver: "json-file"
       options:
-        awslogs-group: "/ecs/erm-org-setup-query"
-        awslogs-region: "${AWS_REGION:-us-east-1}"
-        awslogs-stream-prefix: "ecs"
+        max-size: "10m"
+        max-file: "3"
