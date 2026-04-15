@@ -12,11 +12,10 @@ services:
       - "8761:8761"
     restart: unless-stopped
     logging:
-      driver: "awslogs"
+      driver: "json-file"
       options:
-        awslogs-group: "/ecs/erm-discovery-server"
-        awslogs-region: "${AWS_REGION:-us-east-1}"
-        awslogs-stream-prefix: "ecs"
+        max-size: "10m"
+        max-file: "3"
 
   erm-api-gateway:
     image: ${DOCKER_HUB_USERNAME}/erm-api-gateway:${IMAGE_TAG:-latest}
@@ -35,11 +34,10 @@ services:
     depends_on:
       - discovery-server
     logging:
-      driver: "awslogs"
+      driver: "json-file"
       options:
-        awslogs-group: "/ecs/erm-api-gateway"
-        awslogs-region: "${AWS_REGION:-us-east-1}"
-        awslogs-stream-prefix: "ecs"
+        max-size: "10m"
+        max-file: "3"
 
   erm-backend:
     image: ${DOCKER_HUB_USERNAME}/erm-backend:${IMAGE_TAG:-latest}
@@ -58,11 +56,10 @@ services:
     depends_on:
       - discovery-server
     logging:
-      driver: "awslogs"
+      driver: "json-file"
       options:
-        awslogs-group: "/ecs/erm-backend"
-        awslogs-region: "${AWS_REGION:-us-east-1}"
-        awslogs-stream-prefix: "ecs"
+        max-size: "10m"
+        max-file: "3"
 
   erm-command-organization:
     image: ${DOCKER_HUB_USERNAME}/erm-command-organization:${IMAGE_TAG:-latest}
@@ -81,11 +78,10 @@ services:
     depends_on:
       - discovery-server
     logging:
-      driver: "awslogs"
+      driver: "json-file"
       options:
-        awslogs-group: "/ecs/erm-command-organization"
-        awslogs-region: "${AWS_REGION:-us-east-1}"
-        awslogs-stream-prefix: "ecs"
+        max-size: "10m"
+        max-file: "3"
 
   erm-query-organization:
     image: ${DOCKER_HUB_USERNAME}/erm-query-organization:${IMAGE_TAG:-latest}
@@ -104,11 +100,10 @@ services:
     depends_on:
       - discovery-server
     logging:
-      driver: "awslogs"
+      driver: "json-file"
       options:
-        awslogs-group: "/ecs/erm-query-organization"
-        awslogs-region: "${AWS_REGION:-us-east-1}"
-        awslogs-stream-prefix: "ecs"
+        max-size: "10m"
+        max-file: "3"
 
   org-setup-command:
     image: ${DOCKER_HUB_USERNAME}/erm-org-setup-command:${IMAGE_TAG:-latest}
@@ -127,11 +122,10 @@ services:
     depends_on:
       - discovery-server
     logging:
-      driver: "awslogs"
+      driver: "json-file"
       options:
-        awslogs-group: "/ecs/erm-org-setup-command"
-        awslogs-region: "${AWS_REGION:-us-east-1}"
-        awslogs-stream-prefix: "ecs"
+        max-size: "10m"
+        max-file: "3"
 
   user-setup:
     image: ${DOCKER_HUB_USERNAME}/erm-user-setup:${IMAGE_TAG:-latest}
@@ -150,11 +144,10 @@ services:
     depends_on:
       - discovery-server
     logging:
-      driver: "awslogs"
+      driver: "json-file"
       options:
-        awslogs-group: "/ecs/erm-user-setup"
-        awslogs-region: "${AWS_REGION:-us-east-1}"
-        awslogs-stream-prefix: "ecs"
+        max-size: "10m"
+        max-file: "3"
 
   storage:
     image: ${DOCKER_HUB_USERNAME}/erm-storage:${IMAGE_TAG:-latest}
@@ -173,11 +166,10 @@ services:
     depends_on:
       - discovery-server
     logging:
-      driver: "awslogs"
+      driver: "json-file"
       options:
-        awslogs-group: "/ecs/erm-storage"
-        awslogs-region: "${AWS_REGION:-us-east-1}"
-        awslogs-stream-prefix: "ecs"
+        max-size: "10m"
+        max-file: "3"
 
   user-query:
     image: ${DOCKER_HUB_USERNAME}/erm-user-query:${IMAGE_TAG:-latest}
@@ -198,11 +190,10 @@ services:
     depends_on:
       - discovery-server
     logging:
-      driver: "awslogs"
+      driver: "json-file"
       options:
-        awslogs-group: "/ecs/erm-user-query"
-        awslogs-region: "${AWS_REGION:-us-east-1}"
-        awslogs-stream-prefix: "ecs"
+        max-size: "10m"
+        max-file: "3"
 
   org-setup-query:
     image: ${DOCKER_HUB_USERNAME}/erm-org-setup-query:${IMAGE_TAG:-latest}
