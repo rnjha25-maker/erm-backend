@@ -1,18 +1,27 @@
-# EC2 Deployment Configuration
-# Uses AWS RDS MySQL and ElastiCache Redis
-# Images pulled from Docker Hub (built and pushed by GitHub Actions)
-
 services:
+
   discovery-server:
     image: ${DOCKER_HUB_USERNAME}/erm-discovery-server:${IMAGE_TAG:-latest}
     container_name: erm-discovery-server
+
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      JAVA_TOOL_OPTIONS: >
+        -Xms128m -Xmx256m
+        -XX:+UseG1GC
+        -XX:MaxGCPauseMillis=200
+
+      SPRING_MAIN_LAZY_INITIALIZATION: true
+
     ports:
       - "8761:8761"
+
     restart: unless-stopped
+    mem_limit: 512m
+    cpus: 0.5
+
     logging:
-      driver: "json-file"
+      driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
@@ -20,21 +29,41 @@ services:
   erm-api-gateway:
     image: ${DOCKER_HUB_USERNAME}/erm-api-gateway:${IMAGE_TAG:-latest}
     container_name: erm-api-gateway
+
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=true&serverTimezone=UTC
+      JAVA_TOOL_OPTIONS: >
+        -Xms128m -Xmx256m
+        -XX:+UseG1GC
+        -XX:MaxGCPauseMillis=200
+
+      SPRING_MAIN_LAZY_INITIALIZATION: true
+      SERVER_TOMCAT_THREADS_MAX: 50
+
+      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&useSSL=true
       SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
+
       SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
       SPRING_DATA_REDIS_PORT: ${AWS_REDIS_PORT:-6379}
-      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://localhost:8761/eureka/
+
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 5
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: 2
+
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+
     ports:
       - "8080:8080"
-    restart: unless-stopped
+
     depends_on:
       - discovery-server
+
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 0.5
+
     logging:
-      driver: "json-file"
+      driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
@@ -42,179 +71,113 @@ services:
   erm-backend:
     image: ${DOCKER_HUB_USERNAME}/erm-backend:${IMAGE_TAG:-latest}
     container_name: erm-backend
+
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=true&serverTimezone=UTC
+      JAVA_TOOL_OPTIONS: >
+        -Xms128m -Xmx256m
+        -XX:+UseG1GC
+        -XX:MaxGCPauseMillis=200
+
+      SPRING_MAIN_LAZY_INITIALIZATION: true
+      SERVER_TOMCAT_THREADS_MAX: 50
+
+      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&useSSL=true
       SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
+
       SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
       SPRING_DATA_REDIS_PORT: ${AWS_REDIS_PORT:-6379}
+
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 5
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: 2
+
       EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+
     ports:
       - "8086:8086"
-    restart: unless-stopped
+
     depends_on:
       - discovery-server
+
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 0.5
+
     logging:
-      driver: "json-file"
+      driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
+
+  # 🔁 Repeat same optimized pattern for all services
 
   erm-command-organization:
     image: ${DOCKER_HUB_USERNAME}/erm-command-organization:${IMAGE_TAG:-latest}
     container_name: erm-command-organization
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=true&serverTimezone=UTC
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx256m -XX:+UseG1GC"
+      SPRING_MAIN_LAZY_INITIALIZATION: true
+      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2
       SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
       SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
-      SPRING_DATA_REDIS_PORT: ${AWS_REDIS_PORT:-6379}
       EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
     ports:
       - "8081:8081"
     restart: unless-stopped
-    depends_on:
-      - discovery-server
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    mem_limit: 512m
+    cpus: 0.5
 
   erm-query-organization:
     image: ${DOCKER_HUB_USERNAME}/erm-query-organization:${IMAGE_TAG:-latest}
     container_name: erm-query-organization
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=true&serverTimezone=UTC
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx256m -XX:+UseG1GC"
+      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2
       SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
       SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
-      SPRING_DATA_REDIS_PORT: ${AWS_REDIS_PORT:-6379}
       EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
     ports:
       - "8082:8082"
     restart: unless-stopped
-    depends_on:
-      - discovery-server
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  org-setup-command:
-    image: ${DOCKER_HUB_USERNAME}/erm-org-setup-command:${IMAGE_TAG:-latest}
-    container_name: erm-org-setup-command
-    environment:
-      SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=true&serverTimezone=UTC
-      SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
-      SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
-      SPRING_DATA_REDIS_PORT: ${AWS_REDIS_PORT:-6379}
-      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
-    ports:
-      - "8083:8083"
-    restart: unless-stopped
-    depends_on:
-      - discovery-server
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  user-setup:
-    image: ${DOCKER_HUB_USERNAME}/erm-user-setup:${IMAGE_TAG:-latest}
-    container_name: erm-user-setup
-    environment:
-      SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=true&serverTimezone=UTC
-      SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
-      SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
-      SPRING_DATA_REDIS_PORT: ${AWS_REDIS_PORT:-6379}
-      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
-    ports:
-      - "8084:8084"
-    restart: unless-stopped
-    depends_on:
-      - discovery-server
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    mem_limit: 512m
+    cpus: 0.5
 
   storage:
     image: ${DOCKER_HUB_USERNAME}/erm-storage:${IMAGE_TAG:-latest}
     container_name: erm-storage
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=true&serverTimezone=UTC
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx256m -XX:+UseG1GC"
+      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2
       SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
       SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
-      SPRING_DATA_REDIS_PORT: ${AWS_REDIS_PORT:-6379}
       EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
     ports:
       - "8085:8085"
     restart: unless-stopped
-    depends_on:
-      - discovery-server
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    mem_limit: 512m
+    cpus: 0.5
 
   user-query:
     image: ${DOCKER_HUB_USERNAME}/erm-user-query:${IMAGE_TAG:-latest}
     container_name: erm-user-query
     environment:
       SERVER_PORT: 8087
-      SPRING_APPLICATION_NAME: user-query
       SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=true&serverTimezone=UTC
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx256m -XX:+UseG1GC"
+      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2
       SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
       SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
-      SPRING_DATA_REDIS_PORT: ${AWS_REDIS_PORT:-6379}
       EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
     ports:
       - "8087:8087"
     restart: unless-stopped
-    depends_on:
-      - discovery-server
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  org-setup-query:
-    image: ${DOCKER_HUB_USERNAME}/erm-org-setup-query:${IMAGE_TAG:-latest}
-    container_name: erm-org-setup-query
-    environment:
-      SERVER_PORT: 8088
-      SPRING_APPLICATION_NAME: org-setup-query
-      SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=true&serverTimezone=UTC
-      SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
-      SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
-      SPRING_DATA_REDIS_PORT: ${AWS_REDIS_PORT:-6379}
-      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
-    ports:
-      - "8088:8088"
-    restart: unless-stopped
-    depends_on:
-      - discovery-server
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    mem_limit: 512m
+    cpus: 0.5
