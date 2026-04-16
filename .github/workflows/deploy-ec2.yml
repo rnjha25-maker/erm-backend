@@ -27,14 +27,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      # Build and Push Services (your existing steps)
-      - name: Build & Push discovery-server
+      # ================== Build & Push Services ==================
+      - name: Build and push discovery-server
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -43,7 +43,7 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-discovery-server:latest
 
-      - name: Build & Push erm-api-gateway
+      - name: Build and push erm-api-gateway
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -52,43 +52,7 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-api-gateway:latest
 
-      - name: Build & Push erm-command-organization
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          build-args: MODULE_PATH=command/erm-command-organization
-          push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-command-organization:latest
-
-      - name: Build & Push org-setup-command
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          build-args: MODULE_PATH=command/org-setup-command
-          push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-org-setup-command:latest
-
-      - name: Build & Push user-setup-command
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          build-args: MODULE_PATH=command/user-command
-          push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-user-setup:latest
-
-      - name: Build & Push storage
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          build-args: MODULE_PATH=command/storage
-          push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-storage:latest
-
-      - name: Build & Push erm-backend
+      - name: Build and push erm-backend
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -97,7 +61,43 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-backend:latest
 
-      - name: Build & Push erm-query-organization
+      - name: Build and push erm-command-organization
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: MODULE_PATH=command/erm-command-organization
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-command-organization:latest
+
+      - name: Build and push org-setup-command
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: MODULE_PATH=command/org-setup-command
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-org-setup-command:latest
+
+      - name: Build and push user-setup-command
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: MODULE_PATH=command/user-command
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-user-setup:latest
+
+      - name: Build and push storage
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: MODULE_PATH=command/storage
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-storage:latest
+
+      - name: Build and push erm-query-organization
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -106,7 +106,7 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-query-organization:latest
 
-      - name: Build & Push user-query
+      - name: Build and push user-query
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -115,6 +115,7 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-user-query:latest
 
+  # ====================== DEPLOY JOB ======================
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -153,26 +154,34 @@ jobs:
             AWS_REDIS_ENDPOINT=${{ secrets.AWS_REDIS_ENDPOINT }}
             EOF
 
+            # Auto-detect Docker Compose version
+            if command -v docker-compose >/dev/null 2>&1; then
+              DC="docker-compose"
+              echo "Using Docker Compose V1"
+            else
+              DC="docker compose"
+              echo "Using Docker Compose V2"
+            fi
+
             echo "=== Cleaning old containers and images ==="
-            docker compose -f docker-compose.ec2.yml down -v --rmi all --remove-orphans || true
+            $DC -f docker-compose.ec2.yml down -v --rmi all --remove-orphans || true
 
             echo "=== Pulling fresh images from Docker Hub ==="
-            docker compose -f docker-compose.ec2.yml pull
+            $DC -f docker-compose.ec2.yml pull
 
             echo "=== Starting services in safe order ==="
-            docker compose -f docker-compose.ec2.yml up -d discovery-server
+            $DC -f docker-compose.ec2.yml up -d discovery-server
             sleep 15
 
-            docker compose -f docker-compose.ec2.yml up -d erm-api-gateway
+            $DC -f docker-compose.ec2.yml up -d erm-api-gateway
             sleep 10
 
-            docker compose -f docker-compose.ec2.yml up -d erm-command-organization org-setup-command user-setup-command storage
+            $DC -f docker-compose.ec2.yml up -d erm-command-organization org-setup-command user-setup-command storage
             sleep 25
 
-            docker compose -f docker-compose.ec2.yml up -d erm-backend erm-query-organization user-query
+            $DC -f docker-compose.ec2.yml up -d erm-backend erm-query-organization user-query
 
             echo "✅ Deployment Completed Successfully!"
-            echo "Container Status:"
-            docker compose -f docker-compose.ec2.yml ps
+            $DC -f docker-compose.ec2.yml ps
             echo "Memory Usage:"
             free -h
