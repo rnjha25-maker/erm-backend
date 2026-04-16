@@ -9,7 +9,7 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -33,7 +33,7 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      # ================== Build & Push Services ==================
+      # Build & Push Services
       - name: Build and push discovery-server
         uses: docker/build-push-action@v5
         with:
@@ -134,7 +134,7 @@ jobs:
           target: ${{ secrets.EC2_APP_DIR }}
           overwrite: true
 
-      - name: Deploy to EC2 (Clean + Fresh Pull)
+      - name: Deploy to EC2 (Very Safe Staggered)
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -143,6 +143,7 @@ jobs:
           script: |
             set -e
             cd "${{ secrets.EC2_APP_DIR }}"
+            export COMPOSE_PARALLEL_LIMIT=1
 
             echo "=== Creating .env file ==="
             cat > .env << 'EOF'
@@ -154,34 +155,50 @@ jobs:
             AWS_REDIS_ENDPOINT=${{ secrets.AWS_REDIS_ENDPOINT }}
             EOF
 
-            # Auto-detect Docker Compose version
+            # Detect docker compose command
             if command -v docker-compose >/dev/null 2>&1; then
               DC="docker-compose"
-              echo "Using Docker Compose V1"
             else
               DC="docker compose"
-              echo "Using Docker Compose V2"
             fi
 
-            echo "=== Cleaning old containers and images ==="
-            $DC -f docker-compose.ec2.yml down -v --rmi all --remove-orphans || true
+            echo "=== Reclaiming only unused Docker resources ==="
+            docker container prune -f || true
+            docker image prune -f || true
+            docker builder prune -f || true
 
-            echo "=== Pulling fresh images from Docker Hub ==="
+            echo "=== Pulling fresh images ==="
             $DC -f docker-compose.ec2.yml pull
 
-            echo "=== Starting services in safe order ==="
-            $DC -f docker-compose.ec2.yml up -d discovery-server
+            echo "=== Starting services VERY SLOWLY (Safe for t3.small) ==="
+
+            $DC -f docker-compose.ec2.yml up -d --no-deps discovery-server
+            sleep 20
+
+            $DC -f docker-compose.ec2.yml up -d --no-deps erm-api-gateway
             sleep 15
 
-            $DC -f docker-compose.ec2.yml up -d erm-api-gateway
+            $DC -f docker-compose.ec2.yml up -d --no-deps erm-command-organization
             sleep 10
 
-            $DC -f docker-compose.ec2.yml up -d erm-command-organization org-setup-command user-setup-command storage
-            sleep 25
+            $DC -f docker-compose.ec2.yml up -d --no-deps org-setup-command user-setup-command
+            sleep 15
 
-            $DC -f docker-compose.ec2.yml up -d erm-backend erm-query-organization user-query
+            $DC -f docker-compose.ec2.yml up -d --no-deps storage
+            sleep 10
 
-            echo "✅ Deployment Completed Successfully!"
+            $DC -f docker-compose.ec2.yml up -d --no-deps erm-backend
+            sleep 15
+
+            $DC -f docker-compose.ec2.yml up -d --no-deps erm-query-organization user-query
+
+            echo "=== Cleaning dangling images after rollout ==="
+            docker image prune -f || true
+
+            echo "Deployment completed successfully."
+            echo "Container Status:"
             $DC -f docker-compose.ec2.yml ps
             echo "Memory Usage:"
             free -h
+            echo "Top processes:"
+            top -bn1 | head -20
