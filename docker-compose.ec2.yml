@@ -1,6 +1,22 @@
+version: "3.9"
+
 name: erm
 
+x-common-env: &common-env
+  SPRING_PROFILES_ACTIVE: qa
+  EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+  SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&useSSL=true
+  SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
+  SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
+  SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
+
+x-common-resources: &common-resources
+  mem_limit: 256m
+  cpus: 0.25
+  restart: unless-stopped
+
 services:
+
   discovery-server:
     image: ${DOCKER_HUB_USERNAME}/erm-discovery-server:${IMAGE_TAG:-latest}
     container_name: erm-discovery-server
@@ -9,26 +25,19 @@ services:
       JAVA_TOOL_OPTIONS: -Xms64m -Xmx128m -XX:+UseG1GC
     ports:
       - "8761:8761"
-    mem_limit: 256m
-    cpus: 0.25
-    restart: unless-stopped
+    <<: *common-resources
 
   erm-api-gateway:
     image: ${DOCKER_HUB_USERNAME}/erm-api-gateway:${IMAGE_TAG:-latest}
     depends_on:
       - discovery-server
     environment:
-      SPRING_PROFILES_ACTIVE: qa
-      JAVA_TOOL_OPTIONS: -Xms96m -Xmx192m -XX:+UseG1GC
-      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
-      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&useSSL=true
-      SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
-      SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
+      <<: *common-env
+      JAVA_TOOL_OPTIONS: -Xms128m -Xmx256m -XX:+UseG1GC
     ports:
       - "8080:8080"
-    mem_limit: 320m
-    cpus: 0.4
+    mem_limit: 384m
+    cpus: 0.5
     restart: unless-stopped
 
   erm-command-organization:
@@ -36,117 +45,76 @@ services:
     depends_on:
       - discovery-server
     environment:
-      environment:
-      SPRING_PROFILES_ACTIVE: qa
-      JAVA_TOOL_OPTIONS: -Xms96m -Xmx192m -XX:+UseG1GC
-      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
-      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&useSSL=true
-      SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
-      SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
+      <<: *common-env
+      JAVA_TOOL_OPTIONS: -Xms96m -Xmx192m
     ports:
       - "8081:8081"
-    mem_limit: 256m
-    cpus: 0.25
-
-  org-setup-command:
-    image: ${DOCKER_HUB_USERNAME}/erm-org-setup-command:${IMAGE_TAG:-latest}
-    depends_on:
-      - discovery-server
-    environment:
-      SPRING_PROFILES_ACTIVE: qa
-      JAVA_TOOL_OPTIONS: -Xms96m -Xmx192m -XX:+UseG1GC
-      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
-      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&useSSL=true
-      SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
-      SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
-    mem_limit: 256m
-    cpus: 0.25
-    ports:
-      - "8083:8083"
-
-  user-setup-command:
-    image: ${DOCKER_HUB_USERNAME}/erm-user-setup:${IMAGE_TAG:-latest}
-    depends_on:
-      - discovery-server
-    environment:
-      SPRING_PROFILES_ACTIVE: qa
-      JAVA_TOOL_OPTIONS: -Xms96m -Xmx192m -XX:+UseG1GC
-      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
-      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&useSSL=true
-      SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
-      SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
-    mem_limit: 256m
-    cpus: 0.25
-    ports:
-      - "8084:8084"
-
-  storage:
-    image: ${DOCKER_HUB_USERNAME}/erm-storage:${IMAGE_TAG:-latest}
-    depends_on:
-      - discovery-server
-    environment:
-      SPRING_PROFILES_ACTIVE: qa
-      JAVA_TOOL_OPTIONS: -Xms96m -Xmx192m -XX:+UseG1GC
-      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
-      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&useSSL=true
-      SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
-      SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
-    mem_limit: 256m
-    cpus: 0.25
-    ports:
-      - "8085:8085"
-
-  erm-backend:
-    image: ${DOCKER_HUB_USERNAME}/erm-backend:${IMAGE_TAG:-latest}
-    depends_on:
-      - discovery-server
-    environment:
-      SPRING_PROFILES_ACTIVE: qa
-      JAVA_TOOL_OPTIONS: -Xms96m -Xmx192m -XX:+UseG1GC
-      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
-      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&useSSL=true
-      SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
-      SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
-    mem_limit: 320m
-    cpus: 0.4
-    ports:
-      - "8086:8086"
+    <<: *common-resources
 
   erm-query-organization:
     image: ${DOCKER_HUB_USERNAME}/erm-query-organization:${IMAGE_TAG:-latest}
     depends_on:
       - discovery-server
     environment:
-      SPRING_PROFILES_ACTIVE: qa
-      JAVA_TOOL_OPTIONS: -Xms96m -Xmx192m -XX:+UseG1GC
-      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
-      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&useSSL=true
-      SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
-      SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
-    mem_limit: 256m
-    cpus: 0.25
+      <<: *common-env
+      JAVA_TOOL_OPTIONS: -Xms96m -Xmx192m
     ports:
       - "8082:8082"
+    <<: *common-resources
+
+  org-setup-command:
+    image: ${DOCKER_HUB_USERNAME}/erm-org-setup-command:${IMAGE_TAG:-latest}
+    depends_on:
+      - discovery-server
+    environment:
+      <<: *common-env
+      JAVA_TOOL_OPTIONS: -Xms96m -Xmx192m
+    ports:
+      - "8083:8083"
+    <<: *common-resources
+
+  user-setup-command:
+    image: ${DOCKER_HUB_USERNAME}/erm-user-setup:${IMAGE_TAG:-latest}
+    depends_on:
+      - discovery-server
+    environment:
+      <<: *common-env
+      JAVA_TOOL_OPTIONS: -Xms96m -Xmx192m
+    ports:
+      - "8084:8084"
+    <<: *common-resources
+
+  storage:
+    image: ${DOCKER_HUB_USERNAME}/erm-storage:${IMAGE_TAG:-latest}
+    depends_on:
+      - discovery-server
+    environment:
+      <<: *common-env
+      JAVA_TOOL_OPTIONS: -Xms96m -Xmx192m
+    ports:
+      - "8085:8085"
+    <<: *common-resources
+
+  erm-backend:
+    image: ${DOCKER_HUB_USERNAME}/erm-backend:${IMAGE_TAG:-latest}
+    depends_on:
+      - discovery-server
+    environment:
+      <<: *common-env
+      JAVA_TOOL_OPTIONS: -Xms128m -Xmx256m
+    ports:
+      - "8086:8086"
+    mem_limit: 384m
+    cpus: 0.5
+    restart: unless-stopped
 
   user-query:
     image: ${DOCKER_HUB_USERNAME}/erm-user-query:${IMAGE_TAG:-latest}
     depends_on:
       - discovery-server
     environment:
-      SPRING_PROFILES_ACTIVE: qa
-      JAVA_TOOL_OPTIONS: -Xms96m -Xmx192m -XX:+UseG1GC
-      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
-      SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&useSSL=true
-      SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
-      SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
-    mem_limit: 256m
-    cpus: 0.25
+      <<: *common-env
+      JAVA_TOOL_OPTIONS: -Xms96m -Xmx192m
     ports:
       - "8087:8087"
+    <<: *common-resources
