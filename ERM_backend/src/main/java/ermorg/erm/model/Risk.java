@@ -23,14 +23,12 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@org.hibernate.annotations.Table(appliesTo = "risk", 
-	indexes = {
-		@org.hibernate.annotations.Index(name = "idx_risk_org_deleted", columnNames = {"organizationId", "deleted"}),
-		@org.hibernate.annotations.Index(name = "idx_risk_company_deleted", columnNames = {"companyId", "deleted"}),
-		@org.hibernate.annotations.Index(name = "idx_risk_org_id", columnNames = {"organizationId"}),
-		@org.hibernate.annotations.Index(name = "idx_risk_company_id", columnNames = {"companyId"})
-	}
-)
+@Table(name = "risk", indexes = {
+	@Index(name = "idx_risk_org_deleted", columnList = "organization_id, deleted"),
+	@Index(name = "idx_risk_company_deleted", columnList = "company_id, deleted"),
+	@Index(name = "idx_risk_org_id", columnList = "organization_id"),
+	@Index(name = "idx_risk_company_id", columnList = "company_id")
+})
 public class Risk extends BaseModel {
 	
 	@Column(name="risk_title")
