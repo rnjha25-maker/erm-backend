@@ -5,7 +5,7 @@ name: erm
 x-common-env: &common-env
   SPRING_PROFILES_ACTIVE: qa
   EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
-  SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm2?createDatabaseIfNotExist=true&useSSL=true
+  SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm?createDatabaseIfNotExist=true&useSSL=true
   SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
   SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
   SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
