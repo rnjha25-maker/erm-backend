@@ -4,7 +4,7 @@ name: erm
 
 x-common-env: &common-env
   SPRING_PROFILES_ACTIVE: qa
-  EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+  EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://erm-discovery-server:8761/eureka/
   SPRING_DATASOURCE_URL: jdbc:mysql://${AWS_RDS_ENDPOINT}:3306/erm?createDatabaseIfNotExist=true&useSSL=true
   SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
   SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
@@ -36,6 +36,7 @@ services:
 
   erm-api-gateway:
     image: ${DOCKER_HUB_USERNAME}/erm-api-gateway:${IMAGE_TAG:-latest}
+    container_name: erm-api-gateway
     depends_on:
       - discovery-server
     environment:
@@ -48,6 +49,7 @@ services:
 
   erm-backend:
     image: ${DOCKER_HUB_USERNAME}/erm-backend:${IMAGE_TAG:-latest}
+    container_name: erm-backend
     depends_on:
       - discovery-server
     environment:
@@ -60,6 +62,7 @@ services:
 
   erm-command-organization:
     image: ${DOCKER_HUB_USERNAME}/erm-command-organization:${IMAGE_TAG:-latest}
+    container_name: erm-command-organization
     depends_on:
       - discovery-server
     environment:
@@ -70,6 +73,7 @@ services:
 
   erm-query-organization:
     image: ${DOCKER_HUB_USERNAME}/erm-query-organization:${IMAGE_TAG:-latest}
+    container_name: erm-query-organization
     depends_on:
       - discovery-server
     environment:
@@ -80,6 +84,7 @@ services:
 
   storage:
     image: ${DOCKER_HUB_USERNAME}/erm-storage:${IMAGE_TAG:-latest}
+    container_name: erm-storage
     depends_on:
       - discovery-server
     environment:
@@ -90,6 +95,7 @@ services:
 
   user-query:
     image: ${DOCKER_HUB_USERNAME}/erm-user-query:${IMAGE_TAG:-latest}
+    container_name: erm-user-query
     depends_on:
       - discovery-server
     environment:
@@ -98,9 +104,10 @@ services:
       - "8087:8087"
     <<: *common-resources
 
-  # ✅ RUN-ONCE SERVICES (IMPORTANT FIX)
+  # ✅ RUN-ONCE SERVICES
   org-setup-command:
     image: ${DOCKER_HUB_USERNAME}/erm-org-setup-command:${IMAGE_TAG:-latest}
+    container_name: erm-org-setup-command
     depends_on:
       - discovery-server
     environment:
@@ -109,6 +116,7 @@ services:
 
   user-setup-command:
     image: ${DOCKER_HUB_USERNAME}/erm-user-setup:${IMAGE_TAG:-latest}
+    container_name: erm-user-setup-command
     depends_on:
       - discovery-server
     environment:
