@@ -11,9 +11,16 @@ x-common-env: &common-env
   SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
 
 x-common-resources: &common-resources
-  mem_limit: 256m
-  cpus: 0.25
+  mem_limit: 512m
+  cpus: 0.50
   restart: unless-stopped
+
+x-java-opts: &java-opts
+  JAVA_TOOL_OPTIONS: >
+    -XX:+UseContainerSupport
+    -XX:+UseG1GC
+    -XX:MaxRAMPercentage=70
+    -XX:InitialRAMPercentage=30
 
 services:
 
@@ -22,7 +29,7 @@ services:
     container_name: erm-discovery-server
     environment:
       SPRING_PROFILES_ACTIVE: qa
-      JAVA_TOOL_OPTIONS: -Xms64m -Xmx128m -XX:+UseG1GC
+      <<: *java-opts
     ports:
       - "8761:8761"
     <<: *common-resources
@@ -32,12 +39,23 @@ services:
     depends_on:
       - discovery-server
     environment:
-      <<: *common-env
-      JAVA_TOOL_OPTIONS: -Xms128m -Xmx256m -XX:+UseG1GC
+      <<: [*common-env, *java-opts]
     ports:
       - "8080:8080"
-    mem_limit: 384m
-    cpus: 0.5
+    mem_limit: 768m
+    cpus: 0.75
+    restart: unless-stopped
+
+  erm-backend:
+    image: ${DOCKER_HUB_USERNAME}/erm-backend:${IMAGE_TAG:-latest}
+    depends_on:
+      - discovery-server
+    environment:
+      <<: [*common-env, *java-opts]
+    ports:
+      - "8086:8086"
+    mem_limit: 768m
+    cpus: 0.75
     restart: unless-stopped
 
   erm-command-organization:
@@ -45,8 +63,7 @@ services:
     depends_on:
       - discovery-server
     environment:
-      <<: *common-env
-      JAVA_TOOL_OPTIONS: -Xms96m -Xmx192m
+      <<: [*common-env, *java-opts]
     ports:
       - "8081:8081"
     <<: *common-resources
@@ -56,32 +73,9 @@ services:
     depends_on:
       - discovery-server
     environment:
-      <<: *common-env
-      JAVA_TOOL_OPTIONS: -Xms96m -Xmx192m
+      <<: [*common-env, *java-opts]
     ports:
       - "8082:8082"
-    <<: *common-resources
-
-  org-setup-command:
-    image: ${DOCKER_HUB_USERNAME}/erm-org-setup-command:${IMAGE_TAG:-latest}
-    depends_on:
-      - discovery-server
-    environment:
-      <<: *common-env
-      JAVA_TOOL_OPTIONS: -Xms96m -Xmx192m
-    ports:
-      - "8083:8083"
-    <<: *common-resources
-
-  user-setup-command:
-    image: ${DOCKER_HUB_USERNAME}/erm-user-setup:${IMAGE_TAG:-latest}
-    depends_on:
-      - discovery-server
-    environment:
-      <<: *common-env
-      JAVA_TOOL_OPTIONS: -Xms96m -Xmx192m
-    ports:
-      - "8084:8084"
     <<: *common-resources
 
   storage:
@@ -89,32 +83,34 @@ services:
     depends_on:
       - discovery-server
     environment:
-      <<: *common-env
-      JAVA_TOOL_OPTIONS: -Xms96m -Xmx192m
+      <<: [*common-env, *java-opts]
     ports:
       - "8085:8085"
     <<: *common-resources
-
-  erm-backend:
-    image: ${DOCKER_HUB_USERNAME}/erm-backend:${IMAGE_TAG:-latest}
-    depends_on:
-      - discovery-server
-    environment:
-      <<: *common-env
-      JAVA_TOOL_OPTIONS: -Xms128m -Xmx256m
-    ports:
-      - "8086:8086"
-    mem_limit: 384m
-    cpus: 0.5
-    restart: unless-stopped
 
   user-query:
     image: ${DOCKER_HUB_USERNAME}/erm-user-query:${IMAGE_TAG:-latest}
     depends_on:
       - discovery-server
     environment:
-      <<: *common-env
-      JAVA_TOOL_OPTIONS: -Xms96m -Xmx192m
+      <<: [*common-env, *java-opts]
     ports:
       - "8087:8087"
     <<: *common-resources
+
+  # ✅ RUN-ONCE SERVICES (IMPORTANT FIX)
+  org-setup-command:
+    image: ${DOCKER_HUB_USERNAME}/erm-org-setup-command:${IMAGE_TAG:-latest}
+    depends_on:
+      - discovery-server
+    environment:
+      <<: [*common-env, *java-opts]
+    restart: "no"
+
+  user-setup-command:
+    image: ${DOCKER_HUB_USERNAME}/erm-user-setup:${IMAGE_TAG:-latest}
+    depends_on:
+      - discovery-server
+    environment:
+      <<: [*common-env, *java-opts]
+    restart: "no"

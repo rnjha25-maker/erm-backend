@@ -11,7 +11,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.erm</groupId>
+    <groupId>ermorg.erm</groupId>
     <artifactId>erm-parent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
