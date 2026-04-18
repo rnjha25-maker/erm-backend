@@ -13,8 +13,8 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:admin}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
-      minimum-idle: 5
-      maximum-pool-size: 10
+      minimum-idle: 1
+      maximum-pool-size: 3
       idle-timeout: 30000
       pool-name: HikariPool-1
       max-lifetime: 1800000
