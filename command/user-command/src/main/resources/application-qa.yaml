@@ -6,7 +6,7 @@ spring:
 #  main:
 #    web-application-type: reactive
   datasource:
-    url: jdbc:mysql://database-1.c7yocm6g6c1b.ap-south-1.rds.amazonaws.com:3306/erm
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/erm}
     username: ${SPRING_DATASOURCE_USERNAME:root}
     password: ${SPRING_DATASOURCE_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
