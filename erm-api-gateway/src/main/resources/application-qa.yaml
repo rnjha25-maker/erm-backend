@@ -36,28 +36,27 @@ spring:
           predicates:
             - Path=/org/**
           filters:
-            - StripPrefix=1
-
+           - StripPrefix=1
         - id: erm-query-organization
           uri: lb://ERM-QUERY-ORGANIZATION
           predicates:
             - Path=/query-org/**
           filters:
-            - StripPrefix=1
-
+           - StripPrefix=1
+           
         - id: org-setup-command
-          uri: lb://ERM-ORG-SETUP-COMMAND
+          uri: lb://ORG-SETUP-COMMAND
           predicates:
             - Path=/org-setup/**
           filters:
-            - StripPrefix=1
-
+           - StripPrefix=1
+           
         - id: user-setup
-          uri: lb://ERM-USER-SETUP-COMMAND
+          uri: lb://USER-SETUP
           predicates:
             - Path=/user/**
           filters:
-            - StripPrefix=1
+           - StripPrefix=1
 
       discovery:
         locator:

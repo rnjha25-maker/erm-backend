@@ -37,20 +37,14 @@ spring:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}
-  #  redis:
-#    port: 6379
-#  logging:
-#  level:
-#    org.springframework.cache: DEBUG
-
-  eureka:
-    client:
-      service-url:
-        defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE:http://erm-discovery-server:8761/eureka/}
-      register-with-eureka: true
-      fetch-registry: true
-    server:
-      enable-self-preservation: false
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE:http://erm-discovery-server:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  server:
+    enable-self-preservation: false
 
 aws:
   access:
@@ -60,6 +54,3 @@ aws:
     access:
       key: ${AWS_SECRET_ACCESS_KEY:}
   region: ${AWS_REGION:ap-south-1}
-#logging:
-#  level:
-#    org.springframework.security: DEBUG
