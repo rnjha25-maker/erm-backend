@@ -5,46 +5,45 @@ spring:
   application:
     name: erm-query-organization
 
+  # ====================== Database ======================
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+
     hikari:
       minimum-idle: 2
       maximum-pool-size: 3
       idle-timeout: 30000
-      pool-name: HikariPool-1
       max-lifetime: 1800000
       connection-timeout: 20000
-  jpa:
-      hibernate:
-        ddl-auto: update
-      properties:
-        hibernate:
-          dialect: org.hibernate.dialect.MySQL8Dialect
-        show-sql: false
+      pool-name: HikariPool-ERM-Query
 
-  cloud:
-    gateway:
-      discovery:
-        locator:
-          enabled: true
-cache:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+      show-sql: false
+
+  # ====================== Redis & Cache ======================
+  cache:
     type: redis
+
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      timeout: 6000
+
+  # ====================== Logging ======================
   logging:
     level:
       org.springframework.cache: DEBUG
 
-  data:
-    redis:
-      host: ${SPRING_DATA_REDIS_HOST}
-      port: ${SPRING_DATA_REDIS_PORT:6379}
-      timeout: 6000
+  # ====================== Eureka ======================
 eureka:
   client:
     service-url:
@@ -53,3 +52,4 @@ eureka:
   instance:
     lease-renewal-interval-in-seconds: 10
     lease-expiration-duration-in-seconds: 30
+    prefer-ip-address: true   # Recommended for Docker
