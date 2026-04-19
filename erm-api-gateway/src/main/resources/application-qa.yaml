@@ -28,7 +28,6 @@ spring:
     show-sql: true
   cloud:
     gateway:
-      gateway:
       routes:
         - id: erm-command-organization
           uri: lb://ERM-COMMAND-ORGANIZATION
@@ -85,7 +84,7 @@ spring:
   eureka:
     client:
       service-url:
-        defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE:http://erm-discovery-server:8761/eureka/}
+        defaultZone: http://erm-discovery-server:8761/eureka/
       register-with-eureka: true
       fetch-registry: true
     server:

@@ -2,6 +2,7 @@ version: "3.9"
 
 name: erm
 
+# ================= COMMON CONFIG =================
 x-common-env: &common-env
   SPRING_PROFILES_ACTIVE: qa
   EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://erm-discovery-server:8761/eureka/
@@ -10,11 +11,6 @@ x-common-env: &common-env
   SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
   SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
 
-x-common-resources: &common-resources
-  mem_limit: 512m
-  cpus: 0.50
-  restart: unless-stopped
-
 x-java-opts: &java-opts
   JAVA_TOOL_OPTIONS: >
     -XX:+UseContainerSupport
@@ -22,8 +18,16 @@ x-java-opts: &java-opts
     -XX:MaxRAMPercentage=70
     -XX:InitialRAMPercentage=30
 
+x-common-resources: &common-resources
+  mem_limit: 256m
+  cpus: 0.25
+  restart: unless-stopped
+
+# ================= SERVICES =================
+
 services:
 
+  # ================= EUREKA =================
   discovery-server:
     image: ${DOCKER_HUB_USERNAME}/erm-discovery-server:${IMAGE_TAG:-latest}
     container_name: erm-discovery-server
@@ -32,84 +36,104 @@ services:
       <<: *java-opts
     ports:
       - "8761:8761"
-    <<: *common-resources
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 256m
+    cpus: 0.25
+    restart: unless-stopped
 
+  # ================= API GATEWAY =================
   erm-api-gateway:
     image: ${DOCKER_HUB_USERNAME}/erm-api-gateway:${IMAGE_TAG:-latest}
     container_name: erm-api-gateway
     depends_on:
-      - discovery-server
+      discovery-server:
+        condition: service_healthy
     environment:
       <<: [*common-env, *java-opts]
     ports:
       - "8080:8080"
-    mem_limit: 768m
-    cpus: 0.75
+    mem_limit: 512m
+    cpus: 0.50
     restart: unless-stopped
 
+  # ================= CORE BACKEND =================
   erm-backend:
     image: ${DOCKER_HUB_USERNAME}/erm-backend:${IMAGE_TAG:-latest}
     container_name: erm-backend
     depends_on:
-      - discovery-server
+      discovery-server:
+        condition: service_healthy
     environment:
       <<: [*common-env, *java-opts]
     ports:
       - "8086:8086"
-    mem_limit: 768m
-    cpus: 0.75
+    mem_limit: 512m
+    cpus: 0.50
     restart: unless-stopped
 
+  # ================= ORG COMMAND =================
   erm-command-organization:
     image: ${DOCKER_HUB_USERNAME}/erm-command-organization:${IMAGE_TAG:-latest}
     container_name: erm-command-organization
     depends_on:
-      - discovery-server
+      discovery-server:
+        condition: service_healthy
     environment:
       <<: [*common-env, *java-opts]
     ports:
       - "8081:8081"
     <<: *common-resources
 
+  # ================= ORG QUERY =================
   erm-query-organization:
     image: ${DOCKER_HUB_USERNAME}/erm-query-organization:${IMAGE_TAG:-latest}
     container_name: erm-query-organization
     depends_on:
-      - discovery-server
+      discovery-server:
+        condition: service_healthy
     environment:
       <<: [*common-env, *java-opts]
     ports:
       - "8082:8082"
     <<: *common-resources
 
+  # ================= STORAGE =================
   storage:
     image: ${DOCKER_HUB_USERNAME}/erm-storage:${IMAGE_TAG:-latest}
     container_name: erm-storage
     depends_on:
-      - discovery-server
+      discovery-server:
+        condition: service_healthy
     environment:
       <<: [*common-env, *java-opts]
     ports:
       - "8085:8085"
     <<: *common-resources
 
+  # ================= USER QUERY =================
   user-query:
     image: ${DOCKER_HUB_USERNAME}/erm-user-query:${IMAGE_TAG:-latest}
     container_name: erm-user-query
     depends_on:
-      - discovery-server
+      discovery-server:
+        condition: service_healthy
     environment:
       <<: [*common-env, *java-opts]
     ports:
       - "8087:8087"
     <<: *common-resources
 
-  # ✅ RUN-ONCE SERVICES
+  # ================= RUN-ONCE SETUP =================
   org-setup-command:
     image: ${DOCKER_HUB_USERNAME}/erm-org-setup-command:${IMAGE_TAG:-latest}
     container_name: erm-org-setup-command
     depends_on:
-      - discovery-server
+      discovery-server:
+        condition: service_healthy
     environment:
       <<: [*common-env, *java-opts]
     restart: "no"
@@ -118,7 +142,8 @@ services:
     image: ${DOCKER_HUB_USERNAME}/erm-user-setup:${IMAGE_TAG:-latest}
     container_name: erm-user-setup-command
     depends_on:
-      - discovery-server
+      discovery-server:
+        condition: service_healthy
     environment:
       <<: [*common-env, *java-opts]
     restart: "no"
