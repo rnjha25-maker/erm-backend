@@ -54,3 +54,6 @@ aws:
     access:
       key: ${AWS_SECRET_ACCESS_KEY:}
   region: ${AWS_REGION:ap-south-1}
+#logging:
+#  level:
+#    org.springframework.security: DEBUG

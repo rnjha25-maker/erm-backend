@@ -58,6 +58,20 @@ spring:
           filters:
            - StripPrefix=1
 
+        - id: storage
+          uri: lb://STORAGE
+          predicates:
+            - Path=/storage/**
+          filters:
+           - StripPrefix=1
+
+        - id: erm
+          uri: lb://ERM
+          predicates:
+            - Path=/erm/**
+          filters:
+           - StripPrefix=1
+
       discovery:
         locator:
           enabled: true
