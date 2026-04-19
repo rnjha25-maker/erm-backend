@@ -6,21 +6,15 @@ spring:
     name: erm-query-organization
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/erm}
-    username: ${SPRING_DATASOURCE_USERNAME:root}
-    password: ${SPRING_DATASOURCE_PASSWORD:}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    hikari:
-      minimum-idle: 2
-      maximum-pool-size: 5
-      idle-timeout: 30000
-      max-lifetime: 1800000
-      connection-timeout: 30000
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
 
   data:
     redis:
-      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      host: ${SPRING_DATA_REDIS_HOST}
       port: ${SPRING_DATA_REDIS_PORT:6379}
+      timeout: 6000
 
   jpa:
     hibernate:
@@ -30,32 +24,8 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE:http://erm-discovery-server:8761/eureka/}
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
 
-# ─────────────────────────────
-# DEV PROFILE
-# ─────────────────────────────
----
-spring:
-  config:
-    activate:
-      on-profile: dev
-
-  datasource:
-    url: jdbc:mysql://localhost:3306/erm2
-    username: root
-    password: admin
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    hikari:
-      minimum-idle: 5
-      maximum-pool-size: 10
-
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: true
-
-logging:
-  level:
-    org.springframework: INFO
-    org.hibernate.SQL: DEBUG
+  instance:
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30

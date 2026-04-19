@@ -19,6 +19,7 @@ spring:
       pool-name: HikariPool-1
       max-lifetime: 1800000
       connection-timeout: 20000
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -26,6 +27,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
     show-sql: true
+
   cloud:
     gateway:
       routes:
@@ -34,68 +36,45 @@ spring:
           predicates:
             - Path=/org/**
           filters:
-           - StripPrefix=1
+            - StripPrefix=1
+
         - id: erm-query-organization
           uri: lb://ERM-QUERY-ORGANIZATION
           predicates:
             - Path=/query-org/**
           filters:
-           - StripPrefix=1
-           
+            - StripPrefix=1
+
         - id: org-setup-command
           uri: lb://ORG-SETUP-COMMAND
           predicates:
             - Path=/org-setup/**
           filters:
-           - StripPrefix=1
-           
+            - StripPrefix=1
+
         - id: user-setup
           uri: lb://USER-SETUP
           predicates:
             - Path=/user/**
           filters:
-           - StripPrefix=1
-
-#      globalcors:
- #       cors-configurations:
-   #       '[/**]': # Applies to all paths
-     #       allowedOrigins: "http://localhost:3000"
-       #     allowedMethods: GET, POST, PUT, DELETE, OPTIONS
-        #    allowedHeaders: "*"
-          #  allowCredentials: true
+            - StripPrefix=1
 
       discovery:
         locator:
           enabled: true
           lower-case-service-id: true
-          
-         
 
-#  cache:
-#    type: redis
-#  data:
-#    redis:
-#      host: localhost
-#      port: 6379
-#  logging:
-#  level:
-#    org.springframework.cache: DEBUG
-            
-  eureka:
-    client:
-      service-url:
-        defaultZone: http://erm-discovery-server:8761/eureka/
-      register-with-eureka: true
-      fetch-registry: true
-    server:
-      enable-self-preservation: false
+# ✅ MOVE HERE (ROOT LEVEL)
+eureka:
+  client:
+    service-url:
+      defaultZone: http://erm-discovery-server:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+
+  server:
+    enable-self-preservation: false
 
 logging:
   level:
     org.springframework.security: DEBUG
-allowed:
- origins: http://13.49.137.46:8081,http://localhost:8081,http://localhost:3000,http://localhost:5173,http://fe-erm-webapp.s3-website-us-east-1.amazonaws.com,http://localhost:4200,http://frontend-webapp-erm.s3-website-us-east-1.amazonaws.com
-
- 
-    
-
