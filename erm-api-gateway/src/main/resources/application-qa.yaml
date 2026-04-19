@@ -46,14 +46,14 @@ spring:
             - StripPrefix=1
 
         - id: org-setup-command
-          uri: lb://ORG-SETUP-COMMAND
+          uri: lb://ERM-ORG-SETUP-COMMAND
           predicates:
             - Path=/org-setup/**
           filters:
             - StripPrefix=1
 
         - id: user-setup
-          uri: lb://USER-SETUP
+          uri: lb://ERM-USER-SETUP-COMMAND
           predicates:
             - Path=/user/**
           filters:
@@ -63,12 +63,12 @@ spring:
         locator:
           enabled: true
           lower-case-service-id: true
-
+          
 # ✅ MOVE HERE (ROOT LEVEL)
 eureka:
   client:
     service-url:
-      defaultZone: http://erm-discovery-server:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE:http://erm-discovery-server:8761/eureka/}
     register-with-eureka: true
     fetch-registry: true
 
