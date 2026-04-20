@@ -20,10 +20,10 @@ public class RiskResponse {
 	private String risktitle;
 	private String riskSource;
     private RiskCategory category;
-    private RiskSubCategory subCategory;
+    private String subCategory;
     private String exposure;
-    private Functions function;
-    private BusinessVertical businessVertical;
+    private int function;
+    private int businessVertical;
     private String businessSegment;
     private long riskOwnerId;
     private long riskChampionId;

@@ -39,14 +39,14 @@ public class Risk extends BaseModel {
 	
 	@Column(name="risk_category")
     private RiskCategory category;
-    private RiskSubCategory subCategory;
+    private String subCategory;
     private String exposure;
     
     @Column(name="business_function")
-    private Functions function;
+    private int function;
 	
 	@Column(name="business_vertical")
-    private BusinessVertical businessVertical;
+    private int businessVertical;
 	
 	@Column(name="business_segment")
     private String businessSegment;
