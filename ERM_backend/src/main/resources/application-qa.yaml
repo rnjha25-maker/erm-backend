@@ -1,11 +1,10 @@
-
 server:
   port: 8086
+
 spring:
   application:
     name: erm
-#  main:
-#    web-application-type: reactive
+
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/erm}
     username: ${SPRING_DATASOURCE_USERNAME:root}
@@ -18,6 +17,7 @@ spring:
       pool-name: HikariPool-1
       max-lifetime: 1800000
       connection-timeout: 20000
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -25,41 +25,30 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
 
-  cloud:
-    gateway:
-      discovery:
-        locator:
-          enabled: true
-
   cache:
     type: redis
+
   data:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}
-  #  redis:
-#    port: 6379
-#  logging:
-#  level:
-#    org.springframework.cache: DEBUG
 
-  eureka:
-    client:
-      service-url:
-        defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE:http://erm-discovery-server:8761/eureka/}
-      register-with-eureka: true
-      fetch-registry: true
-    server:
-      enable-self-preservation: false
+# ✅ MUST be outside spring
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE:http://erm-discovery-server:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
 
-aws:
-  access:
-    key:
-      id: ${AWS_ACCESS_KEY_ID:}
-  secret:
-    access:
-      key: ${AWS_SECRET_ACCESS_KEY:}
-  region: ${AWS_REGION:ap-south-1}
-#logging:
-#  level:
-#    org.springframework.security: DEBUG
+  instance:
+    prefer-ip-address: true
+
+# ✅ Standard AWS config (optional)
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY_ID}
+      secret-key: ${AWS_SECRET_ACCESS_KEY}
+    region:
+      static: ${AWS_REGION:ap-south-1}
