@@ -1,11 +1,10 @@
-
 server:
   port: 8085
+
 spring:
   application:
     name: storage
-#  main:
-#    web-application-type: reactive
+
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/erm}
     username: ${SPRING_DATASOURCE_USERNAME:root}
@@ -43,17 +42,13 @@ eureka:
       defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE:http://erm-discovery-server:8761/eureka/}
     register-with-eureka: true
     fetch-registry: true
-  server:
-    enable-self-preservation: false
+  instance:
+    prefer-ip-address: true
 
-aws:
-  access:
-    key:
-      id: ${AWS_ACCESS_KEY_ID:}
-  secret:
-    access:
-      key: ${AWS_SECRET_ACCESS_KEY:}
-  region: ${AWS_REGION:ap-south-1}
-#logging:
-#  level:
-#    org.springframework.security: DEBUG
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY_ID}
+      secret-key: ${AWS_SECRET_ACCESS_KEY}
+    region:
+      static: ${AWS_REGION:ap-south-1}
