@@ -1,10 +1,10 @@
 server:
   port: 8081
+
 spring:
   application:
     name: erm-command-organization
-#  main:
-#    web-application-type: reactive
+
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/erm}
     username: ${SPRING_DATASOURCE_USERNAME:root}
@@ -12,41 +12,27 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       minimum-idle: 1
-      maximum-pool-size: 3
+      maximum-pool-size: 2   # 🔥 reduce
       idle-timeout: 30000
-      pool-name: HikariPool-1
       max-lifetime: 1800000
       connection-timeout: 20000
+
   jpa:
     hibernate:
       ddl-auto: update
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.MySQL8Dialect
     show-sql: false
 
-  cloud:
-    gateway:
-      discovery:
-        locator:
-          enabled: true
-
-  cache:
-    type: redis
   data:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}
 
+# ✅ correct position
 eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE:http://erm-discovery-server:8761/eureka/}
     register-with-eureka: true
     fetch-registry: true
-  server:
-    enable-self-preservation: false
-
-logging:
-  level:
-    org.springframework.security: DEBUG
+  instance:
+    prefer-ip-address: true
