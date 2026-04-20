@@ -85,7 +85,6 @@ services:
         condition: service_healthy
     environment:
       <<: [*common-env, *java-opts]
-      SPRING_PROFILES_ACTIVE: qa
       logging.level.org.springframework: DEBUG
       logging.level.com.erm: DEBUG
       logging.level.root: INFO

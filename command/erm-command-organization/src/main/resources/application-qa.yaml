@@ -5,9 +5,6 @@ spring:
   application:
     name: erm-command-organization
 
-  profiles:
-    active: qa
-
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/erm}
     username: ${SPRING_DATASOURCE_USERNAME:root}
@@ -34,20 +31,17 @@ spring:
         pool:
           enabled: true
 
-  # Increase logging to find shutdown reason
+  # ================== LOGGING ==================
   logging:
     level:
       root: INFO
       org.springframework: DEBUG
-      com.erm: DEBUG
       org.springframework.boot: DEBUG
-      org.springframework.context: DEBUG
-      org.springframework.beans: DEBUG
+      com.erm: DEBUG
       com.zaxxer.hikari: DEBUG
       org.apache.catalina: INFO
-      org.eureka: DEBUG
 
-# Eureka Configuration
+# ================== EUREKA ==================
 eureka:
   client:
     service-url:
@@ -57,3 +51,13 @@ eureka:
   instance:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${server.port}
+
+# ================== ACTUATOR ==================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,loggers
+  endpoint:
+    health:
+      show-details: always
