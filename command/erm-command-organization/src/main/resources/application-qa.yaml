@@ -1,8 +1,9 @@
 server:
   port: 8081
+
+spring:
   application:
     name: erm-command-organization
-spring:
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
   datasource:
