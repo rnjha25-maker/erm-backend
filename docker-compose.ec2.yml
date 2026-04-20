@@ -8,6 +8,9 @@ x-common-env: &common-env
   SPRING_DATASOURCE_USERNAME: ${AWS_RDS_USERNAME}
   SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
   SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
+  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}   
+  AWS_REGION: ${AWS_REGION}
 
 x-java-opts: &java-opts
   JAVA_TOOL_OPTIONS: >
@@ -87,17 +90,17 @@ services:
     <<: *common-resources
 
   # ================= ORG QUERY =================
-  erm-query-organization:
-    image: ${DOCKER_HUB_USERNAME}/erm-query-organization:${IMAGE_TAG:-latest}
-    container_name: erm-query-organization
-    depends_on:
-      discovery-server:
-        condition: service_healthy
-    environment:
-      <<: [*common-env, *java-opts]
-    ports:
-      - "8082:8082"
-    <<: *common-resources
+  # erm-query-organization:
+  #   image: ${DOCKER_HUB_USERNAME}/erm-query-organization:${IMAGE_TAG:-latest}
+  #   container_name: erm-query-organization
+  #   depends_on:
+  #     discovery-server:
+  #       condition: service_healthy
+  #   environment:
+  #     <<: [*common-env, *java-opts]
+  #   ports:
+  #     - "8082:8082"
+  #   <<: *common-resources
 
   # ================= STORAGE =================
   storage:
@@ -113,17 +116,17 @@ services:
     <<: *common-resources
 
   # ================= USER QUERY =================
-  user-query:
-    image: ${DOCKER_HUB_USERNAME}/erm-user-query:${IMAGE_TAG:-latest}
-    container_name: erm-user-query
-    depends_on:
-      discovery-server:
-        condition: service_healthy
-    environment:
-      <<: [*common-env, *java-opts]
-    ports:
-      - "8087:8087"
-    <<: *common-resources
+  # user-query:
+  #   image: ${DOCKER_HUB_USERNAME}/erm-user-query:${IMAGE_TAG:-latest}
+  #   container_name: erm-user-query
+  #   depends_on:
+  #     discovery-server:
+  #       condition: service_healthy
+  #   environment:
+  #     <<: [*common-env, *java-opts]
+  #   ports:
+  #     - "8087:8087"
+  #   <<: *common-resources
 
   # ================= RUN-ONCE SETUP =================
   org-setup-command:
@@ -134,6 +137,8 @@ services:
         condition: service_healthy
     environment:
       <<: [*common-env, *java-opts]
+    ports:
+      - "8083:8083"
     restart: "no"
 
   user-setup-command:
@@ -144,4 +149,6 @@ services:
         condition: service_healthy
     environment:
       <<: [*common-env, *java-opts]
+    ports:
+      - "8084:8084"
     restart: "no"

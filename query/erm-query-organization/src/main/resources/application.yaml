@@ -1,5 +1,6 @@
 server:
   port: 8082
+
 spring:
   application:
     name: erm-query-organization
@@ -51,7 +52,7 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE:http://erm-discovery-server:8761/eureka/}
     register-with-eureka: true
     fetch-registry: true
   server:
