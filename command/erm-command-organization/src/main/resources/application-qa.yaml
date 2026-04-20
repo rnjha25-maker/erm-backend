@@ -4,7 +4,9 @@ server:
 spring:
   application:
     name: erm-command-organization
-
+spring:
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/erm}
     username: ${SPRING_DATASOURCE_USERNAME:root}
@@ -32,14 +34,14 @@ spring:
           enabled: true
 
   # ================== LOGGING ==================
-  logging:
-    level:
-      root: INFO
-      org.springframework: DEBUG
-      org.springframework.boot: DEBUG
-      com.erm: DEBUG
-      com.zaxxer.hikari: DEBUG
-      org.apache.catalina: INFO
+  # logging:
+  #   level:
+  #     root: INFO
+  #     org.springframework: DEBUG
+  #     org.springframework.boot: DEBUG
+  #     com.erm: DEBUG
+  #     com.zaxxer.hikari: DEBUG
+  #     org.apache.catalina: INFO
 
 # ================== EUREKA ==================
 eureka:

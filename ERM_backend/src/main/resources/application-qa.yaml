@@ -4,6 +4,9 @@ server:
 spring:
   application:
     name: erm
+spring:
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
 
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/erm}
@@ -26,7 +29,7 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
 
   cache:
-    type: redis
+    type: none
 
   data:
     redis:
