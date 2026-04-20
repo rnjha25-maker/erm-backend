@@ -85,9 +85,19 @@ services:
         condition: service_healthy
     environment:
       <<: [*common-env, *java-opts]
+      SPRING_PROFILES_ACTIVE: qa
+      logging.level.org.springframework: DEBUG
+      logging.level.com.erm: DEBUG
+      logging.level.root: INFO
     ports:
       - "8081:8081"
     <<: *common-resources
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 45s
 
   # ================= ORG QUERY =================
   # erm-query-organization:

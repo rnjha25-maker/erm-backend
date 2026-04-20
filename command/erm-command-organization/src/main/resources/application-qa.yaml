@@ -5,6 +5,9 @@ spring:
   application:
     name: erm-command-organization
 
+  profiles:
+    active: qa
+
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/erm}
     username: ${SPRING_DATASOURCE_USERNAME:root}
@@ -12,7 +15,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       minimum-idle: 1
-      maximum-pool-size: 2   # 🔥 reduce
+      maximum-pool-size: 3
       idle-timeout: 30000
       max-lifetime: 1800000
       connection-timeout: 20000
@@ -26,8 +29,25 @@ spring:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          enabled: true
 
-# ✅ correct position
+  # Increase logging to find shutdown reason
+  logging:
+    level:
+      root: INFO
+      org.springframework: DEBUG
+      com.erm: DEBUG
+      org.springframework.boot: DEBUG
+      org.springframework.context: DEBUG
+      org.springframework.beans: DEBUG
+      com.zaxxer.hikari: DEBUG
+      org.apache.catalina: INFO
+      org.eureka: DEBUG
+
+# Eureka Configuration
 eureka:
   client:
     service-url:
@@ -36,3 +56,4 @@ eureka:
     fetch-registry: true
   instance:
     prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
