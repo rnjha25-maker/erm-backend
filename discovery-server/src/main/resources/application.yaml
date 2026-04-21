@@ -9,8 +9,23 @@ eureka:
   client:
     register-with-eureka: false
     fetch-registry: false
+
+  instance:
+    hostname: ${EUREKA_HOSTNAME:erm-discovery-server}
+    prefer-ip-address: true
+
+  server:
+    enable-self-preservation: false          # ✅ better for small infra
+    eviction-interval-timer-in-ms: 10000     # ✅ faster cleanup
+    peer-node-read-timeout-ms: 10000         # ✅ FIXES your timeout issue
+
 management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,info
+
+logging:
+  level:
+    com.netflix.eureka: INFO
+    com.netflix.discovery: INFO

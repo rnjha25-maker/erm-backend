@@ -4,10 +4,12 @@ server:
 spring:
   application:
     name: erm-command-organization
+
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/erm}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://mysql:3306/erm}
     username: ${SPRING_DATASOURCE_USERNAME:root}
     password: ${SPRING_DATASOURCE_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -20,27 +22,19 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none   # ⚠️ use 'none' in production
     show-sql: false
 
-#  data:
-#    redis:
-#      host: ${SPRING_DATA_REDIS_HOST:localhost}
-#      port: ${SPRING_DATA_REDIS_PORT:6379}
-#      timeout: 2000ms
-#      lettuce:
-#        pool:
-#          enabled: true
+  main:
+    lazy-initialization: true   # 🚀 faster startup
 
-  # ================== LOGGING ==================
-  # logging:
-  #   level:
-  #     root: INFO
-  #     org.springframework: DEBUG
-  #     org.springframework.boot: DEBUG
-  #     com.erm: DEBUG
-  #     com.zaxxer.hikari: DEBUG
-  #     org.apache.catalina: INFO
+# ❌ REMOVE THIS (NOT A GATEWAY SERVICE)
+# spring:
+#   cloud:
+#     gateway:
+#       discovery:
+#         locator:
+#           enabled: true
 
 # ================== EUREKA ==================
 eureka:
@@ -49,16 +43,14 @@ eureka:
       defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE:http://erm-discovery-server:8761/eureka/}
     register-with-eureka: true
     fetch-registry: true
+
   instance:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${server.port}
 
-# ================== ACTUATOR ==================
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,env,loggers
-  endpoint:
-    health:
-      show-details: always
+# ================== LOGGING ==================
+logging:
+  level:
+    root: INFO
+    com.erm: DEBUG
+    org.springframework.security: WARN

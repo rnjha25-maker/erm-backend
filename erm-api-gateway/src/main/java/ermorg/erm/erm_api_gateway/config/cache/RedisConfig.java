@@ -1,5 +1,6 @@
 package ermorg.erm.erm_api_gateway.config.cache;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
@@ -13,6 +14,11 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 
 @Configuration
+@ConditionalOnProperty(
+    name = "app.redis.enabled",
+    havingValue = "true",
+    matchIfMissing = false
+)
 public class RedisConfig {
 
 	@SuppressWarnings("removal")
