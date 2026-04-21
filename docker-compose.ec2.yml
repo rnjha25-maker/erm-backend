@@ -9,7 +9,7 @@ x-common-env: &common-env
   SPRING_DATASOURCE_PASSWORD: ${AWS_RDS_PASSWORD}
   SPRING_DATA_REDIS_HOST: ${AWS_REDIS_ENDPOINT}
   AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}   
+  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
   AWS_REGION: ${AWS_REGION}
 
 x-java-opts: &java-opts
@@ -22,10 +22,9 @@ x-java-opts: &java-opts
 x-common-resources: &common-resources
   mem_limit: 256m
   cpus: 0.25
-  restart: no
+  restart: "no"
 
 # ================= SERVICES =================
-
 services:
 
   # ================= EUREKA =================
@@ -79,50 +78,50 @@ services:
       discovery-server:
         condition: service_healthy
     environment:
-      <<: [*common-env, *java-opts]        
+      <<: [*common-env, *java-opts]
     ports:
       - "8081:8081"
     restart: "no"
-   
 
-	# ================= ORG QUERY =================
-	erm-query-organization:
-	  image: ${DOCKER_HUB_USERNAME}/erm-query-organization:${IMAGE_TAG:-latest}
-	  container_name: erm-query-organization
-	  depends_on:
-	    discovery-server:
-	      condition: service_healthy
-	  environment:
-	    <<: [*common-env, *java-opts]
-	  ports:
-	    - "8082:8082"
-	  <<: *common-resources
+  # ================= ORG QUERY =================
+  erm-query-organization:
+    image: ${DOCKER_HUB_USERNAME}/erm-query-organization:${IMAGE_TAG:-latest}
+    container_name: erm-query-organization
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+    environment:
+      <<: [*common-env, *java-opts]
+    ports:
+      - "8082:8082"
+    <<: *common-resources
 
-	# ================= STORAGE =================
-	storage:
-	  image: ${DOCKER_HUB_USERNAME}/erm-storage:${IMAGE_TAG:-latest}
-	  container_name: erm-storage
-	  depends_on:
-	    discovery-server:
-	      condition: service_healthy
-	  environment:
-	    <<: [*common-env, *java-opts]
-	  ports:
-	    - "8085:8085"
-	  <<: *common-resources
+  # ================= STORAGE =================
+  storage:
+    image: ${DOCKER_HUB_USERNAME}/erm-storage:${IMAGE_TAG:-latest}
+    container_name: erm-storage
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+    environment:
+      <<: [*common-env, *java-opts]
+    ports:
+      - "8085:8085"
+    <<: *common-resources
 
-	# ================= USER QUERY =================
-	user-query:
-	  image: ${DOCKER_HUB_USERNAME}/erm-user-query:${IMAGE_TAG:-latest}
-	  container_name: erm-user-query
-	  depends_on:
-	    discovery-server:
-	      condition: service_healthy
-	  environment:
-	    <<: [*common-env, *java-opts]
-	  ports:
-	    - "8087:8087"
-	  <<: *common-resources
+  # ================= USER QUERY =================
+  user-query:
+    image: ${DOCKER_HUB_USERNAME}/erm-user-query:${IMAGE_TAG:-latest}
+    container_name: erm-user-query
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+    environment:
+      <<: [*common-env, *java-opts]
+    ports:
+      - "8087:8087"
+    <<: *common-resources
+
   # ================= RUN-ONCE SETUP =================
   org-setup-command:
     image: ${DOCKER_HUB_USERNAME}/erm-org-setup-command:${IMAGE_TAG:-latest}
