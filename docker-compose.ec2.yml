@@ -84,19 +84,16 @@ services:
       discovery-server:
         condition: service_healthy
     environment:
-      <<: [*common-env, *java-opts]
-      logging.level.org.springframework: DEBUG
-      logging.level.com.erm: DEBUG
-      logging.level.root: INFO
+      <<: [*common-env, *java-opts]        
     ports:
       - "8081:8081"
     <<: *common-resources
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
-      interval: 15s
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health/readiness"]
+      interval: 20s
       timeout: 10s
       retries: 12
-      start_period: 45s
+      start_period: 90s
 
   # ================= ORG QUERY =================
   # erm-query-organization:
@@ -112,17 +109,17 @@ services:
   #   <<: *common-resources
 
   # ================= STORAGE =================
-  storage:
-    image: ${DOCKER_HUB_USERNAME}/erm-storage:${IMAGE_TAG:-latest}
-    container_name: erm-storage
-    depends_on:
-      discovery-server:
-        condition: service_healthy
-    environment:
-      <<: [*common-env, *java-opts]
-    ports:
-      - "8085:8085"
-    <<: *common-resources
+  # storage:
+  #   image: ${DOCKER_HUB_USERNAME}/erm-storage:${IMAGE_TAG:-latest}
+  #   container_name: erm-storage
+  #   depends_on:
+  #     discovery-server:
+  #       condition: service_healthy
+  #   environment:
+  #     <<: [*common-env, *java-opts]
+  #   ports:
+  #     - "8085:8085"
+  #   <<: *common-resources
 
   # ================= USER QUERY =================
   # user-query:

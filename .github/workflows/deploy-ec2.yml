@@ -187,8 +187,6 @@ jobs:
             $DC -f docker-compose.ec2.yml up -d --no-deps org-setup-command user-setup-command
             sleep 15
 
-            $DC -f docker-compose.ec2.yml up -d --no-deps storage
-            sleep 10
 
             $DC -f docker-compose.ec2.yml up -d --no-deps erm-backend
             sleep 15
