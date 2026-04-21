@@ -107,7 +107,9 @@ services:
       <<: [*common-env, *java-opts]
     ports:
       - "8085:8085"
-    <<: *common-resources
+    mem_limit: 512m
+    cpus: 0.50
+    restart: "no"
 
   # ================= USER QUERY =================
   user-query:
