@@ -188,8 +188,13 @@ jobs:
             sleep 15
 
 
+            $DC -f docker-compose.ec2.yml up -d --no-deps storage
+            sleep 10
+
             $DC -f docker-compose.ec2.yml up -d --no-deps erm-backend
             sleep 15
+
+            $DC -f docker-compose.ec2.yml up -d --no-deps user-query
 
 
             echo "=== Cleaning dangling images after rollout ==="
