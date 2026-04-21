@@ -37,14 +37,9 @@ services:
       <<: *java-opts
     ports:
       - "8761:8761"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     mem_limit: 256m
     cpus: 0.25
-    restart: unless-stopped
+    restart: "no"
 
   # ================= API GATEWAY =================
   erm-api-gateway:
@@ -59,7 +54,7 @@ services:
       - "8080:8080"
     mem_limit: 512m
     cpus: 0.50
-    restart: unless-stopped
+    restart: "no"
 
   # ================= CORE BACKEND =================
   erm-backend:
@@ -74,7 +69,7 @@ services:
       - "8086:8086"
     mem_limit: 512m
     cpus: 0.50
-    restart: unless-stopped
+    restart: "no"
 
   # ================= ORG COMMAND =================
   erm-command-organization:
@@ -87,13 +82,8 @@ services:
       <<: [*common-env, *java-opts]        
     ports:
       - "8081:8081"
-    <<: *common-resources
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health/readiness"]
-      interval: 20s
-      timeout: 10s
-      retries: 12
-      start_period: 90s
+	restart: "no"
+   
 
   # ================= ORG QUERY =================
   # erm-query-organization:
