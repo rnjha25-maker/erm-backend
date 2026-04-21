@@ -22,7 +22,7 @@ x-java-opts: &java-opts
 x-common-resources: &common-resources
   mem_limit: 256m
   cpus: 0.25
-  restart: unless-stopped
+  restart: no
 
 # ================= SERVICES =================
 
@@ -85,45 +85,44 @@ services:
     restart: "no"
    
 
-  # ================= ORG QUERY =================
-  # erm-query-organization:
-  #   image: ${DOCKER_HUB_USERNAME}/erm-query-organization:${IMAGE_TAG:-latest}
-  #   container_name: erm-query-organization
-  #   depends_on:
-  #     discovery-server:
-  #       condition: service_healthy
-  #   environment:
-  #     <<: [*common-env, *java-opts]
-  #   ports:
-  #     - "8082:8082"
-  #   <<: *common-resources
+	# ================= ORG QUERY =================
+	erm-query-organization:
+	  image: ${DOCKER_HUB_USERNAME}/erm-query-organization:${IMAGE_TAG:-latest}
+	  container_name: erm-query-organization
+	  depends_on:
+	    discovery-server:
+	      condition: service_healthy
+	  environment:
+	    <<: [*common-env, *java-opts]
+	  ports:
+	    - "8082:8082"
+	  <<: *common-resources
 
-  # ================= STORAGE =================
-  # storage:
-  #   image: ${DOCKER_HUB_USERNAME}/erm-storage:${IMAGE_TAG:-latest}
-  #   container_name: erm-storage
-  #   depends_on:
-  #     discovery-server:
-  #       condition: service_healthy
-  #   environment:
-  #     <<: [*common-env, *java-opts]
-  #   ports:
-  #     - "8085:8085"
-  #   <<: *common-resources
+	# ================= STORAGE =================
+	storage:
+	  image: ${DOCKER_HUB_USERNAME}/erm-storage:${IMAGE_TAG:-latest}
+	  container_name: erm-storage
+	  depends_on:
+	    discovery-server:
+	      condition: service_healthy
+	  environment:
+	    <<: [*common-env, *java-opts]
+	  ports:
+	    - "8085:8085"
+	  <<: *common-resources
 
-  # ================= USER QUERY =================
-  # user-query:
-  #   image: ${DOCKER_HUB_USERNAME}/erm-user-query:${IMAGE_TAG:-latest}
-  #   container_name: erm-user-query
-  #   depends_on:
-  #     discovery-server:
-  #       condition: service_healthy
-  #   environment:
-  #     <<: [*common-env, *java-opts]
-  #   ports:
-  #     - "8087:8087"
-  #   <<: *common-resources
-
+	# ================= USER QUERY =================
+	user-query:
+	  image: ${DOCKER_HUB_USERNAME}/erm-user-query:${IMAGE_TAG:-latest}
+	  container_name: erm-user-query
+	  depends_on:
+	    discovery-server:
+	      condition: service_healthy
+	  environment:
+	    <<: [*common-env, *java-opts]
+	  ports:
+	    - "8087:8087"
+	  <<: *common-resources
   # ================= RUN-ONCE SETUP =================
   org-setup-command:
     image: ${DOCKER_HUB_USERNAME}/erm-org-setup-command:${IMAGE_TAG:-latest}
