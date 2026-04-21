@@ -4,48 +4,51 @@ server:
 spring:
   application:
     name: storage
+
+  # ❌ Remove Redis completely (since you are not using it)
   autoconfigure:
-    exclude: org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
 
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/erm}
     username: ${SPRING_DATASOURCE_USERNAME:root}
     password: ${SPRING_DATASOURCE_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
+
     hikari:
       minimum-idle: 1
-      maximum-pool-size: 3
+      maximum-pool-size: 2   # 🔽 reduced for small instance
       idle-timeout: 30000
-      pool-name: HikariPool-1
       max-lifetime: 1800000
       connection-timeout: 20000
+
   jpa:
     hibernate:
       ddl-auto: update
+    open-in-view: false   # ✅ prevents memory leaks
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: false
 
   cloud:
     gateway:
       discovery:
         locator:
           enabled: true
+          lower-case-service-id: true  # ✅ avoids routing issues
 
-  cache:
-    type: none
-  data:
-    redis:
-      host: ${SPRING_DATA_REDIS_HOST:localhost}
-      port: ${SPRING_DATA_REDIS_PORT:6379}
 eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE:http://erm-discovery-server:8761/eureka/}
     register-with-eureka: true
     fetch-registry: true
+
   instance:
     prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}  # ✅ avoids duplicate instances
 
 cloud:
   aws:

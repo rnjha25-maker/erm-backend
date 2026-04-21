@@ -4,7 +4,6 @@ server:
 spring:
   application:
     name: user-setup
-spring:
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
 
