@@ -82,7 +82,7 @@ services:
       <<: [*common-env, *java-opts]        
     ports:
       - "8081:8081"
-	restart: "no"
+    restart: "no"
    
 
   # ================= ORG QUERY =================
