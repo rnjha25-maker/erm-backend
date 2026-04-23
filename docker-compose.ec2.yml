@@ -80,7 +80,6 @@ services:
       <<: [*common-env, *java-opts]
     ports:
       - "8081:8081"
-    erm-command-organization:
     mem_limit: 300m
     cpus: 0.25
     restart: "no"
