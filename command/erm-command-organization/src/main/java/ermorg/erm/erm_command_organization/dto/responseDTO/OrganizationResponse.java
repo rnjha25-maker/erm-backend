@@ -98,7 +98,7 @@ public class OrganizationResponse {
 			this.planName = organization.getPlan().getPlanName();
 		}
 		
-		this.totalCompanies = organization.getCompanyCount();
+		this.totalCompanies = organization.getCompanyCount() == null ? 0 : organization.getCompanyCount();
 		this.isActive = "ACTIVE".equals(organization.getStatus());
 		this.createDate = organization.getCreatedAt();
 		

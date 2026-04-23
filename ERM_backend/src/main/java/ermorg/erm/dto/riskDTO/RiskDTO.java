@@ -1,11 +1,7 @@
 package ermorg.erm.dto.riskDTO;
 
 import java.util.List;
-
-import ermorg.erm.constant.BusinessVertical;
-import ermorg.erm.constant.Functions;
 import ermorg.erm.constant.RiskCategory;
-import ermorg.erm.constant.RiskSubCategory;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -19,8 +15,8 @@ public class RiskDTO {
     private RiskCategory category;
     private String subCategory;
     private String exposure;
-    private int function;
-    private int businessVertical;
+    private long function;
+    private long businessVertical;
     private String businessSegment;
     private long riskOwnerId;
     private long riskChampionId;

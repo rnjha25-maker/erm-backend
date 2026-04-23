@@ -225,9 +225,9 @@ public class OrganizationService implements IOrganizationService {
 		PlanHistory planHistory = new PlanHistory();
 		Plan plan = organization.getPlan();
 		
-		planHistory.setPlanDescription(plan.getPlanDescription());
-		planHistory.setPlanName(plan.getPlanName());
-		planHistory.setPlanId(plan.getId());
+		planHistory.setPlanDescription(plan == null ? null : plan.getPlanDescription());
+		planHistory.setPlanName(plan == null ? null :plan.getPlanName());
+		planHistory.setPlanId(plan == null ? null :plan.getId());
 		planHistory.setOperation(operation);
 		org.setPlan(planHistory);
 		

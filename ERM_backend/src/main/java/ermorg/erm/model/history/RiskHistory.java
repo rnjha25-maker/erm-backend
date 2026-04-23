@@ -3,30 +3,17 @@ package ermorg.erm.model.history;
 import java.util.ArrayList;
 import java.util.List;
 
-import ermorg.erm.constant.BusinessVertical;
-import ermorg.erm.constant.Functions;
-import ermorg.erm.constant.Impact;
-import ermorg.erm.constant.Likelihood;
-import ermorg.erm.constant.Period;
-import ermorg.erm.constant.Priority;
 import ermorg.erm.constant.RiskCategory;
-import ermorg.erm.constant.RiskSubCategory;
-import ermorg.erm.constant.Velocity;
 import ermorg.erm.model.BaseModel;
 import ermorg.erm.model.Branch;
-import ermorg.erm.model.Risk;
-import ermorg.erm.model.SubRisk;
 import ermorg.erm.model.User;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -49,10 +36,10 @@ public class RiskHistory extends BaseModel {
     private String exposure;
     
     @Column(name="business_function")
-    private int function;
+    private Long function;
 	
 	@Column(name="business_vertical")
-    private int businessVertical;
+    private Long businessVertical;
 	
 	@Column(name="business_segment")
     private String businessSegment;
