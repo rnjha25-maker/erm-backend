@@ -12,18 +12,15 @@ x-common-env: &common-env
   AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
   AWS_REGION: ${AWS_REGION}
 
-# ✅ FIXED JVM MEMORY (NO % BASED)
 x-java-opts: &java-opts
   JAVA_TOOL_OPTIONS: >
-    -Xms128m
-    -Xmx256m
-    -XX:+UseG1GC
-    -XX:+ExitOnOutOfMemoryError
+     -Xms128m
+     -Xmx256m
+     -XX:+UseG1GC
 
-# ✅ SAFE DEFAULT RESOURCE LIMIT
 x-common-resources: &common-resources
   mem_limit: 300m
-  cpus: 0.30
+  cpus: 0.25
   restart: "no"
 
 # ================= SERVICES =================
@@ -38,7 +35,7 @@ services:
       <<: *java-opts
     ports:
       - "8761:8761"
-    mem_limit: 256m
+    mem_limit: 300m
     cpus: 0.25
     restart: "no"
 
@@ -47,13 +44,14 @@ services:
     image: ${DOCKER_HUB_USERNAME}/erm-api-gateway:${IMAGE_TAG:-latest}
     container_name: erm-api-gateway
     depends_on:
-      - discovery-server
+      discovery-server:
+        condition: service_healthy
     environment:
       <<: [*common-env, *java-opts]
     ports:
       - "8080:8080"
-    mem_limit: 350m
-    cpus: 0.40
+    mem_limit: 400m
+    cpus: 0.50
     restart: "no"
 
   # ================= CORE BACKEND =================
@@ -61,13 +59,14 @@ services:
     image: ${DOCKER_HUB_USERNAME}/erm-backend:${IMAGE_TAG:-latest}
     container_name: erm-backend
     depends_on:
-      - discovery-server
+      discovery-server:
+        condition: service_healthy
     environment:
       <<: [*common-env, *java-opts]
     ports:
       - "8086:8086"
-    mem_limit: 350m
-    cpus: 0.40
+    mem_limit: 400m
+    cpus: 0.50
     restart: "no"
 
   # ================= ORG COMMAND =================
@@ -75,19 +74,24 @@ services:
     image: ${DOCKER_HUB_USERNAME}/erm-command-organization:${IMAGE_TAG:-latest}
     container_name: erm-command-organization
     depends_on:
-      - discovery-server
+      discovery-server:
+        condition: service_healthy
     environment:
       <<: [*common-env, *java-opts]
     ports:
       - "8081:8081"
-    <<: *common-resources
+    erm-command-organization:
+    mem_limit: 300m
+    cpus: 0.25
+    restart: "no"
 
   # ================= ORG QUERY =================
   # erm-query-organization:
   #   image: ${DOCKER_HUB_USERNAME}/erm-query-organization:${IMAGE_TAG:-latest}
   #   container_name: erm-query-organization
   #   depends_on:
-  #     - discovery-server
+  #     discovery-server:
+  #       condition: service_healthy
   #   environment:
   #     <<: [*common-env, *java-opts]
   #   ports:
@@ -113,7 +117,8 @@ services:
   #   image: ${DOCKER_HUB_USERNAME}/erm-user-query:${IMAGE_TAG:-latest}
   #   container_name: erm-user-query
   #   depends_on:
-  #     - discovery-server
+  #     discovery-server:
+  #       condition: service_healthy
   #   environment:
   #     <<: [*common-env, *java-opts]
   #   ports:
@@ -125,24 +130,22 @@ services:
     image: ${DOCKER_HUB_USERNAME}/erm-org-setup-command:${IMAGE_TAG:-latest}
     container_name: erm-org-setup-command
     depends_on:
-      - discovery-server
+      discovery-server:
+        condition: service_healthy
     environment:
       <<: [*common-env, *java-opts]
     ports:
       - "8083:8083"
-    mem_limit: 256m
-    cpus: 0.25
     restart: "no"
 
   user-setup-command:
     image: ${DOCKER_HUB_USERNAME}/erm-user-setup:${IMAGE_TAG:-latest}
     container_name: erm-user-setup-command
     depends_on:
-      - discovery-server
+      discovery-server:
+        condition: service_healthy
     environment:
       <<: [*common-env, *java-opts]
     ports:
       - "8084:8084"
-    mem_limit: 256m
-    cpus: 0.25
     restart: "no"
