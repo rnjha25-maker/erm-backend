@@ -1,8 +1,5 @@
 package ermorg.erm.erm_api_gateway.config.security;
 
-import java.util.Arrays;
-
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
@@ -15,7 +12,6 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
 import org.springframework.security.web.server.authentication.ServerAuthenticationConverter;
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
-import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.server.WebFilter;
 
 import ermorg.erm.erm_api_gateway.filter.JwtFilter;
@@ -26,9 +22,7 @@ import ermorg.erm.erm_api_gateway.filter.JwtRequestFilter;
 public class SecurityConfig {
 
     private final JwtRequestFilter jwtRequestFilter;
-
-    @Value("${allowed.origins}")
-    private String[] allowedOrigins;
+ 
 
     public SecurityConfig(JwtRequestFilter jwtRequestFilter) {
         this.jwtRequestFilter = jwtRequestFilter;
@@ -43,7 +37,7 @@ public class SecurityConfig {
             "/user-setup/**", "/storage/**", "/erm/**"
     };
 
-    @Bean
+    @Bean 
     public SecurityWebFilterChain securityFilterChain(
             ServerHttpSecurity http,
             ReactiveAuthenticationManager authManager,
@@ -54,24 +48,12 @@ public class SecurityConfig {
 
         return http
                 .csrf(csrf -> csrf.disable())
-
-                // ✅ Modern CORS config (no deprecated usage)
-                .cors(cors -> cors.configurationSource(exchange -> {
-                    CorsConfiguration config = new CorsConfiguration();
-                    config.setAllowedOriginPatterns(Arrays.asList(allowedOrigins));
-                    config.addAllowedHeader("*");
-                    config.addAllowedMethod("*");
-                    config.setAllowCredentials(true);
-                    return config;
-                }))
-
                 .authorizeExchange(exchange -> exchange
                         .pathMatchers(PUBLIC_PATHS).permitAll()
                         .anyExchange().authenticated()
                 )
 
                 .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
-
                 .authenticationManager(jwtRequestFilter)
 
                 .addFilterAt(authFilter, SecurityWebFiltersOrder.AUTHENTICATION)
