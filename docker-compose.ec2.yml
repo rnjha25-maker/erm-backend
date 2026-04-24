@@ -49,7 +49,7 @@ services:
     environment:
       <<: [*common-env, *java-opts]
     ports:
-      - "80:8080"
+      - "8080:8080"
     mem_limit: 400m
     cpus: 0.50
     restart: "no"
