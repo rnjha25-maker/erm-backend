@@ -3,10 +3,13 @@ spring:
     user:
       name: doc-admin
       password: admin123
+
   application:
     name: erm-api-gateway
+
   main:
     web-application-type: reactive
+
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/erm}
     username: ${SPRING_DATASOURCE_USERNAME:root}
@@ -15,10 +18,6 @@ spring:
     hikari:
       minimum-idle: 1
       maximum-pool-size: 3
-      idle-timeout: 30000
-      pool-name: HikariPool-1
-      max-lifetime: 1800000
-      connection-timeout: 20000
 
   jpa:
     hibernate:
@@ -26,37 +25,59 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
-    show-sql: true
 
   cloud:
     gateway:
+      # ✅ CORS CONFIG
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://13.205.110.140:8081"
+              - "http://13.205.110.140:3000"
+              - "http://13.205.110.140:5173"
+              - "http://fe-erm-webapp.s3-website-us-east-1.amazonaws.com"
+              - "http://localhost:4200"
+              - "http://frontend-webapp-erm.s3-website-us-east-1.amazonaws.com"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+
+      # ✅ ROUTES (same block)
       routes:
         - id: erm-command-organization
           uri: lb://ERM-COMMAND-ORGANIZATION
           predicates:
             - Path=/org/**
           filters:
-           - StripPrefix=1
+            - StripPrefix=1
+
         - id: erm-query-organization
           uri: lb://ERM-QUERY-ORGANIZATION
           predicates:
             - Path=/query-org/**
           filters:
-           - StripPrefix=1
-           
+            - StripPrefix=1
+
         - id: org-setup-command
           uri: lb://ORG-SETUP-COMMAND
           predicates:
             - Path=/org-setup/**
           filters:
-           - StripPrefix=1
-           
+            - StripPrefix=1
+
         - id: user-setup
           uri: lb://USER-SETUP
           predicates:
             - Path=/user/**
           filters:
-           - StripPrefix=1
+            - StripPrefix=1
 
       discovery:
         locator:
@@ -77,11 +98,3 @@ eureka:
 logging:
   level:
     org.springframework.security: DEBUG
-allowed:
-  origins:
-    - "http://13.205.110.140:8081"
-    - "http://13.205.110.140:3000"
-    - "http://13.205.110.140:5173"
-    - "http://fe-erm-webapp.s3-website-us-east-1.amazonaws.com"
-    - "http://localhost:4200"
-    - "http://frontend-webapp-erm.s3-website-us-east-1.amazonaws.com"
