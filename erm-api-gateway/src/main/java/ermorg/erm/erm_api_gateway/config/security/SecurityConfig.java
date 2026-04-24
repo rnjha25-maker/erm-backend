@@ -2,6 +2,7 @@ package ermorg.erm.erm_api_gateway.config.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
@@ -37,7 +38,7 @@ public class SecurityConfig {
             "/user-setup/**", "/storage/**", "/erm/**"
     };
 
-    @Bean 
+    @Bean
     public SecurityWebFilterChain securityFilterChain(
             ServerHttpSecurity http,
             ReactiveAuthenticationManager authManager,
@@ -48,7 +49,9 @@ public class SecurityConfig {
 
         return http
                 .csrf(csrf -> csrf.disable())
+
                 .authorizeExchange(exchange -> exchange
+                        .pathMatchers(HttpMethod.OPTIONS).permitAll()   // ✅ CRITICAL FIX
                         .pathMatchers(PUBLIC_PATHS).permitAll()
                         .anyExchange().authenticated()
                 )
