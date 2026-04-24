@@ -19,6 +19,7 @@ import ermorg.erm.repository.CategoryRepository;
 import ermorg.erm.repository.CustomFieldRepository;
 import ermorg.erm.repository.ModuleRepository;
 import ermorg.erm.repository.OrgModuleRepository;
+import ermorg.erm.repository.OrganizationRepository;
 import ermorg.erm.repository.SystemFieldRepository;
 import ermorg.erm.repository.SystemTableRepository;
 import ermorg.erm.util.OrganizationContext;
@@ -46,25 +47,31 @@ public class IFieldService implements FieldService {
 
 	@Autowired
 	private OrgModuleRepository orgModuleRepository;
-	@Override
+	@Autowired 
+	private OrganizationRepository organizationRepository;
+	
+	
 	@Transactional(readOnly = true)
 	public List<CategoryListResponse> getAllCategories(Long moduleId) throws ResourceNotFoundException {
 
-		Organization organization = OrganizationContext.getOrganization();
-
-		if (organization == null) {
+	    Long orgId = OrganizationContext.getOrganization().getId();
+	    if (orgId == null) {
 			throw new ResourceNotFoundException("Organization not found");
 		}
+	    Organization organization = organizationRepository.findById(orgId)
+	            .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
+		
+	    List<Long> categoryIds = organization.getModules().stream()
+	            .filter(module -> !module.getDeleted() && module.getModuleId().equals(moduleId))
+	            .map(module -> module.getCategoryId())
+	            .collect(Collectors.toList());
 
-		List<Long> categoryIds = organization.getModules().stream()
-				.filter(module -> !module.getDeleted() && module.getModuleId().equals(moduleId))
-				.map(module -> module.getCategoryId()).collect(Collectors.toList());
+	    List<Category> categories = categoryRepository.findAllById(categoryIds);
 
-		List<Category> categoriries = categoryRepository.findAllById(categoryIds);
-
-		return categoriries.stream().filter(category -> !category.getDeleted())
-				.map(category -> new CategoryListResponse(category)).collect(Collectors.toList());
-
+	    return categories.stream()
+	            .filter(category -> !category.getDeleted())
+	            .map(CategoryListResponse::new)
+	            .collect(Collectors.toList());
 	}
 
 	@Override
@@ -76,27 +83,36 @@ public class IFieldService implements FieldService {
 	}
 
 	@Override
+	@Transactional(readOnly = true)
 	public List<CustomFieldResponse> getCustomFieldResponse(long moduleId, String tableName)
-			throws ResourceNotFoundException {
-		Organization organization = OrganizationContext.getOrganization();
+	        throws ResourceNotFoundException {
 
-		if (organization == null) {
-			throw new ResourceNotFoundException("Organization not found");
-		}
+	    Long orgId = OrganizationContext.getOrganization().getId();
 
-		List<ModuleOrganization> ordModules = orgModuleRepository.findByOrganizationIdAndModuleId(organization.getId(), moduleId);
-		List<Long> categoryIds = ordModules.stream()
-				.filter(module -> !module.getDeleted() && module.getModuleId().equals(moduleId))
-				.map(module -> module.getCategoryId()).collect(Collectors.toList());
+	    if (orgId == null) {
+	        throw new ResourceNotFoundException("Organization not found");
+	    }
 
-		List<Category> categoriries = categoryRepository.findAllById(categoryIds);
+	    List<ModuleOrganization> orgModules =
+	            orgModuleRepository.findByOrganizationIdAndModuleId(orgId, moduleId);
 
-		Category category = categoriries.stream().filter(cat -> cat.getMappedWithTable().equalsIgnoreCase(tableName))
-				.findAny().orElseThrow(() -> new ResourceNotFoundException("No category mapped."));
+	    List<Long> categoryIds = orgModules.stream()
+	            .filter(module -> !module.getDeleted())
+	            .map(ModuleOrganization::getCategoryId)
+	            .collect(Collectors.toList());
 
-		return category.getFields().stream()
-				.filter(field -> !field.getDeleted())
-				.map(field -> new CustomFieldResponse(field)).collect(Collectors.toList());
+	    List<Category> categories = categoryRepository.findAllById(categoryIds);
+
+	    Category category = categories.stream()
+	            .filter(cat -> !cat.getDeleted()
+	                    && cat.getMappedWithTable().equalsIgnoreCase(tableName))
+	            .findAny()
+	            .orElseThrow(() -> new ResourceNotFoundException("No category mapped."));
+
+	    return category.getFields().stream()
+	            .filter(field -> !field.getDeleted())
+	            .map(CustomFieldResponse::new)
+	            .collect(Collectors.toList());
 	}
 
 	@Override
