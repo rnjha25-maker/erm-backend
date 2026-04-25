@@ -266,25 +266,20 @@ public class RiskService implements IRiskService {
 
 	@Override
 	@Transactional
-	public Page<List<CustomResponse>> getAllRisks(Pageable pageable) {
-	    Organization organization = OrganizationContext.getOrganization();
+	public Page<CustomResponse> getAllRisks(Pageable pageable) {
 
-	    Page<Risk> riskPage =
-	            riskRepository.getAllRisksByOrganizationId(organization.getId(), pageable);
+		Organization organization = OrganizationContext.getOrganization();
 
-	    List<List<CustomResponse>> responseList = riskPage.getContent().stream()
-	            .map(this::mapRisk)
-	            .collect(Collectors.toList());
+		Page<Risk> riskPage = riskRepository.getAllRisksByOrganizationId(organization.getId(), pageable);
 
-	    return new PageImpl<>(responseList, pageable, riskPage.getTotalElements());
+		return riskPage.map(this::mapRisk);
 	}
-	
-	private List<CustomResponse> mapRisk(Risk risk) {
-	    try {
-	        return customResponseMapper.map("risk", 1L, new RiskResponse(risk), true);
-	    } catch (ResourceNotFoundException e) {
-	        throw new RuntimeException("Error mapping risk with id: " + risk.getId(), e);
-	    }
+
+	private CustomResponse mapRisk(Risk risk) {
+
+		List<CustomResponse> mapped = customResponseMapper.map("riskControl", 1L, new RiskResponse(risk), true);
+
+		return mapped.stream().findFirst().orElse(new CustomResponse());
 	}
 
 	public void captureHistory(Risk risk, String actionType) {
@@ -381,19 +376,29 @@ public class RiskService implements IRiskService {
 	}
 	
 	@Override	@Transactional(readOnly = true)	
-	public List<List<CustomResponse>> getAllAssessment(Pageable pageable) throws ResourceNotFoundException {
-		Organization organization = OrganizationContext.getOrganization();
-		Page<RiskAssessment> riskAssessmentList = riskAsessmentRepository.getAllByOrgId(organization.getId(), pageable);
-		List<List<CustomResponse>> responseList = new ArrayList<>();
-		
-		for(RiskAssessment riskAssessment : riskAssessmentList) {
-			List<CustomResponse> response = customResponseMapper.map("riskAssessment", 1l, new RiskAssessmentResponse(riskAssessment), false);
-		
-			responseList.add(response);
-		}
-		
-		
-		return responseList;
+	public Page<CustomResponse> getAllAssessment(Pageable pageable) {
+
+	    Organization organization = OrganizationContext.getOrganization();
+
+	    Page<RiskAssessment> page =
+	            riskAsessmentRepository.getAllByOrgId(organization.getId(), pageable);
+
+	    return page.map(this::mapRiskAssessment);
+	}
+	
+	private CustomResponse mapRiskAssessment(RiskAssessment riskAssessment) {
+
+	    List<CustomResponse> mapped =
+	            customResponseMapper.map(
+	                    "riskAssessment",
+	                    1L,
+	                    new RiskAssessmentResponse(riskAssessment),
+	                    false
+	            );
+
+	    return mapped.stream()
+	            .findFirst()
+	            .orElse(new CustomResponse());
 	}
 
 	@Override
@@ -421,18 +426,21 @@ public class RiskService implements IRiskService {
 		return new RiskResponse(savedRisk);
 	}
 
+	
 	@Override
 	@Transactional(readOnly = true)
-	public List<AllRiskDropdownResponse> getAllRiskDropdown(Pageable pageable) throws ResourceNotFoundException {
-		Organization organization = OrganizationContext.getOrganization();
-		if(organization == null) {
-			throw new ResourceNotFoundException("Organization not found");
-		}
-		 Page<Risk> riskList = riskRepository.getAllRisksByOrgId(organization.getId(), pageable);
+	public Page<AllRiskDropdownResponse> getAllRiskDropdown(Pageable pageable) {
 
-		 return riskList.stream().map(risk -> new AllRiskDropdownResponse(risk)).collect(Collectors.toList());
-		
+	    Organization organization = OrganizationContext.getOrganization();
+
+	    if (organization == null) {
+	        throw new RuntimeException("Organization not found");
+	    }
+
+	    Page<Risk> riskPage =
+	            riskRepository.getAllRisksByOrgId(organization.getId(), pageable);
+
+	    return riskPage.map(AllRiskDropdownResponse::new);
 	}
-
 	 
 }

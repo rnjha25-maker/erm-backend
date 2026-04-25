@@ -61,20 +61,6 @@ public class RiskTreatmentController {
 	}
 	
 	@GetMapping("/all")
-	public GeneralResponse<List<List<CustomResponse>>> getAllRisks() throws ResourceNotFoundException{
-		
-		GeneralResponse<List<List<CustomResponse>>> response = new GeneralResponse<>();
-		
-			List<List<CustomResponse>> risks = riskTreatmentService.getAllRisks();
-			response.setData(risks);
-			response.setMessage("Risks fetched.");
-			response.setStatus(ResponseStatus.SUCCESS);
-		
-		
-		return response;
-	}
-
-	@GetMapping("/all-paginated")
 	public GeneralResponse<Page<List<CustomResponse>>> getAllRisksPaginated(
 			@org.springframework.data.web.PageableDefault(size = 20) Pageable pageable)
 			throws ResourceNotFoundException {

@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -71,28 +72,28 @@ public class RiskControlController {
 		return response;
 	}
 	
-	@GetMapping("/all")
-	public GeneralResponse<List<List<CustomResponse>>> getAllRisks() throws ResourceNotFoundException{
-		
-		GeneralResponse<List<List<CustomResponse>>> response = new GeneralResponse<>();
-		
-			List<List<CustomResponse>> risks = riskControlService.getAllRisks();
-			response.setData(risks);
-			response.setMessage("Risks fetched.");
-			response.setStatus(ResponseStatus.SUCCESS);
-		
-		
-		return response;
-	}
+//	@GetMapping("/all")
+//	public GeneralResponse<List<List<CustomResponse>>> getAllRisks() throws ResourceNotFoundException{
+//		
+//		GeneralResponse<List<List<CustomResponse>>> response = new GeneralResponse<>();
+//		
+//			List<List<CustomResponse>> risks = riskControlService.getAllRisks();
+//			response.setData(risks);
+//			response.setMessage("Risks fetched.");
+//			response.setStatus(ResponseStatus.SUCCESS);
+//		
+//		
+//		return response;
+//	}
 
-	@GetMapping("/all-paginated")
-	public GeneralResponse<Page<List<CustomResponse>>> getAllRisksPaginated(
-			@org.springframework.data.web.PageableDefault(size = 20) Pageable pageable)
+	@GetMapping("/all")
+	public GeneralResponse<Page<CustomResponse>> getAllRisksPaginated(@PageableDefault(size = 20) Pageable pageable)
 			throws ResourceNotFoundException {
 
-		GeneralResponse<Page<List<CustomResponse>>> response = new GeneralResponse<>();
+		GeneralResponse<Page<CustomResponse>> response = new GeneralResponse<>();
 
-		Page<List<CustomResponse>> risks = riskControlService.getAllRisks(pageable);
+		Page<CustomResponse> risks = riskControlService.getAllRisks(pageable);
+
 		response.setData(risks);
 		response.setMessage("Risks fetched with pagination.");
 		response.setStatus(ResponseStatus.SUCCESS);

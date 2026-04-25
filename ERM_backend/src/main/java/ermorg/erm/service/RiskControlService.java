@@ -160,17 +160,15 @@ public class RiskControlService implements IRiskControlService {
 	}
 
 	@Override
-	public Page<List<CustomResponse>> getAllRisks(Pageable pageable) throws ResourceNotFoundException {
+	public Page<CustomResponse> getAllRisks(Pageable pageable) {
+
 	    Organization organization = OrganizationContext.getOrganization();
 
-	    Page<RiskControl> riskPage = riskControlRepository.getAllRisksByOrganizationId(organization.getId(), pageable);
+	    Page<RiskControl> riskPage =
+	            riskControlRepository.getAllRisksByOrganizationId(organization.getId(), pageable);
 
-	    List<List<CustomResponse>> responseList = new ArrayList<>();
-	    for (RiskControl risk : riskPage.getContent()) {
-	        responseList.add(customResponseMapper.map("riskControl", 1L, new RiskControlResponse(risk), true));
-	    }
-
-	    return new PageImpl<>(responseList, pageable, riskPage.getTotalElements());
+		return riskPage.map(risk -> customResponseMapper.map("riskControl", 1L, new RiskControlResponse(risk), true)
+				.stream().findFirst().orElse(new CustomResponse()));
 	}
 
 	@Override

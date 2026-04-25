@@ -6,6 +6,8 @@ import ermorg.erm.dto.response.CustomResponse;
 import ermorg.erm.dto.response.ErmMaturityResponse;
 import ermorg.erm.dto.riskDTO.ErmMaturityRequest;
 import ermorg.erm.exception.ResourceNotFoundException;
+
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface IErmMaturityService {
@@ -16,7 +18,7 @@ public interface IErmMaturityService {
 
 	void delete(Long maturityId) throws ResourceNotFoundException;
 
-	List<List<CustomResponse>> getAll(Pageable pagable) throws ResourceNotFoundException;
+	Page<CustomResponse> getAll(Pageable pagable) throws ResourceNotFoundException;
 
 	List<CustomResponse> getView(Long maturityId) throws ResourceNotFoundException;
 }
