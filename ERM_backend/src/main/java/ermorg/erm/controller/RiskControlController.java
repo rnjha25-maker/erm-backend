@@ -72,7 +72,6 @@ public class RiskControlController {
 		return response;
 	}
 
-
 	@GetMapping("/all")
 	public GeneralResponse<Page<CustomResponse>> getAllRisksPaginated(@PageableDefault(size = 20) Pageable pageable)
 			throws ResourceNotFoundException {
