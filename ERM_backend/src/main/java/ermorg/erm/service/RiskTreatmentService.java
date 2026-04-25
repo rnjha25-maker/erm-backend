@@ -1,26 +1,23 @@
 package ermorg.erm.service;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import ermorg.erm.dto.response.CustomFieldResponse;
 import ermorg.erm.dto.response.CustomResponse;
-import ermorg.erm.dto.response.RiskControlResponse;
 import ermorg.erm.dto.response.RiskResponseTreatmentResponse;
 import ermorg.erm.dto.riskDTO.RiskResponseTreatmentDto;
 import ermorg.erm.exception.ResourceNotFoundException;
 import ermorg.erm.model.Company;
 import ermorg.erm.model.Organization;
 import ermorg.erm.model.Risk;
-import ermorg.erm.model.RiskControl;
 import ermorg.erm.model.RiskResponseTreatment;
 import ermorg.erm.model.SubRisk;
 import ermorg.erm.model.User;
@@ -31,7 +28,6 @@ import ermorg.erm.util.CompanyContext;
 import ermorg.erm.util.OrganizationContext;
 import ermorg.erm.util.mapper.CustomResponseMapper;
 import ermorg.erm.util.mapper.CustomResponseMapperUtil;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -171,18 +167,12 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 	
 	
 	private List<CustomResponse> mapRiskTreatment(RiskResponseTreatment riskTreatment) {
-	    try {
-	        return customResponseMapper.map(
-	                "riskTreatment",
-	                1L,
-	                new RiskResponseTreatmentResponse(riskTreatment),
-	                true
-	        );
-	    } catch (ResourceNotFoundException e) {
-	        throw new RuntimeException(
-	                "Error mapping RiskResponseTreatment with id: " + riskTreatment.getId(), e
-	        );
-	    }
+	    return customResponseMapper.map(
+		        "riskTreatment",
+		        1L,
+		        new RiskResponseTreatmentResponse(riskTreatment),
+		        true
+		);
 	}
 	
 }
