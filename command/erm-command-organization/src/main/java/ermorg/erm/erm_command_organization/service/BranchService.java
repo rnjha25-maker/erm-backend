@@ -23,7 +23,6 @@ import ermorg.erm.erm_command_organization.model.Department;
 import ermorg.erm.erm_command_organization.model.Organization;
 import ermorg.erm.erm_command_organization.model.State;
 import ermorg.erm.erm_command_organization.model.history.BranchHistory;
-import ermorg.erm.erm_command_organization.repository.AddressRepository;
 import ermorg.erm.erm_command_organization.repository.BranchRepository;
 import ermorg.erm.erm_command_organization.repository.CompanyRepository;
 import ermorg.erm.erm_command_organization.repository.CountryRepository;
@@ -36,9 +35,6 @@ public class BranchService implements IBranchService {
 
 	@Autowired
 	private BranchRepository branchRepository;
-
-	@Autowired
-	private AddressRepository addressRepository;
 
 	@Autowired
 	private CompanyRepository companyRepository;

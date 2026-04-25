@@ -20,7 +20,7 @@ public interface IRiskService {
 	 * deleteRisk(Long id) throws ResourceNotFoundException;
 	 * List<List<CustomResponse>> getAllRisks() throws ResourceNotFoundException;
 	 */
-	Page<List<CustomResponse>> getAllRisks(Pageable pageable) throws ResourceNotFoundException;
+	Page<CustomResponse> getAllRisks(Pageable pageable) throws ResourceNotFoundException;
 	RiskResponse addRisk(RiskDTO request) throws ResourceNotFoundException;
 	RiskResponse getRisk(Long id) throws ResourceNotFoundException;
 	void deleteRisk(Long id) throws ResourceNotFoundException;
@@ -28,7 +28,7 @@ public interface IRiskService {
 	RiskResponse addRiskAssessment(RiskAsessmentDto request) throws ResourceNotFoundException;
 	List<CustomResponse> getRiskView(Long riskId) throws ResourceNotFoundException;
 	List<CustomResponse> getRisAssessmentkView(Long assessmentId) throws ResourceNotFoundException;
-	List<List<CustomResponse>> getAllAssessment(Pageable pageable) throws ResourceNotFoundException;
-	List<AllRiskDropdownResponse> getAllRiskDropdown(Pageable pageable)throws ResourceNotFoundException;
+	Page<CustomResponse> getAllAssessment(Pageable pageable) throws ResourceNotFoundException;
+	Page<AllRiskDropdownResponse> getAllRiskDropdown(Pageable pageable)throws ResourceNotFoundException;
 	RiskResponse updateRiskStatus(UpdateRiskStatusRequest request) throws ResourceNotFoundException;
 }

@@ -14,7 +14,7 @@ public interface IRiskControlService {
 
 
 
-	Page<List<CustomResponse>> getAllRisks(Pageable pageable) throws ResourceNotFoundException;
+	Page<CustomResponse>  getAllRisks(Pageable pageable) throws ResourceNotFoundException;
 
 	RiskControlResponse saveRiskControl(RiskControlDto request) throws ResourceNotFoundException;
 

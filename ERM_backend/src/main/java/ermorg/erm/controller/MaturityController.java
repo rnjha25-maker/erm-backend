@@ -3,6 +3,7 @@ package ermorg.erm.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -75,15 +76,16 @@ public class MaturityController {
 	}
 
 	@GetMapping("/all")
-	public GeneralResponse<List<List<CustomResponse>>> getAll() throws ResourceNotFoundException {
+	public GeneralResponse<Page<CustomResponse>> getAll(
+			@org.springframework.data.web.PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable)
+			throws ResourceNotFoundException {
+		GeneralResponse<Page<CustomResponse>> response = new GeneralResponse<>();
 
-		GeneralResponse<List<List<CustomResponse>>> response = new GeneralResponse<>();
-		Pageable pageable = PageRequest.of(0, 10, Sort.by("createdAt").descending());
-
-		List<List<CustomResponse>> data = ermMaturityService.getAll(pageable);
+		Page<CustomResponse> data = ermMaturityService.getAll(pageable);
 
 		response.setData(data);
 		response.setStatus(ResponseStatus.SUCCESS);
+
 		return response;
 	}
 	
