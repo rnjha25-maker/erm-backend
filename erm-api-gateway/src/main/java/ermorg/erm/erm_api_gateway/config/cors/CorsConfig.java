@@ -1,17 +1,13 @@
 package ermorg.erm.erm_api_gateway.config.cors;
 
-import java.util.Arrays;
-
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
-@Configuration
+//@Configuration
 public class CorsConfig {
 
-	@Bean
+	//@Bean
 	public CorsWebFilter corsWebFilter() {
 		CorsConfiguration corsConfig = new CorsConfiguration();
 //	        corsConfig.setAllowedOriginPatterns(Arrays.asList("http://localhost:3000", "http://localhost:5173", "http://sub.example.com"));

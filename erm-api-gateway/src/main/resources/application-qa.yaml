@@ -28,28 +28,6 @@ spring:
 
   cloud:
     gateway:
-      # ✅ CORS CONFIG
-      globalcors:
-        add-to-simple-url-handler-mapping: true
-        corsConfigurations:
-          '[/**]':
-            allowedOrigins:
-              - "http://13.205.110.140:8081"
-              - "http://13.205.110.140:3000"
-              - "http://13.205.110.140:5173"
-              - "http://fe-erm-webapp.s3-website-us-east-1.amazonaws.com"
-              - "http://localhost:4200"
-              - "http://frontend-webapp-erm.s3-website-us-east-1.amazonaws.com"
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - OPTIONS
-            allowedHeaders: "*"
-            allowCredentials: true
-
-      # ✅ ROUTES (same block)
       routes:
         - id: erm-command-organization
           uri: lb://ERM-COMMAND-ORGANIZATION
@@ -98,3 +76,6 @@ eureka:
 logging:
   level:
     org.springframework.security: DEBUG
+	
+allowed:
+  origins: "http://13.205.110.140:8081,http://13.205.110.140:3000,http://13.205.110.140:5173,http://fe-erm-webapp.s3-website-us-east-1.amazonaws.com,http://frontend-webapp-erm.s3-website-us-east-1.amazonaws.com,http://localhost:4200,http://localhost:3000"
