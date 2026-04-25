@@ -61,8 +61,7 @@ spring:
         locator:
           enabled: true
           lower-case-service-id: true
-          
-# ✅ MOVE HERE (ROOT LEVEL)
+
 eureka:
   client:
     service-url:
@@ -70,12 +69,9 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
 
-  server:
-    enable-self-preservation: false
-
 logging:
   level:
     org.springframework.security: DEBUG
-	
+
 allowed:
   origins: "http://13.205.110.140:8081,http://13.205.110.140:3000,http://13.205.110.140:5173,http://fe-erm-webapp.s3-website-us-east-1.amazonaws.com,http://frontend-webapp-erm.s3-website-us-east-1.amazonaws.com,http://localhost:4200,http://localhost:3000"
