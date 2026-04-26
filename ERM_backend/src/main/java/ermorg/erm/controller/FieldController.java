@@ -14,7 +14,7 @@ import ermorg.erm.dto.response.CategoryResponse;
 import ermorg.erm.dto.response.SystemTableResponse;
 import ermorg.erm.exception.ResourceNotFoundException;
 import ermorg.erm.response.GeneralResponse;
-import ermorg.erm.service.FieldService;
+import ermorg.erm.service.IFieldService;
 
 //@CrossOrigin
 @RestController
@@ -22,7 +22,7 @@ import ermorg.erm.service.FieldService;
 public class FieldController {
 	
 	@Autowired
-	private FieldService fieldService;
+	private IFieldService fieldService;
 	
 	
 //	@GetMapping("/get-system-fields/{id:[\\d]+}")

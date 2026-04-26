@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 import ermorg.erm.dto.response.CustomFieldResponse;
 import ermorg.erm.dto.response.CustomResponse;
 import ermorg.erm.exception.ResourceNotFoundException;
-import ermorg.erm.service.FieldService;
+import ermorg.erm.service.IFieldService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -23,7 +23,7 @@ public class CustomResponseMapper {
 
 	private static final ThreadLocal<List<CustomFieldResponse>> customFieldsThread = new ThreadLocal<>();
 	@Autowired
-	private FieldService fieldService;
+	private IFieldService fieldService;
 	
 	public List<CustomResponse> map(String tableName, Long moduleId, Object object, boolean isGrid) {
 

@@ -11,14 +11,14 @@ import ermorg.erm.dto.ResponseStatus;
 import ermorg.erm.dto.response.ModuleListResponse;
 import ermorg.erm.exception.ResourceNotFoundException;
 import ermorg.erm.response.GeneralResponse;
-import ermorg.erm.service.ModuleService;
+import ermorg.erm.service.IModuleService;
 
 @RestController
 @RequestMapping("/module")
 public class ModuleController {
 	
 	@Autowired
-	private ModuleService moduleService;
+	private IModuleService moduleService;
 	
 	@GetMapping("/all")
 	public GeneralResponse<List<ModuleListResponse>> getAllModules() throws ResourceNotFoundException{

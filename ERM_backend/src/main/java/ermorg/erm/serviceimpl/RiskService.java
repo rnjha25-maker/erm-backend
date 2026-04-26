@@ -1,8 +1,4 @@
-package ermorg.erm.service;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
+package ermorg.erm.serviceimpl;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,8 +7,11 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.AuditorAware;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import ermorg.erm.dto.response.AllRiskDropdownResponse;
 import ermorg.erm.dto.response.CustomFieldResponse;
 import ermorg.erm.dto.response.CustomResponse;
@@ -43,6 +42,7 @@ import ermorg.erm.repository.SubRiskHistoryRepository;
 import ermorg.erm.repository.SubRiskRepository;
 import ermorg.erm.repository.UserHistoryRepository;
 import ermorg.erm.repository.UserRepository;
+import ermorg.erm.service.IRiskService;
 import ermorg.erm.util.CompanyContext;
 import ermorg.erm.util.OrganizationContext;
 import ermorg.erm.util.mapper.CustomResponseMapper;
@@ -87,7 +87,7 @@ public class RiskService implements IRiskService {
 	private RiskAsessmentRepository riskAsessmentRepository;
 
 	@Autowired
-	private IFieldService fieldService;
+	private FieldService fieldService;
 	
 	@Autowired
 	private CustomResponseMapper customResponseMapper;

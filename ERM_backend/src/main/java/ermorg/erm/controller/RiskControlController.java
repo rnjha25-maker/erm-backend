@@ -19,7 +19,6 @@ import ermorg.erm.dto.response.CustomResponse;
 import ermorg.erm.dto.response.RiskControlResponse;
 import ermorg.erm.dto.riskDTO.RiskControlDto;
 import ermorg.erm.exception.ResourceNotFoundException;
-import ermorg.erm.model.Risk;
 import ermorg.erm.response.GeneralResponse;
 import ermorg.erm.service.IRiskControlService;
 
@@ -29,32 +28,33 @@ public class RiskControlController {
 
 	@Autowired
 	private IRiskControlService riskControlService;
-	
+
 	@PostMapping("/save")
-	public GeneralResponse<RiskControlResponse> saveRiskControl(@RequestBody RiskControlDto request) throws ResourceNotFoundException{
-		
+	public GeneralResponse<RiskControlResponse> saveRiskControl(@RequestBody RiskControlDto request)
+			throws ResourceNotFoundException {
+
 		GeneralResponse<RiskControlResponse> response = new GeneralResponse<RiskControlResponse>();
-		
+
 		RiskControlResponse saved = riskControlService.saveRiskControl(request);
-		
+
 		response.setData(saved);
 		response.setMessage("Risk Control saved.");
 		response.setStatus(ResponseStatus.SUCCESS);
 		return response;
 	}
-	
+
 	@PostMapping("/{id}")
-	public GeneralResponse<RiskControlResponse> getRiskControl(@PathVariable Long id) throws ResourceNotFoundException{
-		
+	public GeneralResponse<RiskControlResponse> getRiskControl(@PathVariable Long id) throws ResourceNotFoundException {
+
 		GeneralResponse<RiskControlResponse> response = new GeneralResponse<RiskControlResponse>();
-		
+
 		RiskControlResponse data = riskControlService.getRiskControl(id);
-		
+
 		response.setData(data);
 		response.setStatus(ResponseStatus.SUCCESS);
 		return response;
 	}
-	
+
 	@DeleteMapping("/delete-risk/{id}")
 	public GeneralResponse<RiskControlResponse> deleteRisk(@PathVariable("id") Long id) {
 		GeneralResponse<RiskControlResponse> response = new GeneralResponse<>();
@@ -71,7 +71,7 @@ public class RiskControlController {
 
 		return response;
 	}
-	
+
 //	@GetMapping("/all")
 //	public GeneralResponse<List<List<CustomResponse>>> getAllRisks() throws ResourceNotFoundException{
 //		
@@ -100,13 +100,14 @@ public class RiskControlController {
 
 		return response;
 	}
-	
+
 	@GetMapping("/get-risk-view/{id}")
-	public GeneralResponse<List<CustomResponse>> getRiskView(@PathVariable("id") Long id) throws ResourceNotFoundException{ 
-		
+	public GeneralResponse<List<CustomResponse>> getRiskView(@PathVariable("id") Long id)
+			throws ResourceNotFoundException {
+
 		GeneralResponse<List<CustomResponse>> response = new GeneralResponse<List<CustomResponse>>();
 		List<CustomResponse> data = riskControlService.getRiskView(id);
-		
+
 		response.setData(data);
 		response.setStatus(ResponseStatus.SUCCESS);
 		return response;

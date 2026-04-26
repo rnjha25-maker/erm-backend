@@ -1,4 +1,4 @@
-package ermorg.erm.erm_command_organization.service;
+package ermorg.erm.erm_command_organization.serviceimpl;
 
 import ermorg.erm.erm_command_organization.exception.DataNotFoundException;
 import ermorg.erm.erm_command_organization.exception.InvalidDataException;
@@ -10,6 +10,7 @@ import ermorg.erm.erm_command_organization.repository.AddressRepository;
 import ermorg.erm.erm_command_organization.repository.CityRepository;
 import ermorg.erm.erm_command_organization.repository.CountryRepository;
 import ermorg.erm.erm_command_organization.repository.StateRepository;
+import ermorg.erm.erm_command_organization.service.IAddressService;
 import ermorg.erm.erm_command_organization.util.AuditorAwareImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.AuditorAware;

@@ -1,4 +1,4 @@
-package ermorg.erm.erm_command_organization.service;
+package ermorg.erm.erm_command_organization.serviceimpl;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,6 +45,7 @@ import ermorg.erm.erm_command_organization.repository.StateRepository;
 import ermorg.erm.erm_command_organization.repository.UserDetailRepository;
 import ermorg.erm.erm_command_organization.repository.UserRepository;
 import ermorg.erm.erm_command_organization.repository.history.RightOrganizationHistoryRepository;
+import ermorg.erm.erm_command_organization.service.IOrganizationService;
 import ermorg.erm.erm_command_organization.util.AuditorAwareImpl;
 import ermorg.erm.erm_command_organization.util.PasswordGenerator;
 

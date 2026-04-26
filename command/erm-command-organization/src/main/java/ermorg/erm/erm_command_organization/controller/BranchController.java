@@ -66,20 +66,21 @@ public class BranchController {
 		GeneralResponse<BranchResponseDto> response = new GeneralResponse<>();
 
 		BranchResponseDto branch = branchService.getBranch(branchId);
-		
+
 		response.setData(branch);
 		response.setStatus(ResponseStatus.SUCCESS);
 		response.setMessage("Branch deleted!");
 
 		return response;
 	}
-	
+
 	@GetMapping("/get-all-branches-by-company-id/{companyId:[\\d]+}")
-	public GeneralResponse<BranchResponse> getAllBranchesByCompay(@PathVariable Long companyId) throws ResourceNotFoundException {
+	public GeneralResponse<BranchResponse> getAllBranchesByCompay(@PathVariable Long companyId)
+			throws ResourceNotFoundException {
 		GeneralResponse<BranchResponse> response = new GeneralResponse<>();
 
 		BranchResponse branch = branchService.getAllBranchesByCompay(companyId);
-		
+
 		response.setData(branch);
 		response.setStatus(ResponseStatus.SUCCESS);
 		response.setMessage("Branch deleted!");

@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -53,7 +52,7 @@ public class RiskController {
 		}
 		return response;
 	}
-	
+
 	@PostMapping("/save-assessment")
 	public GeneralResponse<RiskResponse> saveRiskAssessment(@RequestBody RiskAsessmentDto request) {
 		GeneralResponse<RiskResponse> response = new GeneralResponse<>();
@@ -72,20 +71,19 @@ public class RiskController {
 		return response;
 	}
 
-	
 	@GetMapping("/get-risk/{id}")
 	public GeneralResponse<RiskResponse> getRisk(@PathVariable("id") Long id) {
 		GeneralResponse<RiskResponse> response = new GeneralResponse<>();
 
 		try {
 			RiskResponse risk = riskService.getRisk(id);
-			if(risk == null) {
+			if (risk == null) {
 				response.setMessage("No Risk found.");
-			}else {
+			} else {
 				response.setData(risk);
 				response.setMessage("Risk fetched.");
 			}
-			
+
 			response.setStatus(ResponseStatus.SUCCESS);
 		} catch (Exception e) {
 			response.setMessage("Failed to fetch.");
@@ -100,78 +98,77 @@ public class RiskController {
 	public GeneralResponse<Risk> deleteRisk(@PathVariable("id") Long id) throws ResourceNotFoundException {
 		GeneralResponse<Risk> response = new GeneralResponse<>();
 
-		
-			riskService.deleteRisk(id);
-			response.setMessage("Risk deleted.");
-			response.setStatus(ResponseStatus.SUCCESS);
-		
+		riskService.deleteRisk(id);
+		response.setMessage("Risk deleted.");
+		response.setStatus(ResponseStatus.SUCCESS);
 
 		return response;
 	}
-	
 
 	@GetMapping("/all-risks")
 	public GeneralResponse<Page<CustomResponse>> getAllRisksPaginated(
-	        @org.springframework.data.web.PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
-	        Pageable pageable) throws ResourceNotFoundException {
+			@org.springframework.data.web.PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable)
+			throws ResourceNotFoundException {
 
-	    Page<CustomResponse> risks = riskService.getAllRisks(pageable);
+		Page<CustomResponse> risks = riskService.getAllRisks(pageable);
 
-	    GeneralResponse<Page<CustomResponse>> response = new GeneralResponse<>();
-	    response.setData(risks);
-	    response.setMessage("Risks fetched with pagination.");
-	    response.setStatus(ResponseStatus.SUCCESS);
+		GeneralResponse<Page<CustomResponse>> response = new GeneralResponse<>();
+		response.setData(risks);
+		response.setMessage("Risks fetched with pagination.");
+		response.setStatus(ResponseStatus.SUCCESS);
 
-	    return response;
+		return response;
 	}
-	
+
 	@GetMapping("/risks/dropdown")
 	public GeneralResponse<Page<AllRiskDropdownResponse>> getAllRiskDropdown(
-	        @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
-	        Pageable pageable) throws ResourceNotFoundException {
+			@PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable)
+			throws ResourceNotFoundException {
 
-	    Page<AllRiskDropdownResponse> risks = riskService.getAllRiskDropdown(pageable);
+		Page<AllRiskDropdownResponse> risks = riskService.getAllRiskDropdown(pageable);
 
-	    GeneralResponse<Page<AllRiskDropdownResponse>> response = new GeneralResponse<>();
-	    response.setData(risks);
-	    response.setMessage("Risks fetched successfully.");
-	    response.setStatus(ResponseStatus.SUCCESS);
+		GeneralResponse<Page<AllRiskDropdownResponse>> response = new GeneralResponse<>();
+		response.setData(risks);
+		response.setMessage("Risks fetched successfully.");
+		response.setStatus(ResponseStatus.SUCCESS);
 
-	    return response;
+		return response;
 	}
-	
+
 	@GetMapping("/all-assessments")
 	public GeneralResponse<Page<CustomResponse>> getAllAssessments(
-	        @org.springframework.data.web.PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
-	        Pageable pageable) throws ResourceNotFoundException {
+			@org.springframework.data.web.PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable)
+			throws ResourceNotFoundException {
 
-	    Page<CustomResponse> risks = riskService.getAllAssessment(pageable);
+		Page<CustomResponse> risks = riskService.getAllAssessment(pageable);
 
-	    GeneralResponse<Page<CustomResponse>> response = new GeneralResponse<>();
-	    response.setData(risks);
-	    response.setMessage("Assessments fetched successfully.");
-	    response.setStatus(ResponseStatus.SUCCESS);
+		GeneralResponse<Page<CustomResponse>> response = new GeneralResponse<>();
+		response.setData(risks);
+		response.setMessage("Assessments fetched successfully.");
+		response.setStatus(ResponseStatus.SUCCESS);
 
-	    return response;
+		return response;
 	}
-	
+
 	@GetMapping("/get-risk-view/{id}")
-	public GeneralResponse<List<CustomResponse>> getRiskView(@PathVariable("id") Long id) throws ResourceNotFoundException{ 
-		
+	public GeneralResponse<List<CustomResponse>> getRiskView(@PathVariable("id") Long id)
+			throws ResourceNotFoundException {
+
 		GeneralResponse<List<CustomResponse>> response = new GeneralResponse<List<CustomResponse>>();
 		List<CustomResponse> data = riskService.getRiskView(id);
-		
+
 		response.setData(data);
 		response.setStatus(ResponseStatus.SUCCESS);
 		return response;
 	}
-	
+
 	@GetMapping("/get-risk-assessment-view/{id}")
-	public GeneralResponse<List<CustomResponse>> getRiskAssessmentView(@PathVariable("id") Long id) throws ResourceNotFoundException{ 
-		
+	public GeneralResponse<List<CustomResponse>> getRiskAssessmentView(@PathVariable("id") Long id)
+			throws ResourceNotFoundException {
+
 		GeneralResponse<List<CustomResponse>> response = new GeneralResponse<List<CustomResponse>>();
 		List<CustomResponse> data = riskService.getRisAssessmentkView(id);
-		
+
 		response.setData(data);
 		response.setStatus(ResponseStatus.SUCCESS);
 		return response;
@@ -182,7 +179,7 @@ public class RiskController {
 		GeneralResponse<RiskResponse> response = new GeneralResponse<>();
 		try {
 			RiskResponse risk = riskService.updateRiskStatus(request);
-			
+
 			response.setData(risk);
 			response.setMessage("Risk status updated successfully");
 			response.setStatus(ResponseStatus.SUCCESS);

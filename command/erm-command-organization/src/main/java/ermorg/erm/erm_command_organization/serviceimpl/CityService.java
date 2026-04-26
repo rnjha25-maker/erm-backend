@@ -1,4 +1,4 @@
-package ermorg.erm.erm_command_organization.service;
+package ermorg.erm.erm_command_organization.serviceimpl;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +18,7 @@ import ermorg.erm.erm_command_organization.model.City;
 import ermorg.erm.erm_command_organization.model.State;
 import ermorg.erm.erm_command_organization.repository.CityRepository;
 import ermorg.erm.erm_command_organization.repository.StateRepository;
+import ermorg.erm.erm_command_organization.service.ICityService;
 import ermorg.erm.erm_command_organization.util.AuditorAwareImpl;
 
 import lombok.extern.slf4j.Slf4j;

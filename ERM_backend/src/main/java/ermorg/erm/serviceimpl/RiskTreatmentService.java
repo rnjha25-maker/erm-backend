@@ -1,4 +1,4 @@
-package ermorg.erm.service;
+package ermorg.erm.serviceimpl;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +24,8 @@ import ermorg.erm.model.User;
 import ermorg.erm.repository.RiskRepository;
 import ermorg.erm.repository.RiskResponseTreatmentRepository;
 import ermorg.erm.repository.UserRepository;
+import ermorg.erm.service.IFieldService;
+import ermorg.erm.service.IRiskTreatmentService;
 import ermorg.erm.util.CompanyContext;
 import ermorg.erm.util.OrganizationContext;
 import ermorg.erm.util.mapper.CustomResponseMapper;
@@ -47,7 +49,7 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 	private CustomResponseMapper customResponseMapper;
 	
 	@Autowired
-	private FieldService fieldService;
+	private IFieldService fieldService;
 	@Override
 	public RiskResponseTreatmentResponse save(RiskResponseTreatmentDto request) throws ResourceNotFoundException {
 		

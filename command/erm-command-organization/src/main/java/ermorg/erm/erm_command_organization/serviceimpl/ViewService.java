@@ -1,4 +1,4 @@
-package ermorg.erm.erm_command_organization.service;
+package ermorg.erm.erm_command_organization.serviceimpl;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,7 +28,7 @@ import ermorg.erm.erm_command_organization.repository.ModuleRepository;
 import ermorg.erm.erm_command_organization.repository.SystemViewFieldRepository;
 import ermorg.erm.erm_command_organization.repository.SystemViewRepository;
 import ermorg.erm.erm_command_organization.repository.ViewCategoryRepository;
-
+import ermorg.erm.erm_command_organization.service.IViewService;
 import jakarta.transaction.Transactional;
 
 @Service

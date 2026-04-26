@@ -23,77 +23,82 @@ import ermorg.erm.erm_command_organization.service.IBusinessSegmentService;
 //@CrossOrigin
 public class BusinessSegmentController {
 
-    @Autowired
-    private IBusinessSegmentService businessSegmentService;
+	@Autowired
+	private IBusinessSegmentService businessSegmentService;
 
-    @PostMapping("/create")
-    public GeneralResponse<BusinessSegmentResponse> createBusinessSegment(@RequestBody BusinessSegmentRequest request) {
-        GeneralResponse<BusinessSegmentResponse> response = new GeneralResponse<>();
-        BusinessSegmentResponse businessSegment = businessSegmentService.createBusinessSegment(request);
-        response.setData(businessSegment);
-        response.setStatus(ResponseStatus.SUCCESS);
-        response.setMessage("Business Segment created!");
-        return response;
-    }
+	@PostMapping("/create")
+	public GeneralResponse<BusinessSegmentResponse> createBusinessSegment(@RequestBody BusinessSegmentRequest request) {
+		GeneralResponse<BusinessSegmentResponse> response = new GeneralResponse<>();
+		BusinessSegmentResponse businessSegment = businessSegmentService.createBusinessSegment(request);
+		response.setData(businessSegment);
+		response.setStatus(ResponseStatus.SUCCESS);
+		response.setMessage("Business Segment created!");
+		return response;
+	}
 
-    @PutMapping("/update")
-    public GeneralResponse<BusinessSegmentResponse> updateBusinessSegment(@RequestBody BusinessSegmentRequest request) throws ResourceNotFoundException {
-        GeneralResponse<BusinessSegmentResponse> response = new GeneralResponse<>();
-        
-        BusinessSegmentResponse businessSegment = businessSegmentService.updateBusinessSegment(request);
-        response.setData(businessSegment);
-        response.setStatus(ResponseStatus.SUCCESS);
-        response.setMessage("Business Segment updated!");
-        
-        return response;
-    }
+	@PutMapping("/update")
+	public GeneralResponse<BusinessSegmentResponse> updateBusinessSegment(@RequestBody BusinessSegmentRequest request)
+			throws ResourceNotFoundException {
+		GeneralResponse<BusinessSegmentResponse> response = new GeneralResponse<>();
 
-    @GetMapping("/{businessSegmentId:[\\d]+}")
-    public GeneralResponse<BusinessSegmentDto> getBusinessSegment(@PathVariable Long businessSegmentId) throws ResourceNotFoundException {
-        GeneralResponse<BusinessSegmentDto> response = new GeneralResponse<>();
-       
-        BusinessSegmentDto businessSegment = businessSegmentService.getBusinessSegment(businessSegmentId);
-        response.setData(businessSegment);
-        response.setStatus(ResponseStatus.SUCCESS);
-        response.setMessage("Business Segment retrieved!");
-       
-        return response;
-    }
-    
-    @GetMapping("/get-all-by-company-id/{companyId:[\\d]+}")
-    public GeneralResponse<BusinessSegmentResponse> getAllBusinessSegmentsByCompanyId(@PathVariable Long companyId) throws ResourceNotFoundException {
-        GeneralResponse<BusinessSegmentResponse> response = new GeneralResponse<>();
-       
-        BusinessSegmentResponse businessSegment = businessSegmentService.getAllBusinessSegmentsByCompanyId(companyId);
-        
-        response.setData(businessSegment);
-        response.setStatus(ResponseStatus.SUCCESS);
-        response.setMessage("Business Segments retrieved!");
-       
-        return response;
-    }
+		BusinessSegmentResponse businessSegment = businessSegmentService.updateBusinessSegment(request);
+		response.setData(businessSegment);
+		response.setStatus(ResponseStatus.SUCCESS);
+		response.setMessage("Business Segment updated!");
 
-    @GetMapping("/get-all-by-department-id/{departmentId:[\\d]+}")
-    public GeneralResponse<BusinessSegmentResponse> getAllBusinessSegmentsByDepartmentId(@PathVariable Long departmentId) throws ResourceNotFoundException {
-        GeneralResponse<BusinessSegmentResponse> response = new GeneralResponse<>();
+		return response;
+	}
 
-        BusinessSegmentResponse businessSegment = businessSegmentService.getAllBusinessSegmentsByDepartmentId(departmentId);
+	@GetMapping("/{businessSegmentId:[\\d]+}")
+	public GeneralResponse<BusinessSegmentDto> getBusinessSegment(@PathVariable Long businessSegmentId)
+			throws ResourceNotFoundException {
+		GeneralResponse<BusinessSegmentDto> response = new GeneralResponse<>();
 
-        response.setData(businessSegment);
-        response.setStatus(ResponseStatus.SUCCESS);
-        response.setMessage("Business Segments retrieved!");
+		BusinessSegmentDto businessSegment = businessSegmentService.getBusinessSegment(businessSegmentId);
+		response.setData(businessSegment);
+		response.setStatus(ResponseStatus.SUCCESS);
+		response.setMessage("Business Segment retrieved!");
 
-        return response;
-    }
+		return response;
+	}
 
-    @DeleteMapping("/delete/{id:[\\d]+}")
-    public GeneralResponse<Void> deleteBusinessSegment(@PathVariable Long id) {
-        GeneralResponse<Void> response = new GeneralResponse<>();
-       
-        businessSegmentService.deleteBusinessSegment(id);
-        response.setStatus(ResponseStatus.SUCCESS);
-        response.setMessage("Business Segment deleted!");
-       
-        return response;
-    }
+	@GetMapping("/get-all-by-company-id/{companyId:[\\d]+}")
+	public GeneralResponse<BusinessSegmentResponse> getAllBusinessSegmentsByCompanyId(@PathVariable Long companyId)
+			throws ResourceNotFoundException {
+		GeneralResponse<BusinessSegmentResponse> response = new GeneralResponse<>();
+
+		BusinessSegmentResponse businessSegment = businessSegmentService.getAllBusinessSegmentsByCompanyId(companyId);
+
+		response.setData(businessSegment);
+		response.setStatus(ResponseStatus.SUCCESS);
+		response.setMessage("Business Segments retrieved!");
+
+		return response;
+	}
+
+	@GetMapping("/get-all-by-department-id/{departmentId:[\\d]+}")
+	public GeneralResponse<BusinessSegmentResponse> getAllBusinessSegmentsByDepartmentId(
+			@PathVariable Long departmentId) throws ResourceNotFoundException {
+		GeneralResponse<BusinessSegmentResponse> response = new GeneralResponse<>();
+
+		BusinessSegmentResponse businessSegment = businessSegmentService
+				.getAllBusinessSegmentsByDepartmentId(departmentId);
+
+		response.setData(businessSegment);
+		response.setStatus(ResponseStatus.SUCCESS);
+		response.setMessage("Business Segments retrieved!");
+
+		return response;
+	}
+
+	@DeleteMapping("/delete/{id:[\\d]+}")
+	public GeneralResponse<Void> deleteBusinessSegment(@PathVariable Long id) {
+		GeneralResponse<Void> response = new GeneralResponse<>();
+
+		businessSegmentService.deleteBusinessSegment(id);
+		response.setStatus(ResponseStatus.SUCCESS);
+		response.setMessage("Business Segment deleted!");
+
+		return response;
+	}
 }

@@ -1,4 +1,4 @@
-package ermorg.erm.erm_command_organization.service;
+package ermorg.erm.erm_command_organization.serviceimpl;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -20,6 +20,7 @@ import ermorg.erm.erm_command_organization.model.Plan;
 import ermorg.erm.erm_command_organization.model.User;
 import ermorg.erm.erm_command_organization.repository.OrganizationRepository;
 import ermorg.erm.erm_command_organization.repository.UserRepository;
+import ermorg.erm.erm_command_organization.service.IDashboardService;
 
 @Service
 public class DashboardService implements IDashboardService {

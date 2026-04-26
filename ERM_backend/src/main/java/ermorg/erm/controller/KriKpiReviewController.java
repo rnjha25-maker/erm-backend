@@ -24,73 +24,77 @@ public class KriKpiReviewController {
 
 	@Autowired
 	private IKriKpiRiskService kriKpiRiskReviewService;
-	
+
 	@RequestMapping("/save")
-	public GeneralResponse<KriKpiReviewResponseDTO> save(@RequestBody KriKpiReviewRequestDTO request) throws ResourceNotFoundException{
+	public GeneralResponse<KriKpiReviewResponseDTO> save(@RequestBody KriKpiReviewRequestDTO request)
+			throws ResourceNotFoundException {
 		GeneralResponse<KriKpiReviewResponseDTO> response = new GeneralResponse<KriKpiReviewResponseDTO>();
-		
+
 		KriKpiReviewResponseDTO data = kriKpiRiskReviewService.save(request);
-		
+
 		response.setData(data);
 		response.setStatus(ResponseStatus.SUCCESS);
-		
-		response.setMessage("Saved.");;
+
+		response.setMessage("Saved.");
+		;
 		return response;
 	}
-	
+
 	@GetMapping("/{id}")
-	public GeneralResponse<KriKpiReviewResponseDTO> get(@PathVariable("id") Long kriId) throws ResourceNotFoundException {
-	
+	public GeneralResponse<KriKpiReviewResponseDTO> get(@PathVariable("id") Long kriId)
+			throws ResourceNotFoundException {
+
 		GeneralResponse<KriKpiReviewResponseDTO> response = new GeneralResponse<>();
 
 		KriKpiReviewResponseDTO data = kriKpiRiskReviewService.get(kriId);
-		
+
 		response.setData(data);
 		response.setStatus(ResponseStatus.SUCCESS);
-		
+
 		return response;
-	
+
 	}
-	
+
 	@GetMapping("/all")
 	public GeneralResponse<List<List<CustomResponse>>> getAll() throws ResourceNotFoundException {
-	
+
 		GeneralResponse<List<List<CustomResponse>>> response = new GeneralResponse<>();
 
 		List<List<CustomResponse>> data = kriKpiRiskReviewService.getAll();
-		
+
 		response.setData(data);
 		response.setStatus(ResponseStatus.SUCCESS);
-		
+
 		return response;
-	
+
 	}
-	
+
 	@GetMapping("/get-view/{id}")
-	public GeneralResponse<List<CustomResponse>> getView(@PathVariable("id") Long kriId) throws ResourceNotFoundException {
-	
+	public GeneralResponse<List<CustomResponse>> getView(@PathVariable("id") Long kriId)
+			throws ResourceNotFoundException {
+
 		GeneralResponse<List<CustomResponse>> response = new GeneralResponse<>();
 
 		List<CustomResponse> data = kriKpiRiskReviewService.getView(kriId);
-		
+
 		response.setData(data);
 		response.setStatus(ResponseStatus.SUCCESS);
-		
+
 		return response;
-	
+
 	}
-	
+
 	@DeleteMapping("/delete/{id}")
 	public GeneralResponse<Void> delete(@PathVariable("id") Long kriId) throws ResourceNotFoundException {
-	
+
 		GeneralResponse<Void> response = new GeneralResponse<>();
 
 		kriKpiRiskReviewService.delete(kriId);
-		
+
 		response.setMessage("Deleted.");
 		response.setStatus(ResponseStatus.SUCCESS);
-		
+
 		return response;
-	
+
 	}
 }

@@ -1,4 +1,4 @@
-package ermorg.erm.service;
+package ermorg.erm.serviceimpl;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import ermorg.erm.dto.response.BasicDashboardResponse;
@@ -29,11 +29,12 @@ import ermorg.erm.repository.BranchRepository;
 import ermorg.erm.repository.CompanyRepository;
 import ermorg.erm.repository.RiskRepository;
 import ermorg.erm.repository.UserRepository;
+import ermorg.erm.service.DepartmentRepository;
+import ermorg.erm.service.IDashboardService;
 import ermorg.erm.util.CompanyContext;
 import ermorg.erm.util.OrganizationContext;
 import ermorg.erm.util.UserContext;
 import ermorg.erm.util.mapper.CustomResponseMapper;
-import org.springframework.data.domain.Pageable;
 
 @Service
 public class DashboardService implements IDashboardService {
@@ -56,8 +57,8 @@ public class DashboardService implements IDashboardService {
 	private BranchRepository branchRepository;
 
 	@Override
-	public BasicDashboardResponse getBasicDashboardData(String period, Pageable pageable) throws ResourceNotFoundException 
-	{
+	public BasicDashboardResponse getBasicDashboardData(String period, Pageable pageable)
+			throws ResourceNotFoundException {
 
 		Organization organization = OrganizationContext.getOrganization(); // TODO: check if this is correct.U
 		User user = UserContext.getUser();
@@ -70,12 +71,12 @@ public class DashboardService implements IDashboardService {
 		Date startDate = calculatePeriod.get(0);
 		Date endDate = calculatePeriod.get(1);
 		if (startDate == null || endDate == null) {
-			allRisksByOrgIdAndCreatedBy = riskRepository.getAllRisksByOrgIdAndCreatedByNoPage(user.getOrganization().getId(),
-					user.getId());
+			allRisksByOrgIdAndCreatedBy = riskRepository
+					.getAllRisksByOrgIdAndCreatedByNoPage(user.getOrganization().getId(), user.getId());
 
 		} else {
-			allRisksByOrgIdAndCreatedBy = riskRepository.getAllRisksByOrgIdAndCreatedByDateRangeNoPage(organization.getId(),
-					user.getId(), startDate, endDate);
+			allRisksByOrgIdAndCreatedBy = riskRepository.getAllRisksByOrgIdAndCreatedByDateRangeNoPage(
+					organization.getId(), user.getId(), startDate, endDate);
 
 		}
 
@@ -83,14 +84,16 @@ public class DashboardService implements IDashboardService {
 				.collect(Collectors.groupingBy(Risk::getRiskStatus, Collectors.counting()));
 
 		// For the response list, use pageable to limit
-		List<Risk> topRisks = allRisksByOrgIdAndCreatedBy.stream().limit(pageable.getPageSize()).collect(Collectors.toList());
+		List<Risk> topRisks = allRisksByOrgIdAndCreatedBy.stream().limit(pageable.getPageSize())
+				.collect(Collectors.toList());
 		List<List<CustomResponse>> responseList = toCustomReponse(topRisks);
 
 		return new BasicDashboardResponse(countByStatus, responseList);
 	}
 
 	@Override
-	public OrgAdminDashboardDto getAdminDashboardData(String period, Pageable pageable) throws ResourceNotFoundException {
+	public OrgAdminDashboardDto getAdminDashboardData(String period, Pageable pageable)
+			throws ResourceNotFoundException {
 
 		Organization organization = OrganizationContext.getOrganization();
 
@@ -126,13 +129,15 @@ public class DashboardService implements IDashboardService {
 
 			totalUsersByOrg = userRepository.totalUsersByOrg(organization.getId(), startDate, endDate);
 
-			allRisksByOrgId = riskRepository.getAllRisksByOrgIdDateRangeNoPage(organization.getId(), startDate, endDate);
+			allRisksByOrgId = riskRepository.getAllRisksByOrgIdDateRangeNoPage(organization.getId(), startDate,
+					endDate);
 		}
 
 		Map<String, Long> riskCountByStatus = allRisksByOrgId.stream()
 				.collect(Collectors.groupingBy(Risk::getRiskStatus, Collectors.counting()));
 
-		List<List<CustomResponse>> customReponse = toCustomReponse(allRisksByOrgId.stream().limit(pageable.getPageSize()).collect(Collectors.toList()));
+		List<List<CustomResponse>> customReponse = toCustomReponse(
+				allRisksByOrgId.stream().limit(pageable.getPageSize()).collect(Collectors.toList()));
 
 		OrgAdminDashboardDto dashboardData = new OrgAdminDashboardDto();
 		dashboardData.setTotalCompanies(totalCompanies);
@@ -145,7 +150,8 @@ public class DashboardService implements IDashboardService {
 	}
 
 	@Override
-	public CompanyAdminDashboardDto getCompanyAdminDashboardData(String period, Pageable pageable) throws ResourceNotFoundException {
+	public CompanyAdminDashboardDto getCompanyAdminDashboardData(String period, Pageable pageable)
+			throws ResourceNotFoundException {
 
 		Organization organization = OrganizationContext.getOrganization();
 		Company company = CompanyContext.getCompany();
@@ -171,7 +177,8 @@ public class DashboardService implements IDashboardService {
 
 		Long totalDepartments = branches.stream().flatMap(branch -> branch.getDepartments().stream()).count();
 
-		List<List<CustomResponse>> customReponse = toCustomReponse(allRisksByCompany.stream().limit(pageable.getPageSize()).collect(Collectors.toList()));
+		List<List<CustomResponse>> customReponse = toCustomReponse(
+				allRisksByCompany.stream().limit(pageable.getPageSize()).collect(Collectors.toList()));
 
 		long totalSubRisks = allRisksByCompany.stream().flatMap(r -> r.getSubRisk().stream()).count();
 		CompanyAdminDashboardDto dashboardData = new CompanyAdminDashboardDto();

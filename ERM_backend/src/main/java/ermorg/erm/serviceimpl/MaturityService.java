@@ -1,4 +1,4 @@
-package ermorg.erm.service;
+package ermorg.erm.serviceimpl;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -18,6 +18,7 @@ import ermorg.erm.model.Company;
 import ermorg.erm.model.ERMMaturityAssessment;
 import ermorg.erm.model.Organization;
 import ermorg.erm.repository.ErmMaturityRepository;
+import ermorg.erm.service.IErmMaturityService;
 import ermorg.erm.util.CompanyContext;
 import ermorg.erm.util.OrganizationContext;
 import ermorg.erm.util.mapper.CustomResponseMapper;
