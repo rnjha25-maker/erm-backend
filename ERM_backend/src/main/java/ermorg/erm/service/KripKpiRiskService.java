@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.modelmapper.ModelMapper;
-import org.modelmapper.TypeMap;
+import org.modelmapper.convention.MatchingStrategies;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -73,23 +73,7 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 				 .collect(Collectors.toList());
 		
 		ModelMapper mapper = new ModelMapper();
-		
-		// Configure ModelMapper to skip the id field (kriId and id are the same, so ignore id during mapping)
-		// Set a simple property condition to skip 'id' field (without chaining original condition to avoid syntax issues)
-		mapper.getConfiguration().setPropertyCondition(context -> {
-			String destPropertyName = context.getMapping().getLastDestinationProperty().getName();
-			return !destPropertyName.equals("id");
-		});
-		
-		// Now create or get TypeMap - the property condition will prevent id mapping
-		TypeMap<KriKpiReviewRequestDTO, KriKpiReview> typeMap = mapper.getTypeMap(KriKpiReviewRequestDTO.class, KriKpiReview.class);
-		if (typeMap == null) {
-			typeMap = mapper.createTypeMap(KriKpiReviewRequestDTO.class, KriKpiReview.class);
-		}
-		
-		// Reset property condition to default (null) after TypeMap creation
-		mapper.getConfiguration().setPropertyCondition(null);
-		
+		mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
 		mapper.map(request, kriKpiReview);
 		kriKpiReview.setOrganization(organization);
 		kriKpiReview.setCompany(company);
