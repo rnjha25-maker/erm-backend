@@ -118,7 +118,7 @@ public class KriKpiReviewResponseDTO {
 	    this.dueDate = kriKpiReview.getDueDate().toString();
 	    this.actualDate = kriKpiReview.getActualDate().toString();
 //	    this.kriStatus = kriKpiReview.getDashboardKriStatus();
-	    this.lastKriEvaluationDate = kriKpiReview.getLastKriEvaluationDate().toString();
+	    this.lastKriEvaluationDate = kriKpiReview.getLastKriEvaluationDate() != null ? kriKpiReview.getLastKriEvaluationDate().toString() : null;
 	    this.nextEvaluationDate = kriKpiReview.getNextEvaluationDate().toString();
 	    this.status = kriKpiReview.getStatus();
     }
