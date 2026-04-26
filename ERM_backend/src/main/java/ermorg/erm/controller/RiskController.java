@@ -137,6 +137,7 @@ public class RiskController {
 
 	@GetMapping("/all-assessments")
 	public GeneralResponse<Page<CustomResponse>> getAllAssessments(
+
 			@org.springframework.data.web.PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable)
 			throws ResourceNotFoundException {
 

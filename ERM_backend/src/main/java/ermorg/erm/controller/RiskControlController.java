@@ -72,20 +72,6 @@ public class RiskControlController {
 		return response;
 	}
 
-//	@GetMapping("/all")
-//	public GeneralResponse<List<List<CustomResponse>>> getAllRisks() throws ResourceNotFoundException{
-//		
-//		GeneralResponse<List<List<CustomResponse>>> response = new GeneralResponse<>();
-//		
-//			List<List<CustomResponse>> risks = riskControlService.getAllRisks();
-//			response.setData(risks);
-//			response.setMessage("Risks fetched.");
-//			response.setStatus(ResponseStatus.SUCCESS);
-//		
-//		
-//		return response;
-//	}
-
 	@GetMapping("/all")
 	public GeneralResponse<Page<CustomResponse>> getAllRisksPaginated(@PageableDefault(size = 20) Pageable pageable)
 			throws ResourceNotFoundException {
