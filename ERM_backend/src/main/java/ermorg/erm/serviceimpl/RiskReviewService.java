@@ -1,4 +1,4 @@
-package ermorg.erm.service;
+package ermorg.erm.serviceimpl;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +21,7 @@ import ermorg.erm.model.User;
 import ermorg.erm.repository.RiskRepository;
 import ermorg.erm.repository.RiskReviewRepository;
 import ermorg.erm.repository.UserRepository;
+import ermorg.erm.service.IRiskReviewService;
 import ermorg.erm.util.CompanyContext;
 import ermorg.erm.util.OrganizationContext;
 import ermorg.erm.util.mapper.CustomResponseMapper;

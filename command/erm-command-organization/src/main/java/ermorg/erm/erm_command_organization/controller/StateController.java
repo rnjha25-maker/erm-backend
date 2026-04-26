@@ -14,20 +14,20 @@ import java.util.List;
 @RestController
 @RequestMapping("state")
 public class StateController {
-    @Autowired
-    private IStateService stateService;
+	@Autowired
+	private IStateService stateService;
 
-    @GetMapping("/all/{id:[\\d]+}")
-    public GeneralResponse<List<StateResponse>> getAllStates(@PathVariable Long id) {
-        GeneralResponse<List<StateResponse>> response = new GeneralResponse<>();
-        try{
-            List<StateResponse> states = stateService.getAllStates(id);
-            response.setData(states);
-            response.setStatus(ResponseStatus.SUCCESS);
-        }catch (ResourceNotFoundException e){
-            response.setStatus(ResponseStatus.FAILED);
-            response.setMessage(e.getMessage());
-        }
-        return response;
-    }
+	@GetMapping("/all/{id:[\\d]+}")
+	public GeneralResponse<List<StateResponse>> getAllStates(@PathVariable Long id) {
+		GeneralResponse<List<StateResponse>> response = new GeneralResponse<>();
+		try {
+			List<StateResponse> states = stateService.getAllStates(id);
+			response.setData(states);
+			response.setStatus(ResponseStatus.SUCCESS);
+		} catch (ResourceNotFoundException e) {
+			response.setStatus(ResponseStatus.FAILED);
+			response.setMessage(e.getMessage());
+		}
+		return response;
+	}
 }

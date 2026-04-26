@@ -1,4 +1,4 @@
-package ermorg.erm.erm_command_organization.service;
+package ermorg.erm.erm_command_organization.serviceimpl;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,6 +23,7 @@ import ermorg.erm.erm_command_organization.repository.CompanyRepository;
 import ermorg.erm.erm_command_organization.repository.CountryRepository;
 import ermorg.erm.erm_command_organization.repository.OrganizationRepository;
 import ermorg.erm.erm_command_organization.repository.history.CompanyHistoryRepository;
+import ermorg.erm.erm_command_organization.service.ICompanyService;
 import ermorg.erm.erm_command_organization.util.AuditorAwareImpl;
 
 @Service

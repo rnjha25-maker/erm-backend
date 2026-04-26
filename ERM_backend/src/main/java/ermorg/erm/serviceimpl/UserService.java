@@ -1,4 +1,4 @@
-package ermorg.erm.service;
+package ermorg.erm.serviceimpl;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -14,6 +14,7 @@ import ermorg.erm.dto.riskDTO.UserRequestDTO;
 import ermorg.erm.model.Company;
 import ermorg.erm.model.User;
 import ermorg.erm.repository.UserRepository;
+import ermorg.erm.service.IUserService;
 import ermorg.erm.util.CompanyContext;
 
 @Service

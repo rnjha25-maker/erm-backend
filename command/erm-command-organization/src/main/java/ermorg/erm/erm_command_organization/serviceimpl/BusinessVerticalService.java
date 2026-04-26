@@ -1,4 +1,4 @@
-package ermorg.erm.erm_command_organization.service;
+package ermorg.erm.erm_command_organization.serviceimpl;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +22,7 @@ import ermorg.erm.erm_command_organization.repository.BusinessSegmentRepository;
 import ermorg.erm.erm_command_organization.repository.BusinessVerticalRepository;
 import ermorg.erm.erm_command_organization.repository.CompanyRepository;
 import ermorg.erm.erm_command_organization.repository.DepartmentRepository;
+import ermorg.erm.erm_command_organization.service.IBusinessVerticalService;
 import ermorg.erm.erm_command_organization.util.AuditorAwareImpl;
 import ermorg.erm.erm_command_organization.util.OrganizationHierarchyResolver;
 import ermorg.erm.erm_command_organization.util.OrganizationHierarchyResolver.Hierarchy;

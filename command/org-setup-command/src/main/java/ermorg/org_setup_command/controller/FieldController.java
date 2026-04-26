@@ -29,10 +29,6 @@ public class FieldController {
 	@PostMapping("/save")
 	public GeneralResponse<OrganizationFieldsDTO> saveField(@RequestBody FieldRequestDTO request) throws ResourceNotFoundException{
 		GeneralResponse<OrganizationFieldsDTO> response = new GeneralResponse<>();
-		
-//		OrganizationFieldsDTO field = fieldService.saveField(request);
-		
-//		response.setData(field);
 		response.setMessage("Field Save");
 		response.setStatus(ResponseStatus.SUCCESS);
 		
@@ -82,18 +78,6 @@ public class FieldController {
 		return response;
 	}
 	
-//	@PostMapping("delete/{id:[\\\\d]+}")
-//	public GeneralResponse<List<OrganizationFieldsDTO>> getAllField(@PathVariable Long id){
-//		GeneralResponse<List<OrganizationFieldsDTO>> response = new GeneralResponse<>();
-//		
-//		List<OrganizationFieldsDTO> field = fieldService.getAllField(id);
-//		response.setData(field);
-//		response.setMessage("Field deleted");
-//		response.setStatus(ResponseStatus.SUCCESS);
-//		
-//		
-//		return response;
-//	}
 	
 	@PostMapping("/modules")
 	public GeneralResponse<Map<String, List<OrganizationFieldsDTO>>> getModules(@PathVariable Long id){

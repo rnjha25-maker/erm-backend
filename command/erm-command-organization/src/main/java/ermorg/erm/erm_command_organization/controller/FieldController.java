@@ -21,7 +21,7 @@ import ermorg.erm.erm_command_organization.dto.responseDTO.ResponseStatus;
 import ermorg.erm.erm_command_organization.dto.responseDTO.SystemFieldResponse;
 import ermorg.erm.erm_command_organization.dto.responseDTO.SystemTableResponse;
 import ermorg.erm.erm_command_organization.exception.ResourceNotFoundException;
-import ermorg.erm.erm_command_organization.service.FieldService;
+import ermorg.erm.erm_command_organization.service.IFieldService;
 
 import jakarta.validation.Valid;
 
@@ -31,7 +31,7 @@ import jakarta.validation.Valid;
 public class FieldController {
 	
 	@Autowired
-	private FieldService fieldService;
+	private IFieldService fieldService;
 	
 	@PostMapping("/save")
 	public GeneralResponse<ModuleResponse> saveFileds(@Valid @RequestBody FieldRequestDTO request) throws ResourceNotFoundException{

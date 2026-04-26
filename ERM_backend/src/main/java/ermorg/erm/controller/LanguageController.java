@@ -16,20 +16,20 @@ import ermorg.erm.service.ILanguageService;
 @RestController
 @RequestMapping("/language")
 public class LanguageController {
-	
+
 	@Autowired
 	private ILanguageService languageService;
-	
+
 	@PostMapping("/save")
-	public GeneralResponse<Language> saveLanguage(@RequestBody LanguageRequest request){
+	public GeneralResponse<Language> saveLanguage(@RequestBody LanguageRequest request) {
 		GeneralResponse<Language> response = new GeneralResponse<>();
-		
+
 		Language savedLanguage = languageService.saveLanguage(request);
-		
+
 		response.setData(savedLanguage);
 		response.setMessage("Language saved.");
 		response.setStatus(ResponseStatus.SUCCESS);
-		
+
 		return response;
 	}
 

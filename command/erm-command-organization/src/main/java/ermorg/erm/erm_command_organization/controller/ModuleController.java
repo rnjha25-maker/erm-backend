@@ -12,7 +12,7 @@ import ermorg.erm.erm_command_organization.dto.responseDTO.GeneralResponse;
 import ermorg.erm.erm_command_organization.dto.responseDTO.ModuleListResponse;
 import ermorg.erm.erm_command_organization.dto.responseDTO.ModuleResponse;
 import ermorg.erm.erm_command_organization.dto.responseDTO.ResponseStatus;
-import ermorg.erm.erm_command_organization.service.ModuleService;
+import ermorg.erm.erm_command_organization.service.IModuleService;
 
 //@CrossOrigin
 @RestController
@@ -20,7 +20,7 @@ import ermorg.erm.erm_command_organization.service.ModuleService;
 public class ModuleController {
 	
 	@Autowired
-	private ModuleService moduleService;
+	private IModuleService moduleService;
 	
 	@GetMapping("/all")
 	public GeneralResponse<List<ModuleListResponse>> getAllModules(){

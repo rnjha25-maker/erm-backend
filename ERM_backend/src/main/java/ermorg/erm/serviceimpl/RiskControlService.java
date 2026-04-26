@@ -1,20 +1,17 @@
-package ermorg.erm.service;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
+package ermorg.erm.serviceimpl;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import ermorg.erm.dto.response.CustomFieldResponse;
 import ermorg.erm.dto.response.CustomResponse;
 import ermorg.erm.dto.response.RiskControlResponse;
-import ermorg.erm.dto.response.RiskResponse;
 import ermorg.erm.dto.riskDTO.RiskControlDto;
 import ermorg.erm.dto.riskDTO.RiskSubControlDto;
 import ermorg.erm.exception.ResourceNotFoundException;
@@ -30,12 +27,11 @@ import ermorg.erm.repository.RiskRepository;
 import ermorg.erm.repository.SubRiskControlRepository;
 import ermorg.erm.repository.SubRiskRepository;
 import ermorg.erm.repository.UserRepository;
-import ermorg.erm.response.GeneralResponse;
+import ermorg.erm.service.IRiskControlService;
 import ermorg.erm.util.CompanyContext;
 import ermorg.erm.util.OrganizationContext;
 import ermorg.erm.util.mapper.CustomResponseMapper;
 import ermorg.erm.util.mapper.CustomResponseMapperUtil;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -58,7 +54,7 @@ public class RiskControlService implements IRiskControlService {
 	private SubRiskControlRepository subRiskControlRepository;
 	
 	@Autowired
-	private IFieldService fieldService;
+	private FieldService fieldService;
 	
 	@Autowired
 	private CustomResponseMapper customResponseMapper;
@@ -160,17 +156,15 @@ public class RiskControlService implements IRiskControlService {
 	}
 
 	@Override
-	public Page<List<CustomResponse>> getAllRisks(Pageable pageable) throws ResourceNotFoundException {
+	public Page<CustomResponse> getAllRisks(Pageable pageable) {
+
 	    Organization organization = OrganizationContext.getOrganization();
 
-	    Page<RiskControl> riskPage = riskControlRepository.getAllRisksByOrganizationId(organization.getId(), pageable);
+	    Page<RiskControl> riskPage =
+	            riskControlRepository.getAllRisksByOrganizationId(organization.getId(), pageable);
 
-	    List<List<CustomResponse>> responseList = new ArrayList<>();
-	    for (RiskControl risk : riskPage.getContent()) {
-	        responseList.add(customResponseMapper.map("riskControl", 1L, new RiskControlResponse(risk), true));
-	    }
-
-	    return new PageImpl<>(responseList, pageable, riskPage.getTotalElements());
+		return riskPage.map(risk -> customResponseMapper.map("riskControl", 1L, new RiskControlResponse(risk), true)
+				.stream().findFirst().orElse(new CustomResponse()));
 	}
 
 	@Override

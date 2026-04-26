@@ -1,4 +1,4 @@
-package ermorg.erm.erm_command_organization.service;
+package ermorg.erm.erm_command_organization.serviceimpl;
 
 import ermorg.erm.erm_command_organization.dto.responseDTO.StateResponse;
 import ermorg.erm.erm_command_organization.exception.DataNotFoundException;
@@ -8,6 +8,7 @@ import ermorg.erm.erm_command_organization.model.Country;
 import ermorg.erm.erm_command_organization.model.State;
 import ermorg.erm.erm_command_organization.repository.CountryRepository;
 import ermorg.erm.erm_command_organization.repository.StateRepository;
+import ermorg.erm.erm_command_organization.service.IStateService;
 import ermorg.erm.erm_command_organization.util.AuditorAwareImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.AuditorAware;

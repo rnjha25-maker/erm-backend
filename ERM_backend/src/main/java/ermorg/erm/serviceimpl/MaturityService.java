@@ -1,4 +1,4 @@
-package ermorg.erm.service;
+package ermorg.erm.serviceimpl;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -18,6 +18,7 @@ import ermorg.erm.model.Company;
 import ermorg.erm.model.ERMMaturityAssessment;
 import ermorg.erm.model.Organization;
 import ermorg.erm.repository.ErmMaturityRepository;
+import ermorg.erm.service.IErmMaturityService;
 import ermorg.erm.util.CompanyContext;
 import ermorg.erm.util.OrganizationContext;
 import ermorg.erm.util.mapper.CustomResponseMapper;
@@ -112,23 +113,33 @@ public class MaturityService implements IErmMaturityService {
 	}
 	
 	@Override
-	public List<List<CustomResponse>> getAll(Pageable pageable) throws ResourceNotFoundException {
-		Organization organization = OrganizationContext.getOrganization();
-		Page<ERMMaturityAssessment> ermMaturityList = ermMaturityRepository.getAllByOrg(organization.getId(),pageable);
-		
-		if(ermMaturityList == null) {
-			throw new ResourceNotFoundException("No record found.");
-		}
-		
-		List<List<CustomResponse>> responseList = new ArrayList<>();
-		
-		for(ERMMaturityAssessment ermMaturity : ermMaturityList) {
-			List<CustomResponse> customResponse = customResponseMapper.map("ermMaturity", 1l, new ErmMaturityResponse(ermMaturity), true);
-			responseList.add(customResponse);
-		}
-		
-		
-		return responseList;
+	public Page<CustomResponse> getAll(Pageable pageable) throws ResourceNotFoundException {
+
+	    Organization organization = OrganizationContext.getOrganization();
+
+	    Page<ERMMaturityAssessment> page =
+	            ermMaturityRepository.getAllByOrg(organization.getId(), pageable);
+
+	    if (page.isEmpty()) {
+	        throw new ResourceNotFoundException("No record found.");
+	    }
+
+	    return page.map(this::mapToCustomResponse);
+	}
+	
+	private CustomResponse mapToCustomResponse(ERMMaturityAssessment ermMaturity) {
+
+	    List<CustomResponse> mapped =
+	            customResponseMapper.map(
+	                    "ermMaturity",
+	                    1L,
+	                    new ErmMaturityResponse(ermMaturity),
+	                    true
+	            );
+
+	    return mapped.stream()
+	            .findFirst()
+	            .orElse(new CustomResponse());
 	}
 	
 	@Override
