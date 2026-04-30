@@ -105,21 +105,6 @@ public class RiskController {
 		return response;
 	}
 
-	@GetMapping("/all-risks")
-	public GeneralResponse<Page<CustomResponse>> getAllRisksPaginated(
-			@org.springframework.data.web.PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable)
-			throws ResourceNotFoundException {
-
-		Page<CustomResponse> risks = riskService.getAllRisks(pageable);
-
-		GeneralResponse<Page<CustomResponse>> response = new GeneralResponse<>();
-		response.setData(risks);
-		response.setMessage("Risks fetched with pagination.");
-		response.setStatus(ResponseStatus.SUCCESS);
-
-		return response;
-	}
-
 	@GetMapping("/risks/dropdown")
 	public GeneralResponse<Page<AllRiskDropdownResponse>> getAllRiskDropdown(
 			@PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable)
@@ -137,7 +122,6 @@ public class RiskController {
 
 	@GetMapping("/all-assessments")
 	public GeneralResponse<Page<CustomResponse>> getAllAssessments(
-
 			@org.springframework.data.web.PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable)
 			throws ResourceNotFoundException {
 
