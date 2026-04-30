@@ -120,8 +120,8 @@ public class RiskController {
 
 	    return response;
 	}
-	
-	@GetMapping("/risks/dropdown")
+
+	@GetMapping("/all-risk-dropdown")
 	public GeneralResponse<Page<AllRiskDropdownResponse>> getAllRiskDropdown(
 	        @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
 	        Pageable pageable) throws ResourceNotFoundException {

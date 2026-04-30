@@ -75,17 +75,22 @@ public class MaturityController {
 	}
 
 	@GetMapping("/all")
-	public GeneralResponse<Page<CustomResponse>> getAll(
-			@org.springframework.data.web.PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable)
-			throws ResourceNotFoundException {
-		GeneralResponse<Page<CustomResponse>> response = new GeneralResponse<>();
+	public GeneralResponse<Page<List<CustomResponse>>> getAll(
+	        @org.springframework.data.web.PageableDefault(
+	                size = 20,
+	                sort = "createdAt",
+	                direction = Sort.Direction.DESC
+	        ) Pageable pageable)
+	        throws ResourceNotFoundException {
 
-		Page<CustomResponse> data = ermMaturityService.getAll(pageable);
+	    GeneralResponse<Page<List<CustomResponse>>> response = new GeneralResponse<>();
 
-		response.setData(data);
-		response.setStatus(ResponseStatus.SUCCESS);
+	    Page<List<CustomResponse>> data = ermMaturityService.getAll(pageable);
 
-		return response;
+	    response.setData(data);
+	    response.setStatus(ResponseStatus.SUCCESS);
+
+	    return response;
 	}
 
 	@DeleteMapping("/delete/{id}")

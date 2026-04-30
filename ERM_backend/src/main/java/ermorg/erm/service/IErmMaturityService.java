@@ -18,7 +18,7 @@ public interface IErmMaturityService {
 
 	void delete(Long maturityId) throws ResourceNotFoundException;
 
-	Page<CustomResponse> getAll(Pageable pagable) throws ResourceNotFoundException;
+	Page<List<CustomResponse>>  getAll(Pageable pagable) throws ResourceNotFoundException;
 
 	List<CustomResponse> getView(Long maturityId) throws ResourceNotFoundException;
 }
