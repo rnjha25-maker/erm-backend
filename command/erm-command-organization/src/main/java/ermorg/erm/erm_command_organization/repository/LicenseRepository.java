@@ -14,16 +14,8 @@ import ermorg.erm.erm_command_organization.model.License;
 @Repository
 public interface LicenseRepository extends JpaRepository<License, Long> {
 
-    Optional<License> findByOrganizationIdAndStatusIn(
-            Long organizationId,
-            List<LicenseStatus> statuses
-    );
+	Optional<License> findByOrganizationIdAndStatusIn(Long organizationId, List<LicenseStatus> statuses);
 
-    @Query("""
-        SELECT l FROM License l
-        WHERE l.organizationId = :orgId
-        ORDER BY l.endDate DESC
-    """)
-    List<License> findLatestLicense(@Param("orgId") Long orgId);
+	List<License> findByOrganizationIdOrderByEndDateDesc(Long orgId);
 
 }
