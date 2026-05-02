@@ -23,90 +23,99 @@ import ermorg.erm.erm_command_organization.service.IBusinessVerticalService;
 //@CrossOrigin
 public class BusinessVerticalController {
 
-    @Autowired
-    private IBusinessVerticalService businessVerticalService;
+	@Autowired
+	private IBusinessVerticalService businessVerticalService;
 
-    @PostMapping("/create")
-    public GeneralResponse<BusinessVerticalResponse> createBusinessVertical(@RequestBody BusinessVerticalRequest request) {
-        GeneralResponse<BusinessVerticalResponse> response = new GeneralResponse<>();
-        BusinessVerticalResponse businessVertical = businessVerticalService.createBusinessVertical(request);
-        response.setData(businessVertical);
-        response.setStatus(ResponseStatus.SUCCESS);
-        response.setMessage("Business Vertical created!");
-        return response;
-    }
+	@PostMapping("/create")
+	public GeneralResponse<BusinessVerticalResponse> createBusinessVertical(
+			@RequestBody BusinessVerticalRequest request) {
+		GeneralResponse<BusinessVerticalResponse> response = new GeneralResponse<>();
+		BusinessVerticalResponse businessVertical = businessVerticalService.createBusinessVertical(request);
+		response.setData(businessVertical);
+		response.setStatus(ResponseStatus.SUCCESS);
+		response.setMessage("Business Vertical created!");
+		return response;
+	}
 
-    @PutMapping("/update")
-    public GeneralResponse<BusinessVerticalResponse> updateBusinessVertical(@RequestBody BusinessVerticalRequest request) throws ResourceNotFoundException {
-        GeneralResponse<BusinessVerticalResponse> response = new GeneralResponse<>();
-        
-        BusinessVerticalResponse businessVertical = businessVerticalService.updateBusinessVertical(request);
-        response.setData(businessVertical);
-        response.setStatus(ResponseStatus.SUCCESS);
-        response.setMessage("Business Vertical updated!");
-        
-        return response;
-    }
+	@PutMapping("/update")
+	public GeneralResponse<BusinessVerticalResponse> updateBusinessVertical(
+			@RequestBody BusinessVerticalRequest request) throws ResourceNotFoundException {
+		GeneralResponse<BusinessVerticalResponse> response = new GeneralResponse<>();
 
-    @GetMapping("/{businessVerticalId:[\\d]+}")
-    public GeneralResponse<BusinessVerticalDto> getBusinessVertical(@PathVariable Long businessVerticalId) throws ResourceNotFoundException {
-        GeneralResponse<BusinessVerticalDto> response = new GeneralResponse<>();
-       
-        BusinessVerticalDto businessVertical = businessVerticalService.getBusinessVertical(businessVerticalId);
-        response.setData(businessVertical);
-        response.setStatus(ResponseStatus.SUCCESS);
-        response.setMessage("Business Vertical retrieved!");
-       
-        return response;
-    }
-    
-    @GetMapping("/get-all-by-company-id/{companyId:[\\d]+}")
-    public GeneralResponse<BusinessVerticalResponse> getAllBusinessVerticalsByCompanyId(@PathVariable Long companyId) throws ResourceNotFoundException {
-        GeneralResponse<BusinessVerticalResponse> response = new GeneralResponse<>();
-       
-        BusinessVerticalResponse businessVertical = businessVerticalService.getAllBusinessVerticalsByCompanyId(companyId);
-        
-        response.setData(businessVertical);
-        response.setStatus(ResponseStatus.SUCCESS);
-        response.setMessage("Business Verticals retrieved!");
-       
-        return response;
-    }
+		BusinessVerticalResponse businessVertical = businessVerticalService.updateBusinessVertical(request);
+		response.setData(businessVertical);
+		response.setStatus(ResponseStatus.SUCCESS);
+		response.setMessage("Business Vertical updated!");
 
-    @GetMapping("/get-all-by-department-id/{departmentId:[\\d]+}")
-    public GeneralResponse<BusinessVerticalResponse> getAllBusinessVerticalsByDepartmentId(@PathVariable Long departmentId) throws ResourceNotFoundException {
-        GeneralResponse<BusinessVerticalResponse> response = new GeneralResponse<>();
+		return response;
+	}
 
-        BusinessVerticalResponse businessVertical = businessVerticalService.getAllBusinessVerticalsByDepartmentId(departmentId);
+	@GetMapping("/{businessVerticalId:[\\d]+}")
+	public GeneralResponse<BusinessVerticalDto> getBusinessVertical(@PathVariable Long businessVerticalId)
+			throws ResourceNotFoundException {
+		GeneralResponse<BusinessVerticalDto> response = new GeneralResponse<>();
 
-        response.setData(businessVertical);
-        response.setStatus(ResponseStatus.SUCCESS);
-        response.setMessage("Business Verticals retrieved!");
+		BusinessVerticalDto businessVertical = businessVerticalService.getBusinessVertical(businessVerticalId);
+		response.setData(businessVertical);
+		response.setStatus(ResponseStatus.SUCCESS);
+		response.setMessage("Business Vertical retrieved!");
 
-        return response;
-    }
+		return response;
+	}
 
-    @GetMapping("/get-all-by-segment-id/{segmentId:[\\d]+}")
-    public GeneralResponse<BusinessVerticalResponse> getAllBusinessVerticalsBySegmentId(@PathVariable Long segmentId) throws ResourceNotFoundException {
-        GeneralResponse<BusinessVerticalResponse> response = new GeneralResponse<>();
+	@GetMapping("/get-all-by-company-id/{companyId:[\\d]+}")
+	public GeneralResponse<BusinessVerticalResponse> getAllBusinessVerticalsByCompanyId(@PathVariable Long companyId)
+			throws ResourceNotFoundException {
+		GeneralResponse<BusinessVerticalResponse> response = new GeneralResponse<>();
 
-        BusinessVerticalResponse businessVertical = businessVerticalService.getAllBusinessVerticalsByBusinessSegmentId(segmentId);
+		BusinessVerticalResponse businessVertical = businessVerticalService
+				.getAllBusinessVerticalsByCompanyId(companyId);
 
-        response.setData(businessVertical);
-        response.setStatus(ResponseStatus.SUCCESS);
-        response.setMessage("Business Verticals retrieved!");
+		response.setData(businessVertical);
+		response.setStatus(ResponseStatus.SUCCESS);
+		response.setMessage("Business Verticals retrieved!");
 
-        return response;
-    }
+		return response;
+	}
 
-    @DeleteMapping("/delete/{id:[\\d]+}")
-    public GeneralResponse<Void> deleteBusinessVertical(@PathVariable Long id) {
-        GeneralResponse<Void> response = new GeneralResponse<>();
-       
-        businessVerticalService.deleteBusinessVertical(id);
-        response.setStatus(ResponseStatus.SUCCESS);
-        response.setMessage("Business Vertical deleted!");
-       
-        return response;
-    }
+	@GetMapping("/get-all-by-department-id/{departmentId:[\\d]+}")
+	public GeneralResponse<BusinessVerticalResponse> getAllBusinessVerticalsByDepartmentId(
+			@PathVariable Long departmentId) throws ResourceNotFoundException {
+		GeneralResponse<BusinessVerticalResponse> response = new GeneralResponse<>();
+
+		BusinessVerticalResponse businessVertical = businessVerticalService
+				.getAllBusinessVerticalsByDepartmentId(departmentId);
+
+		response.setData(businessVertical);
+		response.setStatus(ResponseStatus.SUCCESS);
+		response.setMessage("Business Verticals retrieved!");
+
+		return response;
+	}
+
+	@GetMapping("/get-all-by-segment-id/{segmentId:[\\d]+}")
+	public GeneralResponse<BusinessVerticalResponse> getAllBusinessVerticalsBySegmentId(@PathVariable Long segmentId)
+			throws ResourceNotFoundException {
+		GeneralResponse<BusinessVerticalResponse> response = new GeneralResponse<>();
+
+		BusinessVerticalResponse businessVertical = businessVerticalService
+				.getAllBusinessVerticalsByBusinessSegmentId(segmentId);
+
+		response.setData(businessVertical);
+		response.setStatus(ResponseStatus.SUCCESS);
+		response.setMessage("Business Verticals retrieved!");
+
+		return response;
+	}
+
+	@DeleteMapping("/delete/{id:[\\d]+}")
+	public GeneralResponse<Void> deleteBusinessVertical(@PathVariable Long id) {
+		GeneralResponse<Void> response = new GeneralResponse<>();
+
+		businessVerticalService.deleteBusinessVertical(id);
+		response.setStatus(ResponseStatus.SUCCESS);
+		response.setMessage("Business Vertical deleted!");
+
+		return response;
+	}
 }

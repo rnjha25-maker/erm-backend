@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ermorg.erm.erm_command_organization.dto.responseDTO.GeneralResponse;
 import ermorg.erm.erm_command_organization.dto.responseDTO.PlanDto;
 import ermorg.erm.erm_command_organization.dto.responseDTO.ResponseStatus;
-import ermorg.erm.erm_command_organization.service.PlanService;
+import ermorg.erm.erm_command_organization.service.IPlanService;
 
 //@CrossOrigin
 @RestController
@@ -18,7 +18,7 @@ import ermorg.erm.erm_command_organization.service.PlanService;
 public class PlanController {
 
 	@Autowired
-	private PlanService planService;
+	private IPlanService planService;
 	@RequestMapping("/get-allPlans")
 	public GeneralResponse<List<PlanDto>> getAllPlans() {
 		GeneralResponse<List<PlanDto>> response = new GeneralResponse<>();
