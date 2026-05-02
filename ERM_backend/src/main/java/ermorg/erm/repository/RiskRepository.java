@@ -76,4 +76,14 @@ public interface RiskRepository extends JpaRepository<Risk, Long>{
 	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.deleted = false")
 	Page<Risk> getAllRisksWithOwnerAndChampionPaged(@Param("organizationId") Long organizationId, Pageable pageable);
 
+	@Query("SELECT DISTINCT r FROM Risk r LEFT JOIN FETCH r.riskAssessment WHERE r.organizationId = :organizationId AND r.deleted = false "
+			+ "AND r.createdAt BETWEEN :startDate AND :endDate "
+			+ "AND (:companyId IS NULL OR r.companyId = :companyId) "
+			+ "AND (:branchId IS NULL OR r.branchId = :branchId) "
+			+ "AND (:functionId IS NULL OR r.function = :functionId) "
+			+ "ORDER BY r.id DESC")
+	List<Risk> findRisksForErmDashboard(@Param("organizationId") Long organizationId, @Param("startDate") Date startDate,
+			@Param("endDate") Date endDate, @Param("companyId") Long companyId, @Param("branchId") Long branchId,
+			@Param("functionId") Long functionId);
+
 }

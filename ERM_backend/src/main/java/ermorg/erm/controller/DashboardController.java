@@ -5,11 +5,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import ermorg.erm.constant.ErmDashboardPeriodType;
 import ermorg.erm.dto.ResponseStatus;
 import ermorg.erm.dto.response.BasicDashboardResponse;
 import ermorg.erm.dto.response.CompanyAdminDashboardDto;
+import ermorg.erm.dto.response.ErmDashboardSummaryResponse;
 import ermorg.erm.dto.response.OrgAdminDashboardDto;
 import ermorg.erm.exception.ResourceNotFoundException;
 import ermorg.erm.response.GeneralResponse;
@@ -52,6 +55,27 @@ public class DashboardController {
 		GeneralResponse<OrgAdminDashboardDto> response = new GeneralResponse<>();
 		
 		OrgAdminDashboardDto data = dashboardService.getAdminDashboardData(period, pageable);
+		response.setData(data);
+		response.setStatus(ResponseStatus.SUCCESS);
+		return response;
+	}
+
+	@GetMapping("/dashboard/erm-summary")
+	public GeneralResponse<ErmDashboardSummaryResponse> getErmDashboardSummary(@RequestParam int year,
+			@RequestParam String periodType, @RequestParam(required = false) Long companyId,
+			@RequestParam(required = false) Long branchId, @RequestParam(required = false) Long functionId)
+			throws ResourceNotFoundException {
+
+		ErmDashboardPeriodType type;
+		try {
+			type = ErmDashboardPeriodType.valueOf(periodType.trim().toUpperCase());
+		} catch (IllegalArgumentException e) {
+			throw new IllegalArgumentException("Invalid periodType. Use one of: Q1, Q2, Q3, Q4, H1, H2, YEAR");
+		}
+
+		GeneralResponse<ErmDashboardSummaryResponse> response = new GeneralResponse<>();
+		ErmDashboardSummaryResponse data = dashboardService.getErmDashboardSummary(year, type, companyId, branchId,
+				functionId);
 		response.setData(data);
 		response.setStatus(ResponseStatus.SUCCESS);
 		return response;
