@@ -13,6 +13,7 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -79,5 +80,8 @@ public class Risk extends BaseModel {
 	
 	@OneToMany(mappedBy = "risk", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
 	private List<SubRisk> subRisk = new ArrayList<>();
-	 
+
+	@OneToOne(mappedBy = "risk", fetch = FetchType.LAZY)
+	private RiskAssessment riskAssessment;
+
 }

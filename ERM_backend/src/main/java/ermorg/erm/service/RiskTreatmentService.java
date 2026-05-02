@@ -178,7 +178,7 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 	                new RiskResponseTreatmentResponse(riskTreatment),
 	                true
 	        );
-	    } catch (ResourceNotFoundException e) {
+	    } catch (Exception e) {
 	        throw new RuntimeException(
 	                "Error mapping RiskResponseTreatment with id: " + riskTreatment.getId(), e
 	        );
