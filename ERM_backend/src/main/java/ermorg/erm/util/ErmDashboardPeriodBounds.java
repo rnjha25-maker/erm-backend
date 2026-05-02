@@ -21,8 +21,8 @@ public final class ErmDashboardPeriodBounds {
 	}
 
 	public static ErmDashboardPeriodBounds forYearAndPeriod(int year, ErmDashboardPeriodType periodType, ZoneId zoneId) {
-		LocalDate start;
-		LocalDate end;
+		LocalDate start = LocalDate.now();
+		LocalDate end = LocalDate.now();
 		switch (periodType) {
 		case Q1:
 			start = LocalDate.of(year, 1, 1);
