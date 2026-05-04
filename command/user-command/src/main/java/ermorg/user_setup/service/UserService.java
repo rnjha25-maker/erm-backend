@@ -64,8 +64,7 @@ public class UserService implements IUserService {
 	@Override
 	public UserResponse saveUser(UserDTO request) throws ResourceNotFoundException, InvalidResourceAccess {
 		
-		Organization organization = organizationRepository.findById(request.getOrganizationId())
-		.filter(org -> !org.getDeleted())
+		Organization organization = organizationRepository.findByIdAndDeletedFalse(request.getOrganizationId())
 		.orElseThrow(()->new ResourceNotFoundException("No organization found."));
 		
 		Long count = userDetailsRepository.countByEmail(request.getEmail());
@@ -149,78 +148,104 @@ public class UserService implements IUserService {
 //			@CacheEvict(value="users", key="request.companyId")
 //	})
 	@Override
-	public UserResponse updateUser(UserDTO request) throws ResourceNotFoundException, InvalidResourceAccess {
-		
-		User user = userRepository.findById(request.getUserId())
-		.orElseThrow(()-> new ResourceNotFoundException("User not found."));
-				
-		Organization organization = organizationRepository.findById(request.getOrganizationId())
-				.filter(org -> !org.getDeleted())
-				.orElseThrow(()->new ResourceNotFoundException("No organization found."));	
-		
-		UserDetail userDetails = user.getUserDetail();
-		
-		userDetails.setFirstName(request.getFirstName());
-		userDetails.setLastName(request.getLastName());
-		
-		Country country = countryRepository.findById(request.getCountryId())
-				.orElseThrow(()->new ResourceNotFoundException("No country found."));
-		
-		City city = cityService.getCity(request.getCityId());
-		
-		State state = stateService.getState(request.getStateId());
-		
-		Address address = new Address();
-		
-		address.setCity(city);
-		address.setState(state);
-		address.setCountry(country);
-		address.setAddress(request.getAddress());
-				
-		Company compony = organization.getCompanies()
-		.stream()
-		.filter(cmp->cmp.getId().equals(request.getComponyId()))
-		.findFirst()
-		.orElseThrow(()-> new ResourceNotFoundException("Compony not found."));
-		
-		Branch branch = compony.getBranches()
-		.stream()
-		.filter(br-> br.getId().equals(request.getBranchId()))
-		.findAny()
-		.orElseThrow(()-> new ResourceNotFoundException("Branch not found."));
-		
-		Department department = branch.getDepartments()
-		.stream()
-		.filter(d -> d.getId().equals(request.getDepartmentId()))
-		.findAny()
-		.orElseThrow(()-> new ResourceNotFoundException("Department not found."));
-		
-		List<Role> roles = StreamSupport.stream(roleRepository.findAllById(request.getRoleIds()).spliterator(), false)
-                .collect(Collectors.toList());
-		if (roles.isEmpty()) {
-		    throw new ResourceNotFoundException("Role(s) not found.");
-		}
-		userDetails.setOrganization(organization);
-		userDetails.setBranch(branch);
-		userDetails.setDepartment(department);
-		userDetails.setPhone(request.getPhone());
-		
-		UserDetail savedUserDetails = userDetailsRepository.save(userDetails);
-		
-		user.setUserDetail(savedUserDetails);
-		user.setEmail(request.getEmail());
-		user.setClientIP(userDetails.getClientIP());
-		user.setRoles(roles);
-		user.setBranch(branch);
-		user.setDepartment(department);
-		User savedUser = userRepository.save(user);
-		
-		return mapUserResponse(savedUser);
-		
-		
+	public UserResponse updateUser(UserDTO request) 
+	        throws ResourceNotFoundException, InvalidResourceAccess {
+
+	    User user = getUserOrThrow(request.getUserId());
+
+	    Organization organization = getOrganizationOrThrow(request.getOrganizationId());
+
+	    UserDetail userDetails = user.getUserDetail();
+
+	    updateBasicUserDetails(userDetails, request);
+
+	    Company company = getCompanyOrThrow(organization, request.getComponyId());
+	    Branch branch = getBranchOrThrow(company, request.getBranchId());
+	    Department department = getDepartmentOrThrow(branch, request.getDepartmentId());
+
+	    List<Role> roles = getRolesOrThrow(request.getRoleIds());
+
+	    // Update user details
+	    userDetails.setOrganization(organization);
+	    userDetails.setBranch(branch);
+	    userDetails.setDepartment(department);
+	    userDetails.setPhone(request.getPhone());
+
+	    UserDetail savedUserDetails = userDetailsRepository.save(userDetails);
+
+	    // Update user
+	    user.setUserDetail(savedUserDetails);
+	    user.setEmail(request.getEmail());
+	    user.setClientIP(userDetails.getClientIP());
+	    user.setRoles(roles);
+	    user.setBranch(branch);
+	    user.setDepartment(department);
+
+	    return mapUserResponse(userRepository.save(user));
+	}	
+	private User getUserOrThrow(Long userId) throws ResourceNotFoundException {
+	    return userRepository.findById(userId)
+	            .orElseThrow(() -> new ResourceNotFoundException("User not found."));
 	}
 	
+	private Organization getOrganizationOrThrow(Long orgId) throws ResourceNotFoundException {
+	    return organizationRepository.findByIdAndDeletedFalse(orgId)
+	            .orElseThrow(() -> new ResourceNotFoundException("No organization found."));
+	}
 	
+	private Company getCompanyOrThrow(Organization org, Long companyId) throws ResourceNotFoundException {
+	    return org.getCompanies().stream()
+	            .filter(c -> c.getId().equals(companyId))
+	            .findFirst()
+	            .orElseThrow(() -> new ResourceNotFoundException("Company not found."));
+	}
+	
+	private Branch getBranchOrThrow(Company company, Long branchId) throws ResourceNotFoundException {
+	    return company.getBranches().stream()
+	            .filter(b -> b.getId().equals(branchId))
+	            .findFirst()
+	            .orElseThrow(() -> new ResourceNotFoundException("Branch not found."));
+	}
+	
+	private List<Role> getRolesOrThrow(List<Long> roleIds) throws ResourceNotFoundException {
+	    List<Role> roles = StreamSupport
+	            .stream(roleRepository.findAllById(roleIds).spliterator(), false)
+	            .collect(Collectors.toList());
+
+	    if (roles.isEmpty()) {
+	        throw new ResourceNotFoundException("Role(s) not found.");
+	    }
+
+	    return roles;
+	}
+	
+	private Department getDepartmentOrThrow(Branch branch, Long deptId) throws ResourceNotFoundException {
+	    return branch.getDepartments().stream()
+	            .filter(d -> d.getId().equals(deptId))
+	            .findFirst()
+	            .orElseThrow(() -> new ResourceNotFoundException("Department not found."));
+	}
+	
+	private void updateBasicUserDetails(UserDetail userDetails, UserDTO request) 
+	        throws ResourceNotFoundException {
+
+	    userDetails.setFirstName(request.getFirstName());
+	    userDetails.setLastName(request.getLastName());
+
+	    Country country = countryRepository.findById(request.getCountryId())
+	            .orElseThrow(() -> new ResourceNotFoundException("No country found."));
+
+	    City city = cityService.getCity(request.getCityId());
+	    State state = stateService.getState(request.getStateId());
+
+//	    Address address = new Address();
+//	    address.setCity(city);
+//	    address.setState(state);
+//	    address.setCountry(country);
+//	    address.setAddress(request.getAddress());
+//
+//	    userDetails.setAddress(address); // IMPORTANT (was missing)
+	}
 	
 //	@Cacheable(value="user", key="#userId")
 	@Override

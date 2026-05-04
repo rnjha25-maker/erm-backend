@@ -113,7 +113,7 @@ public class MaturityService implements IErmMaturityService {
 	}
 	
 	@Override
-	public Page<CustomResponse> getAll(Pageable pageable) throws ResourceNotFoundException {
+	public Page<List<CustomResponse>> getAll(Pageable pageable) throws ResourceNotFoundException {
 
 	    Organization organization = OrganizationContext.getOrganization();
 
@@ -127,19 +127,14 @@ public class MaturityService implements IErmMaturityService {
 	    return page.map(this::mapToCustomResponse);
 	}
 	
-	private CustomResponse mapToCustomResponse(ERMMaturityAssessment ermMaturity) {
+	private List<CustomResponse> mapToCustomResponse(ERMMaturityAssessment ermMaturity) {
 
-	    List<CustomResponse> mapped =
-	            customResponseMapper.map(
+	    return customResponseMapper.map(
 	                    "ermMaturity",
 	                    1L,
 	                    new ErmMaturityResponse(ermMaturity),
 	                    true
 	            );
-
-	    return mapped.stream()
-	            .findFirst()
-	            .orElse(new CustomResponse());
 	}
 	
 	@Override

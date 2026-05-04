@@ -24,6 +24,9 @@ public class TokenServiceImpl implements ITokenService {
 	@Autowired
 	private JwtUtil jwtUtil;
 
+	@Autowired
+	private OrganizationValidationService organizationValidationService;
+
 	@Override
 	public TokenResponseDTO generateToken(String username, String password) throws PasswordNotMatchedException {
 
@@ -36,6 +39,8 @@ public class TokenServiceImpl implements ITokenService {
 
 		if (!password.equals(password2))
 			throw new PasswordNotMatchedException("Incorrect password!");
+
+		organizationValidationService.validateOrganizationCanAuthenticate(user.getOrgId());
 
 //		String generatedToken = jwtUtil.generateToken(username, user.getOrgId());
 
@@ -62,6 +67,8 @@ public class TokenServiceImpl implements ITokenService {
 		OTPStorage sotoredOtp = otpStorageRepository.findByEmail(username);
 		String generatedToken = null;
 		if (sotoredOtp != null && sotoredOtp.getOtp().equals(otp)) {
+
+			organizationValidationService.validateOrganizationCanAuthenticate(sotoredOtp.getOrganizationId());
 
 			generatedToken = jwtUtil.generateToken(username, sotoredOtp.getOrganizationId(), sotoredOtp.getCompanyId());
 
