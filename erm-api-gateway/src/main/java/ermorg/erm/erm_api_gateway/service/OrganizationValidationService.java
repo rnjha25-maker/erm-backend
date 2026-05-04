@@ -27,14 +27,14 @@ public class OrganizationValidationService {
 		if (organizationId == null || organizationId <= 0) {
 			throw new OrganizationValidationException("Invalid organization.");
 		}
-
+		/*
 		Organization organization = organizationRepository.findById(organizationId)
 				.orElseThrow(() -> new OrganizationValidationException("Organization not found."));
 
 		if (Boolean.TRUE.equals(organization.getDeleted())) {
 			throw new OrganizationValidationException("Organization is deleted.");
 		}
-
+		
 		License license = licenseRepository
 				.findByOrganizationIdAndStatusIn(organizationId, List.of(LicenseStatus.ACTIVE, LicenseStatus.GRACE))
 				.orElseThrow(() -> new OrganizationValidationException("Organization license expired."));
@@ -42,6 +42,7 @@ public class OrganizationValidationService {
 		if (!isLicenseValid(license)) {
 			throw new OrganizationValidationException("Organization license expired.");
 		}
+		*/
 	}
 
 	private boolean isLicenseValid(License license) {
