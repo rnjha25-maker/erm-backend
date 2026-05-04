@@ -266,7 +266,7 @@ public class RiskService implements IRiskService {
 
 	@Override
 	@Transactional
-	public Page<CustomResponse> getAllRisks(Pageable pageable) {
+	public Page<List<CustomResponse>> getAllRisks(Pageable pageable) {
 
 		Organization organization = OrganizationContext.getOrganization();
 
@@ -275,11 +275,9 @@ public class RiskService implements IRiskService {
 		return riskPage.map(this::mapRisk);
 	}
 
-	private CustomResponse mapRisk(Risk risk) {
+	private List<CustomResponse> mapRisk(Risk risk) {
 
-		List<CustomResponse> mapped = customResponseMapper.map("riskControl", 1L, new RiskResponse(risk), true);
-
-		return mapped.stream().findFirst().orElse(new CustomResponse());
+		return customResponseMapper.map("risk", 1L, new RiskResponse(risk), true);
 	}
 
 	public void captureHistory(Risk risk, String actionType) {
@@ -376,7 +374,7 @@ public class RiskService implements IRiskService {
 	}
 	
 	@Override	@Transactional(readOnly = true)	
-	public Page<CustomResponse> getAllAssessment(Pageable pageable) {
+	public Page<List<CustomResponse>> getAllAssessment(Pageable pageable) {
 
 	    Organization organization = OrganizationContext.getOrganization();
 
@@ -386,19 +384,14 @@ public class RiskService implements IRiskService {
 	    return page.map(this::mapRiskAssessment);
 	}
 	
-	private CustomResponse mapRiskAssessment(RiskAssessment riskAssessment) {
+	private List<CustomResponse> mapRiskAssessment(RiskAssessment riskAssessment) {
 
-	    List<CustomResponse> mapped =
-	            customResponseMapper.map(
+	    return customResponseMapper.map(
 	                    "riskAssessment",
 	                    1L,
 	                    new RiskAssessmentResponse(riskAssessment),
 	                    false
 	            );
-
-	    return mapped.stream()
-	            .findFirst()
-	            .orElse(new CustomResponse());
 	}
 
 	@Override

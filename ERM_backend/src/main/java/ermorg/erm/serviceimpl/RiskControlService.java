@@ -156,15 +156,14 @@ public class RiskControlService implements IRiskControlService {
 	}
 
 	@Override
-	public Page<CustomResponse> getAllRisks(Pageable pageable) {
+	public Page<List<CustomResponse>> getAllRisks(Pageable pageable) {
 
 	    Organization organization = OrganizationContext.getOrganization();
 
 	    Page<RiskControl> riskPage =
 	            riskControlRepository.getAllRisksByOrganizationId(organization.getId(), pageable);
 
-		return riskPage.map(risk -> customResponseMapper.map("riskControl", 1L, new RiskControlResponse(risk), true)
-				.stream().findFirst().orElse(new CustomResponse()));
+		return riskPage.map(risk -> customResponseMapper.map("riskControl", 1L, new RiskControlResponse(risk), true));
 	}
 
 	@Override

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ermorg.erm.erm_api_gateway.dto.response.GeneralResponse;
 import ermorg.erm.erm_api_gateway.dto.response.ResponseStatus;
 import ermorg.erm.erm_api_gateway.exception.PasswordNotMatchedException;
+import ermorg.erm.erm_api_gateway.exception.OrganizationValidationException;
 import ermorg.erm.erm_api_gateway.exception.TokenExpiredException;
 
 import lombok.extern.slf4j.Slf4j;
@@ -76,6 +77,18 @@ public class GlobalExceptionHandler {
 
 		log.error(ex.getMessage());
 		return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+	}
+
+	@ExceptionHandler(OrganizationValidationException.class)
+	public ResponseEntity<GeneralResponse<Object>> handleOrganizationValidation(OrganizationValidationException ex) {
+
+		GeneralResponse<Object> response = new GeneralResponse<>();
+
+		response.setMessage(ex.getMessage());
+		response.setStatus(ResponseStatus.FAILD);
+
+		log.error(ex.getMessage());
+		return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
 	}
 
 	@ExceptionHandler(Exception.class)

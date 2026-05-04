@@ -24,6 +24,7 @@ import ermorg.erm.erm_api_gateway.exception.TokenExpiredException;
 import ermorg.erm.erm_api_gateway.model.RoleRight;
 import ermorg.erm.erm_api_gateway.repository.RoleRightRepository;
 import ermorg.erm.erm_api_gateway.service.IUserService;
+import ermorg.erm.erm_api_gateway.service.OrganizationValidationService;
 import ermorg.erm.erm_api_gateway.util.JwtUtil;
 
 import io.jsonwebtoken.ExpiredJwtException;
@@ -37,14 +38,16 @@ public class JwtRequestFilter implements ReactiveAuthenticationManager, WebFilte
 	private final ReactiveUserDetailsService userDetailsService;
 	private final RoleRightRepository roleRightRepository;
 	private IUserService userService;
-	private String token;
+	private final OrganizationValidationService organizationValidationService;
 
 	public JwtRequestFilter(JwtUtil jwtUtil, ReactiveUserDetailsService userDetailsService,
-			RoleRightRepository roleRightRepository, IUserService userService) {
+			RoleRightRepository roleRightRepository, IUserService userService,
+			OrganizationValidationService organizationValidationService) {
 		this.jwtUtil = jwtUtil;
 		this.userDetailsService = userDetailsService;
 		this.roleRightRepository = roleRightRepository;
 		this.userService = userService;
+		this.organizationValidationService = organizationValidationService;
 
 	}
 
@@ -55,9 +58,11 @@ public class JwtRequestFilter implements ReactiveAuthenticationManager, WebFilte
 			Authentication authentication = context.getAuthentication();
 			if (authentication != null && authentication.isAuthenticated()) {
 				String username = authentication.getName();
+				String token = extractToken(exchange);
 
-				if (hasAccess(exchange, authentication)) {
+				if (token != null && hasAccess(exchange, authentication, token)) {
 					Long organizationId = jwtUtil.extractOrganizationId(token);
+					organizationValidationService.validateOrganizationCanAuthenticate(organizationId);
 					UserResponse user = userService.getUserByUsername(username);
 					ServerHttpRequest request = exchange.getRequest().mutate()
 							.header("X-User-Id", String.valueOf(user.getUserId()))
@@ -81,7 +86,7 @@ public class JwtRequestFilter implements ReactiveAuthenticationManager, WebFilte
 	@Transactional
 
 //	@Cacheable(value = "roleRights", key = "#organizationId")
-	private boolean hasAccess(ServerWebExchange exchange, Authentication authentication) {
+	private boolean hasAccess(ServerWebExchange exchange, Authentication authentication, String token) {
 
 		Long organizationId = jwtUtil.extractOrganizationId(token);
 		List<RoleRight> roleRights = roleRightRepository.getRoleRightByOrganizationId(organizationId);
@@ -117,7 +122,7 @@ public class JwtRequestFilter implements ReactiveAuthenticationManager, WebFilte
 
 	@Override
 	public Mono<Authentication> authenticate(Authentication authentication) throws AuthenticationException {
-		token = authentication.getCredentials().toString();
+		String token = authentication.getCredentials().toString();
 		String username = null;
 		try {
 			username = jwtUtil.extractUsername(token);
@@ -132,6 +137,8 @@ public class JwtRequestFilter implements ReactiveAuthenticationManager, WebFilte
 
 		return userDetailsService.findByUsername(username).map(userDetails -> {
 			if (jwtUtil.validateToken(token, userDetails.getUsername())) {
+				Long organizationId = jwtUtil.extractOrganizationId(token);
+				organizationValidationService.validateOrganizationCanAuthenticate(organizationId);
 
 				return new UsernamePasswordAuthenticationToken(userDetails.getUsername(), null,
 						userDetails.getAuthorities());
@@ -155,6 +162,14 @@ public class JwtRequestFilter implements ReactiveAuthenticationManager, WebFilte
 				return Mono.empty();
 			}
 		};
+	}
+
+	private String extractToken(ServerWebExchange exchange) {
+		String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
+		if (authHeader != null && authHeader.startsWith("Bearer ")) {
+			return authHeader.substring(7);
+		}
+		return null;
 	}
 
 }
