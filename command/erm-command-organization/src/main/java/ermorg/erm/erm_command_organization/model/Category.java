@@ -35,7 +35,10 @@ public class Category extends BaseModel{
     @ManyToOne
     @JoinColumn(name="module_id")
     private Modules module;
-
+    
+    @Column(name = "display_order")
+    private Integer displayOrder;
+    
 	public Category(String categoryName, String mappedWithTable ) {
 		super();
 		this.categoryName = categoryName;

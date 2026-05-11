@@ -8,5 +8,5 @@ import ermorg.erm.erm_command_organization.model.Modules;
 
 @Repository
 public interface ModuleRepository extends JpaRepository<Modules, Long> {
-
+	boolean existsByIdAndDeletedFalse(Long id);
 }
