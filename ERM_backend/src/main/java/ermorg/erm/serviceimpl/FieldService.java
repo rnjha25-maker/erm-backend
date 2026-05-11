@@ -55,24 +55,13 @@ public class FieldService implements IFieldService {
 	@Transactional(readOnly = true)
 	public List<CategoryListResponse> getAllCategories(Long moduleId) throws ResourceNotFoundException {
 
-	    Long orgId = OrganizationContext.getOrganization().getId();
-	    if (orgId == null) {
+		Long orgId = OrganizationContext.getOrganization().getId();
+		if (orgId == null) {
 			throw new ResourceNotFoundException("Organization not found");
 		}
-	    Organization organization = organizationRepository.findById(orgId)
-	            .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
-		
-	    List<Long> categoryIds = organization.getModules().stream()
-	            .filter(module -> !module.getDeleted() && module.getModuleId().equals(moduleId))
-	            .map(module -> module.getCategoryId())
-	            .collect(Collectors.toList());
 
-	    List<Category> categories = categoryRepository.findAllById(categoryIds);
-
-	    return categories.stream()
-	            .filter(category -> !category.getDeleted())
-	            .map(CategoryListResponse::new)
-	            .collect(Collectors.toList());
+		return categoryRepository.findAllByOrgAndModule(orgId, moduleId).stream().map(CategoryListResponse::new)
+				.collect(Collectors.toList());
 	}
 
 	@Override

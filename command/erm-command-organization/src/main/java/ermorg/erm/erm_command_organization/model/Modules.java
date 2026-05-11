@@ -5,8 +5,8 @@ import java.util.List;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
-import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -21,6 +21,7 @@ public class Modules extends BaseModel{
 	private List<Right> rights = new ArrayList<>();
 	
 	@OneToMany(mappedBy="module", cascade = CascadeType.ALL)
+	@OrderBy("displayOrder ASC")
 	private List<Category> categories = new ArrayList<>();
 	
 	@OneToMany(mappedBy="module", cascade = CascadeType.ALL)

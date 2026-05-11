@@ -249,10 +249,11 @@ public class FieldService implements IFieldService {
 
 	@Override
 	public List<CategoryListResponse> getAllCategories(Long moduleId) throws ResourceNotFoundException {
-		Modules module = moduleRepository.findById(moduleId).filter(module1 -> !module1.getDeleted())
-				.orElseThrow(() -> new ResourceNotFoundException("Module not found."));
+		if (!moduleRepository.existsByIdAndDeletedFalse(moduleId)) {
+			throw new ResourceNotFoundException("Module not found.");
+		}
 
-		return module.getCategories().stream().filter(category -> !category.getDeleted()).map(category -> new CategoryListResponse(category))
+		return categoryRepository.findOrderedCategories(moduleId).stream().map(CategoryListResponse::new)
 				.collect(Collectors.toList());
 	}
 
