@@ -21,22 +21,24 @@ import lombok.ToString;
 @NoArgsConstructor
 @Table(name = "category")
 @ToString
-public class Category extends BaseModel{
-    
-    @Column(name = "category_name")
-    private String categoryName;
+public class Category extends BaseModel {
 
-    @Column(name = "mapped_with_table")
-    private String mappedWithTable;
+	@Column(name = "category_name")
+	private String categoryName;
 
-    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<CustomField> fields = new HashSet<>();
+	@Column(name = "mapped_with_table")
+	private String mappedWithTable;
 
-    @ManyToOne
-    @JoinColumn(name="module_id")
-    private Modules module;
+	@OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
+	private Set<CustomField> fields = new HashSet<>();
 
-	public Category(String categoryName, String mappedWithTable ) {
+	@ManyToOne
+	@JoinColumn(name = "module_id")
+	private Modules module;
+	@Column(name = "display_order")
+	private Integer displayOrder;
+
+	public Category(String categoryName, String mappedWithTable) {
 		super();
 		this.categoryName = categoryName;
 		this.mappedWithTable = mappedWithTable;
