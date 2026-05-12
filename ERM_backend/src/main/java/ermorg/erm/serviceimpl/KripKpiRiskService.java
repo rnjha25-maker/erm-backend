@@ -85,13 +85,7 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 
 		KriKpiReview saved = kriKpiReskRepository.save(kriKpiReview);
 
-		KriKpiReviewResponseDTO kriKpiReviewResponseDTO = new KriKpiReviewResponseDTO();
-
-		mapper.map(request, kriKpiReviewResponseDTO);
-
-		kriKpiReviewResponseDTO.setKriId(saved.getId());
-
-		return kriKpiReviewResponseDTO;
+		return new KriKpiReviewResponseDTO(saved);
 	}
 
 	@Override

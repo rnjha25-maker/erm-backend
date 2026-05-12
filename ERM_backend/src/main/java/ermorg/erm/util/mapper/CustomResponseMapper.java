@@ -1,10 +1,8 @@
 package ermorg.erm.util.mapper;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,18 +19,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class CustomResponseMapper {
 
-	private static final ThreadLocal<List<CustomFieldResponse>> customFieldsThread = new ThreadLocal<>();
 	@Autowired
 	private IFieldService fieldService;
 	
 	public List<CustomResponse> map(String tableName, Long moduleId, Object object, boolean isGrid) {
 
-	    List<CustomFieldResponse> customFieldResponse = customFieldsThread.get();
-
-	    if (customFieldResponse == null) {
-	        fillFields(moduleId, tableName);
-	        customFieldResponse = customFieldsThread.get();
-	    }
+	    List<CustomFieldResponse> customFieldResponse = getFields(moduleId, tableName);
 
 	    if (customFieldResponse == null) {
 	        return Collections.emptyList(); // safety check
@@ -58,13 +50,9 @@ public class CustomResponseMapper {
 	}
 	
 	
-	private void fillFields(Long moduleId, String tableName) {
+	private List<CustomFieldResponse> getFields(Long moduleId, String tableName) {
 	    try {
-	        List<CustomFieldResponse> customFieldResponse =
-	                fieldService.getCustomFieldResponse(moduleId, tableName);
-
-	        customFieldsThread.set(customFieldResponse);
-
+	        return fieldService.getCustomFieldResponse(moduleId, tableName);
 	    } catch (ResourceNotFoundException e) {
 	        log.error("Error fetching custom fields for moduleId: {}, tableName: {}", moduleId, tableName, e);
 	        throw new RuntimeException(e); // convert to unchecked
