@@ -19,7 +19,7 @@ public class SubRiskResponse {
 
 	@Override
 	public String toString() {
-		return  subRiskId + "";
+		return subRiskName;
 	}
 
 	

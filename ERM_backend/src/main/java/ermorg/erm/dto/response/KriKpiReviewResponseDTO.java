@@ -20,7 +20,7 @@ public class KriKpiReviewResponseDTO {
     private String businessFunction;
     private long riskOwner;
     private long riskId;//new
-    private List<Long> subRiskIds = new ArrayList<>();//new
+    private List<SubRiskResponse> subRiskIds = new ArrayList<>();//new
     private String target;
     private String keyRiskParameters;
     private String keyRiskIndicatorKri;
@@ -74,6 +74,8 @@ public class KriKpiReviewResponseDTO {
     
     public KriKpiReviewResponseDTO(KriKpiReview kriKpiReview) {
 	    this.kriId = kriKpiReview.getId();
+	    this.riskId = kriKpiReview.getRisk().getId();
+	    this.subRiskIds = kriKpiReview.getSubRisks().stream().map(SubRiskResponse::new).toList();
 	    this.businessObjectives = kriKpiReview.getBusinessObjectives();
 	    this.businessFunction = kriKpiReview.getBusinessFunction();
 	    this.riskOwner = kriKpiReview.getRiskOwner().getId();

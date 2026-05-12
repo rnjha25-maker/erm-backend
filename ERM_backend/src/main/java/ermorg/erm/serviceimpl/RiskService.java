@@ -277,7 +277,7 @@ public class RiskService implements IRiskService {
 
 	private List<CustomResponse> mapRisk(Risk risk) {
 
-		return customResponseMapper.map("risk", 1L, new RiskResponse(risk), true);
+		return customResponseMapper.map("risk", 1L, new RiskResponse(risk), false);
 	}
 
 	public void captureHistory(Risk risk, String actionType) {

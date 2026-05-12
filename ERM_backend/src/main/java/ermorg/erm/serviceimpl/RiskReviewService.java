@@ -86,12 +86,7 @@ public class RiskReviewService implements IRiskReviewService {
 				riskReview.setOrganization(organization);
 				riskReview.setCompany(company);
 				RiskReview saved = riskReviewRepository.save(riskReview);
-				RiskReviewResponseDtoResponse riskReviewResponseDTO = new RiskReviewResponseDtoResponse();
-				
-				mapper.map(request, riskReviewResponseDTO);
-				
-				riskReviewResponseDTO.setRiskReviewId(saved.getId());
-		return riskReviewResponseDTO ;
+		return new RiskReviewResponseDtoResponse(saved);
 	}
 
 	@Override

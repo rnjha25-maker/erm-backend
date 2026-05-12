@@ -3,7 +3,6 @@ package ermorg.erm.dto.response;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import ermorg.erm.model.RiskReview;
 
@@ -18,7 +17,7 @@ public class RiskReviewResponseDtoResponse {
     
     private Long riskReviewId;
     private long riskId;
-    private List<Long> subRiskIds = new ArrayList<>();
+    private List<SubRiskResponse> subRiskIds = new ArrayList<>();
     private String revisedLikelihood;
     private String likelihoodProbability;
     private String revisedFinancialImpact;
@@ -43,7 +42,7 @@ public class RiskReviewResponseDtoResponse {
     public RiskReviewResponseDtoResponse(RiskReview riskReview) {
     	this.riskReviewId = riskReview.getId();
     	this.riskId = riskReview.getRisk().getId();
-    	this.subRiskIds = riskReview.getSubRisks().stream().map(r->r.getId()).collect(Collectors.toList());
+    	this.subRiskIds = riskReview.getSubRisks().stream().map(SubRiskResponse::new).toList();
     	this.revisedLikelihood = riskReview.getRevisedLikelihood();
 		this.likelihoodProbability = riskReview.getLikelihoodProbability();
 		this.revisedFinancialImpact = riskReview.getRevisedFinancialImpact();
