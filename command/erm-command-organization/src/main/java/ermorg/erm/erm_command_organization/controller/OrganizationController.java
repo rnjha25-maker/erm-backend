@@ -148,7 +148,15 @@ public class OrganizationController {
         return response;
     }
     
-  
+    @GetMapping("/check-email/{email:.+}")
+    public GeneralResponse<Boolean> checkDuplicateEmail(@PathVariable String email) {
+        GeneralResponse<Boolean> response = new GeneralResponse<>();
+        boolean exists = organizationService.isEmailAlreadyExists(email);
+        response.setData(exists);
+        response.setStatus(ResponseStatus.SUCCESS);
+        response.setMessage(exists ? "Email already exists!" : "Email is available.");
+        return response;
+    }
     
     
 }

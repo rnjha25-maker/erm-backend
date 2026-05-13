@@ -11,9 +11,12 @@ import ermorg.erm.erm_command_organization.model.Organization;
 
 @Repository
 public interface OrganizationRepository extends JpaRepository<Organization, Long> {
-    Organization save(Organization organization);
 
-	List<Organization> findAllByCreatedAtBetween(Date startOfWeek, Date endOfWeek);
+    // ✅ Removed: save() — already inherited from JpaRepository, no need to redeclare
 
-	Optional<Organization> findByIdAndDeletedFalse(Long id);
+    List<Organization> findAllByCreatedAtBetween(Date startOfWeek, Date endOfWeek);
+
+    Optional<Organization> findByIdAndDeletedFalse(Long id);
+
+    List<Organization> findAllByDeletedFalse(); // ✅ Added: used in getAllOrganization()
 }
