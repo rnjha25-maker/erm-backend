@@ -15,15 +15,21 @@ import jakarta.validation.Valid;
 
 public interface IOrganizationService {
 	OrganizationResponse createOrganization(OrganizationDTO request) throws ResourceNotFoundException;
+
 	OrganizationResponse updateOrganization(OrganizationDTO request) throws DataNotFoundException;
-    void deleteOrganization(Long id) throws InvalidDataException;
+
+	void deleteOrganization(Long id) throws InvalidDataException;
+
 	List<OrganizationResponse> getAllOrganization();
-	OrganizationResponse getOrganization(Long id, int back)throws DataNotFoundException;
-	List<Map<String, Object>> getAllModules();
+
+	OrganizationResponse getOrganization(Long id, int back) throws DataNotFoundException;
+
 	public UpdateModuleRequest updateModule(UpdateModuleRequest request);
-	UpdateModuleRequest updateModuleView(UpdateModuleRequest request)throws ResourceNotFoundException;
-	ModuleRightRequest updateRight(ModuleRightRequest request)throws ResourceNotFoundException;
+
+	UpdateModuleRequest updateModuleView(UpdateModuleRequest request) throws ResourceNotFoundException;
+
+	ModuleRightRequest updateRight(ModuleRightRequest request) throws ResourceNotFoundException;
+
+	boolean isEmailAlreadyExists(String email);
 	
-    
-    
 }

@@ -21,4 +21,7 @@ public interface UserDetailRepository extends JpaRepository<UserDetail, Long> {
     @Modifying
     @Query("UPDATE UserDetail u SET u.organization = NULL WHERE u.organization.id = :organizationId")
     void nullifyOrganizationId(@Param("organizationId") Long organizationId);
+    
+    boolean existsByEmail(String email);
+
 }

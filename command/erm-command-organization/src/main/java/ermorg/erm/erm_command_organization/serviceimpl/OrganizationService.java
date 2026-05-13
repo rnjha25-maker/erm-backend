@@ -2,8 +2,6 @@ package ermorg.erm.erm_command_organization.serviceimpl;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +10,6 @@ import org.springframework.stereotype.Service;
 
 import ermorg.erm.erm_command_organization.dto.request.UpdateModuleRequest;
 import ermorg.erm.erm_command_organization.dto.requestDTO.ModuleRightRequest;
-import ermorg.erm.erm_command_organization.dto.requestDTO.OrgModuleRequest;
 import ermorg.erm.erm_command_organization.dto.requestDTO.OrganizationDTO;
 import ermorg.erm.erm_command_organization.dto.responseDTO.OrganizationResponse;
 import ermorg.erm.erm_command_organization.exception.DataNotFoundException;
@@ -53,387 +50,333 @@ import jakarta.transaction.Transactional;
 
 @Service
 public class OrganizationService implements IOrganizationService {
+
 	@Autowired
 	private OrganizationRepository organizationRepository;
-
 	@Autowired
 	private UserRepository userRepository;
-
 	@Autowired
-	private UserDetailRepository UserDetailRepository;
-
+	private UserDetailRepository userDetailRepository; // ✅ removed duplicate userDetailsRepository
 	@Autowired
 	private RoleRepository roleRepository;
-
 	@Autowired
 	private AuditorAware auditor;
-
 	@Autowired
-	private OrganizationHistoryRepository organizationHistoryRepository;
-
-	@Autowired
-	private UserDetailRepository userDetailsRepository;
-
+	private OrganizationHistoryRepository organizationHistoryRepository; // ✅ removed duplicate
+																			// oganizationHistoryRepository
 	@Autowired
 	private ModuleRepository moduleRepository;
-
 	@Autowired
 	private StateRepository stateRepository;
-
 	@Autowired
 	private CountryRepository countryRepository;
-
 	@Autowired
 	private CityRepository cityRepository;
-	
 	@Autowired
 	private PlanRepository planRepository;
-
 	@Autowired
 	private ModuleOrganizationRepository moduleOrganizationRepository;
-	
-	@Autowired
-	private OrganizationHistoryRepository oganizationHistoryRepository;
-	
 	@Autowired
 	private RightRepository rightRepository;
-	
 	@Autowired
 	private RightOrganizationHistoryRepository rightOrganizationHistoryRepository;
-	@Override
-	public OrganizationResponse createOrganization(OrganizationDTO request) throws ResourceNotFoundException {
-		String clientIp = ((AuditorAwareImpl) auditor).getClientIp();
 
-		Country country = countryRepository.findById(request.getCountryId())
-				.orElseThrow(() -> new ResourceNotFoundException("No country found."));
+    @Override
+    @Transactional
+    public OrganizationResponse createOrganization(OrganizationDTO request) throws ResourceNotFoundException {
+    	
+    	 if (userRepository.existsByEmail(request.getEmail()) 
+    	            || userDetailRepository.existsByEmail(request.getEmail())) {
+    	        throw new InvalidDataException("Email already exists!");
+    	    }
+    	 
+        String clientIp = ((AuditorAwareImpl) auditor).getClientIp();
 
-		State state = country.getStates().stream().filter(state1 -> state1.getId().equals(request.getStateId()))
-				.findAny().orElseThrow(() -> new ResourceNotFoundException("No state found."));
+        Country country = countryRepository.findById(request.getCountryId())
+                .orElseThrow(() -> new ResourceNotFoundException("No country found."));
 
-		City city = state.getCities().stream().filter(city1 -> city1.getId().equals(request.getCityId())).findAny()
-				.orElseThrow(() -> new ResourceNotFoundException("No city found."));
+        State state = country.getStates().stream()
+                .filter(s -> s.getId().equals(request.getStateId()))
+                .findAny()
+                .orElseThrow(() -> new ResourceNotFoundException("No state found."));
 
-		Plan plan = planRepository.findById(request.getPlanId()).orElseThrow(() -> new ResourceNotFoundException("No plan found."));
-		
-		Organization organization = new Organization();
-		organization.setState(state);
-		organization.setCity(city);
-		organization.setCountry(country);
-		organization.setName(request.getName());
-		organization.setOrganizationLogoImageUrl(request.getOrgImgUrl());
-		organization.setClientIP(clientIp);
-		organization = organizationRepository.save(organization);
-		organization.setDeleted(false);
-		organization.setClientIP(clientIp);
-		organization.setPinCode(request.getPinCode());
-		organization.setCompanyCount(request.getCompanyCount());
-		organization.setPlan(plan);
-		organization.setGstNo(request.getGstNo());
-		organization.setPanNo(request.getPanNo());
-		organization.setNoOfBasicUsers(request.getNoOfBasicUsers());
-		organization.setNoOfAdvancedUsers(request.getNoOfAdvancedUsers());
-		organization.setBusinessLocation(request.getBusinessLocation());
-		organization.setAdminCount(request.getAdminCount());
-//		role.setOrganization(organization);
-		 Role role = roleRepository.findByRoleName("orgAdmin");
-		 
-		 if(role == null) throw new ResourceNotFoundException("Please create orgAdmin role first.");
-//		role.setName("orgAdmin");
-//		role.setDescription("OA");
-//		role.setClientIP(clientIp);
-		role = roleRepository.save(role);
+        City city = state.getCities().stream()
+                .filter(c -> c.getId().equals(request.getCityId()))
+                .findAny()
+                .orElseThrow(() -> new ResourceNotFoundException("No city found."));
 
-		UserDetail userDetail = new UserDetail();
-		userDetail.setFirstName(request.getAdminFirstName());
-		userDetail.setMiddleName(request.getAdminMiddleName());
-		userDetail.setLastName(request.getAdminLastName());
-		userDetail.setPhone(request.getPhone());
-		userDetail.setAlternatePhone(request.getAlternatePhone());
-		userDetail.setOrganization(organization);
-		userDetail.setClientIP(clientIp);
-		userDetail = UserDetailRepository.save(userDetail);
-		userDetail.setEmail(request.getEmail());
-		User user = new User();
-		user.setEmail(request.getEmail());
-		user.setPassword(PasswordGenerator.generate(8));
-		user.setUserDetail(userDetail);
-		ArrayList<Role> roleList = new ArrayList<>();
-		roleList.add(role);
-		user.setRoles(roleList);
-		user.setClientIP(clientIp);
-		user.setOrganization(organization);
-		User savedUser = userRepository.save(user);
-		if(request.isAdminPoc()) {
-			organization.setPOCPerson(savedUser.getUserDetail());
-			
-			 organization = organizationRepository.save(organization);
-			 organizationRepository.flush();
-		}
-		
+        Plan plan = planRepository.findById(request.getPlanId())
+                .orElseThrow(() -> new ResourceNotFoundException("No plan found."));
 
-		return new OrganizationResponse(organization);
-	}
+        Role role = roleRepository.findByRoleName("orgAdmin");
+        if (role == null)
+            throw new ResourceNotFoundException("Please create orgAdmin role first.");
 
-	@Transactional
-	@Override
-	public OrganizationResponse updateOrganization(OrganizationDTO request) throws DataNotFoundException {
-		String clientIp = ((AuditorAwareImpl) auditor).getClientIp();
-		Optional<Organization> organizationOptional = organizationRepository.findById(request.getOrganizationId());
-		if (organizationOptional.isEmpty()) {
-			throw new DataNotFoundException("Organization not found!");
-		}
-		Plan plan = planRepository.findById(request.getPlanId()).orElseThrow(() -> new DataNotFoundException("Plan not found."));
-		Organization organization = organizationOptional.get();
-		organization.setName(request.getName());
-		organization.setOrganizationLogoImageUrl(request.getOrgImgUrl());
-		organization.setClientIP(clientIp);
-		organization.setPlan(plan);
-		organization.setCompanyCount(request.getCompanyCount());
-		organization.setStatus(request.getStatus());
-//		organization.setPanNo(request.getPanNo());
-//		organization.setGstNo(request.getGstNo());
-//		organization.setNoOfBasicUsers(request.getNoOfBasicUsers());
-//		organization.setNoOfAdvancedUsers(request.getNoOfAdvancedUsers());
-		Organization savedOrganization = organizationRepository.save(organization);
+        // ✅ Set all fields before saving — removed redundant first save
+        Organization organization = new Organization();
+        organization.setCountry(country);
+        organization.setState(state);
+        organization.setCity(city);
+        organization.setPlan(plan);
+        organization.setName(request.getName());
+        organization.setDescription(request.getDescription());   // ✅ was missing
+        organization.setOrganizationLogoImageUrl(request.getOrgImgUrl());
+        organization.setPinCode(request.getPinCode());
+        organization.setBusinessLocation(request.getBusinessLocation());
+        organization.setAdminCount(request.getAdminCount());
+        organization.setCompanyCount(request.getCompanyCount());
+        organization.setGstNo(request.getGstNo());
+        organization.setPanNo(request.getPanNo());
+        organization.setNoOfBasicUsers(request.getNoOfBasicUsers());
+        organization.setNoOfAdvancedUsers(request.getNoOfAdvancedUsers());
+        organization.setStatus(request.getStatus() != null ? request.getStatus() : "ACTIVE"); // ✅ was missing
+        organization.setDeleted(false);
+        organization.setClientIP(clientIp);
+        organization = organizationRepository.save(organization);
 
-		saveOrganizationHistory(savedOrganization, "U", false, null);
-		return new OrganizationResponse(savedOrganization);
-	}
+        // ✅ Set email BEFORE saving userDetail
+        UserDetail userDetail = new UserDetail();
+        userDetail.setFirstName(request.getAdminFirstName());
+        userDetail.setMiddleName(request.getAdminMiddleName());
+        userDetail.setLastName(request.getAdminLastName());
+        userDetail.setEmail(request.getEmail());                  // ✅ moved before save
+        userDetail.setPhone(request.getPhone());
+        userDetail.setAlternatePhone(request.getAlternatePhone());
+        userDetail.setOrganization(organization);
+        userDetail.setClientIP(clientIp);
+        userDetail = userDetailRepository.save(userDetail);
 
-	@Transactional
-	@Override
-	public void deleteOrganization(Long id) throws InvalidDataException {
-		Organization organization = organizationRepository.findById(id).filter(o -> !o.getDeleted())
-				.orElseThrow(() -> new DataNotFoundException("No organization found."));
+        User user = new User();
+        user.setEmail(request.getEmail());
+        user.setPassword(PasswordGenerator.generate(8));
+        user.setUserDetail(userDetail);
+        user.setRoles(List.of(role));                             // ✅ cleaner than new ArrayList + add
+        user.setClientIP(clientIp);
+        user.setOrganization(organization);
+        User savedUser = userRepository.save(user);
 
-		organization.setDeleted(true);
+        if (request.isAdminPoc()) {
+            organization.setPOCPerson(savedUser.getUserDetail());
+            organization = organizationRepository.save(organization);
+        }
 
-		organizationRepository.save(organization);
-		saveOrganizationHistory(organization, "D", true, "all");
-	}
+        return new OrganizationResponse(organization);
+    }
 
-	public void saveOrganizationHistory(Organization organization, String operation, boolean moduleChange, String moduleType) {
-		OrganizationHistory org = new OrganizationHistory();
+    @Override
+    @Transactional
+    public OrganizationResponse updateOrganization(OrganizationDTO request) throws DataNotFoundException {
+        String clientIp = ((AuditorAwareImpl) auditor).getClientIp();
 
-		org.setOrganizationId(organization.getId());
-		org.setClientIP(organization.getClientIP());
-		org.setCreatedAt(organization.getCreatedAt());
-		org.setCreatedBy(organization.getCreatedBy());
-		org.setOperation(operation);
-		org.setName(organization.getName());
-		org.setOrganizationLogoImageUrl(organization.getOrganizationLogoImageUrl());
+        Organization organization = organizationRepository.findById(request.getOrganizationId())
+                .orElseThrow(() -> new DataNotFoundException("Organization not found!"));
 
-		PlanHistory planHistory = new PlanHistory();
-		Plan plan = organization.getPlan();
-		
-		planHistory.setPlanDescription(plan == null ? null : plan.getPlanDescription());
-		planHistory.setPlanName(plan == null ? null :plan.getPlanName());
-		planHistory.setPlanId(plan == null ? null :plan.getId());
-		planHistory.setOperation(operation);
-		org.setPlan(planHistory);
-		
-		if(moduleChange) {
-			List<ModuleOrganization> modules = organization.getModules();
-			for(ModuleOrganization module: modules) {
-				if(!"all".equals(moduleType) || ("view".equals(moduleType) && module.getViewFieldId() == null) || ("category".equals(moduleType) && module.getFieldId() == null)) {
-					continue;
-				}
-				ModuleOrganizationHistory moduleOrganizationHistory = new ModuleOrganizationHistory();
-				moduleOrganizationHistory.setCategoryId(module.getCategoryId());
-				moduleOrganizationHistory.setFieldId(module.getFieldId());
-				moduleOrganizationHistory.setViewCategoryId(module.getViewCategoryId());
-				moduleOrganizationHistory.setViewFieldId(module.getViewFieldId());
-				moduleOrganizationHistory.setModuleId(module.getModuleId());
-				org.getModules().add(moduleOrganizationHistory);
-			}
-		
-		}
-		
-		organizationHistoryRepository.save(org);
+        Plan plan = planRepository.findById(request.getPlanId())
+                .orElseThrow(() -> new DataNotFoundException("Plan not found."));
 
-	}
+        organization.setName(request.getName());
+        organization.setOrganizationLogoImageUrl(request.getOrgImgUrl());
+        organization.setClientIP(clientIp);
+        organization.setPlan(plan);
+        organization.setCompanyCount(request.getCompanyCount());
+        organization.setStatus(request.getStatus());
+        organization.setPanNo(request.getPanNo());               // ✅ uncommented
+        organization.setGstNo(request.getGstNo());               // ✅ uncommented
+        organization.setNoOfBasicUsers(request.getNoOfBasicUsers());   // ✅ uncommented
+        organization.setNoOfAdvancedUsers(request.getNoOfAdvancedUsers()); // ✅ uncommented
 
-	@Override
-	public List<OrganizationResponse> getAllOrganization() {
+        Organization savedOrganization = organizationRepository.save(organization);
+        saveOrganizationHistory(savedOrganization, "U", false, null);
+        return new OrganizationResponse(savedOrganization);
+    }
 
-		List<Organization> organizations = organizationRepository.findAll();
+    @Override
+    @Transactional
+    public void deleteOrganization(Long id) throws InvalidDataException {
+        Organization organization = organizationRepository.findById(id)
+                .filter(o -> !o.getDeleted())
+                .orElseThrow(() -> new DataNotFoundException("No organization found."));
 
-		return organizations.stream().filter(org -> !org.getDeleted())
-				.map(organization -> new OrganizationResponse(organization)).collect(Collectors.toList());
-	}
+        organization.setDeleted(true);
+        organizationRepository.save(organization);
+        saveOrganizationHistory(organization, "D", true, "all");
+    }
 
-	@Override
-	public OrganizationResponse getOrganization(Long organizationId, int back) throws DataNotFoundException {
-		
-		OrganizationHistory organizationHistory = null;
-		if(back >0) {
-//			EntityManager entityManager = Persistence.createEntityManagerFactory("erm-command-organization-PU").createEntityManager();
-//
-//			String query = "SELECT e FROM OrganizationHistory e ORDER BY e.createdAt DESC";
-//			Query queryObject = entityManager.createQuery(query);
-//			queryObject.setMaxResults(1);
-//			 organizationHistory = (OrganizationHistory) queryObject.getSingleResult();
-//			 
-			 organizationHistory = organizationHistoryRepository.findLastModified(organizationId);
-//			entityManager.close();
-		}
-			
-		Organization organization = organizationRepository.findById(organizationId).filter(org -> !org.getDeleted())
-				.orElseThrow(() -> new DataNotFoundException("No organization found."));
-		;
+    @Override
+    public List<OrganizationResponse> getAllOrganization() {
+        // ✅ filter at DB level instead of fetching all and streaming
+        return organizationRepository.findAllByDeletedFalse()
+                .stream()
+                .map(OrganizationResponse::new)
+                .collect(Collectors.toList());
+    }
 
-		return new OrganizationResponse(organization, organizationHistory);
-	}
+    @Override
+    public OrganizationResponse getOrganization(Long organizationId, int back) throws DataNotFoundException {
+        Organization organization = organizationRepository.findById(organizationId)
+                .filter(org -> !org.getDeleted())
+                .orElseThrow(() -> new DataNotFoundException("No organization found."));
 
-	@Override
-	public List<Map<String, Object>> getAllModules() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+        OrganizationHistory organizationHistory = (back > 0)
+                ? organizationHistoryRepository.findLastModified(organizationId)
+                : null;
 
-	@Override
-	@Transactional
-	public UpdateModuleRequest updateModule(UpdateModuleRequest request) {
+        return new OrganizationResponse(organization, organizationHistory);
+    }
 
-		Organization organization = organizationRepository.findById(request.getOrgId())
-				.orElseThrow(() -> new RuntimeException("No organization found"));
+    @Override
+    @Transactional
+    public UpdateModuleRequest updateModule(UpdateModuleRequest request) {
+        Organization organization = organizationRepository.findById(request.getOrgId())
+                .orElseThrow(() -> new RuntimeException("No organization found"));
 
-		List<ModuleOrganization> existingModules = organization.getModules();
+        List<ModuleOrganization> existingModules = organization.getModules();
+        boolean isCategoryDeleted = existingModules.stream().anyMatch(m -> m.getFieldId() != null);
 
-		long existingModulesCount = existingModules.stream().filter(module -> module.getFieldId() != null).count();
-		boolean isCategoryDeleted = existingModulesCount != 0;
-		// Remove existing module organizations
-		existingModules.forEach(module -> moduleOrganizationRepository.delete(module));
-		existingModules.clear();
-		organization.setModules(existingModules);
+        existingModules.forEach(moduleOrganizationRepository::delete);
+        existingModules.clear();
 
-		List<OrgModuleRequest> orgModules = request.getOrgModules();
-//		List<ModuleOrganization> newModules = orgModules.stream().map(orgModule -> {
-//			ModuleOrganization moduleOrganization = new ModuleOrganization();
-//			orgModule.getCategories().stream().forEach(category -> {
-//				category.getFieldIds().stream().forEach(field -> {
-//					moduleOrganization.setModuleId(orgModule.getModuleId());
-//					moduleOrganization.setCategoryId(category.getCategoryId());
-//					moduleOrganization.setFieldId(field);
-//					moduleOrganization.setOrganization(organization);
-//				});
-//
-//			});
-//			return moduleOrganization;
-//		}).collect(Collectors.toList());
-		
-		List<ModuleOrganization> newModules = orgModules.stream()
-		        .flatMap(orgModule -> orgModule.getCategories().stream()
-		                .flatMap(category -> category.getFieldIds().stream()
-		                        .map(field -> {
-		                            ModuleOrganization moduleOrganization = new ModuleOrganization();
-		                            moduleOrganization.setModuleId(orgModule.getModuleId());
-		                            moduleOrganization.setCategoryId(category.getCategoryId());
-		                            moduleOrganization.setFieldId(field);
-		                            moduleOrganization.setOrganization(organization);
-		                            return moduleOrganization;
-		                        })))
-		        .collect(Collectors.toList());
+        List<ModuleOrganization> newModules = request.getOrgModules().stream()
+                .flatMap(orgModule -> orgModule.getCategories().stream()
+                        .flatMap(category -> category.getFieldIds().stream()
+                                .map(field -> {
+                                    ModuleOrganization mo = new ModuleOrganization();
+                                    mo.setModuleId(orgModule.getModuleId());
+                                    mo.setCategoryId(category.getCategoryId());
+                                    mo.setFieldId(field);
+                                    mo.setOrganization(organization);
+                                    return mo;
+                                })))
+                .collect(Collectors.toList());
 
-		organization.getModules().addAll(newModules);
+        organization.getModules().addAll(newModules);
+        organizationRepository.save(organization);
 
-		organizationRepository.save(organization);
+        if (isCategoryDeleted)
+            saveOrganizationHistory(organization, "U", true, "category");
 
-		if (isCategoryDeleted) {
-			saveOrganizationHistory(organization, "U", true, "category");
-		}
-		return request;
-	}
+        return request;
+    }
 
-	@Override
-	@Transactional
-	public UpdateModuleRequest updateModuleView(UpdateModuleRequest request) throws ResourceNotFoundException {
+    @Override
+    @Transactional
+    public UpdateModuleRequest updateModuleView(UpdateModuleRequest request) throws ResourceNotFoundException {
+        Organization organization = organizationRepository.findById(request.getOrgId())
+                .orElseThrow(() -> new RuntimeException("No organization found"));
 
+        List<ModuleOrganization> existingModules = organization.getModules();
+        boolean isViewDeleted = existingModules.stream().anyMatch(m -> m.getViewFieldId() != null);
 
-		Organization organization = organizationRepository.findById(request.getOrgId())
-				.orElseThrow(() -> new RuntimeException("No organization found"));
+        existingModules.forEach(moduleOrganizationRepository::delete);
+        existingModules.clear();
 
-		
-		List<ModuleOrganization> existingModules = organization.getModules();
+        // ✅ Fixed: was using forEach inside map — only last field survived per module
+        List<ModuleOrganization> newModules = request.getOrgModules().stream()
+                .flatMap(orgModule -> orgModule.getCategories().stream()
+                        .flatMap(category -> category.getFieldIds().stream()
+                                .map(field -> {
+                                    ModuleOrganization mo = new ModuleOrganization();
+                                    mo.setModuleId(orgModule.getModuleId());
+                                    mo.setViewCategoryId(category.getCategoryId());
+                                    mo.setViewFieldId(field);
+                                    mo.setOrganization(organization);
+                                    return mo;
+                                })))
+                .collect(Collectors.toList());
 
-		long existingModulesCount = existingModules.stream().filter(module -> module.getViewFieldId() != null).count();
-		boolean isViewDeleted = existingModulesCount != 0;
-		// Remove existing module organizations
-		existingModules.forEach(module -> moduleOrganizationRepository.delete(module));
+        organization.getModules().addAll(newModules);
+        organizationRepository.save(organization);
 
-		existingModules.clear();
-		organization.setModules(existingModules);
+        if (isViewDeleted)
+            saveOrganizationHistory(organization, "U", true, "view");
 
-		List<OrgModuleRequest> orgModules = request.getOrgModules();
-		List<ModuleOrganization> newModules = orgModules.stream().map(orgModule -> {
-			ModuleOrganization moduleOrganization = new ModuleOrganization();
-			orgModule.getCategories().stream().forEach(category -> {
-				category.getFieldIds().stream().forEach(field -> {
-					moduleOrganization.setModuleId(orgModule.getModuleId());
-					moduleOrganization.setViewCategoryId(category.getCategoryId());
-					moduleOrganization.setViewFieldId(field);
-					moduleOrganization.setOrganization(organization);
-				});
+        return request;
+    }
 
-			});
-			return moduleOrganization;
-		}).collect(Collectors.toList());
+    @Override
+    public ModuleRightRequest updateRight(ModuleRightRequest request) throws ResourceNotFoundException {
+        Organization organization = organizationRepository.findById(request.getOrganizationId())
+                .filter(org -> !org.getDeleted())
+                .orElseThrow(() -> new DataNotFoundException("No organization found."));
 
-		organization.getModules().addAll(newModules);
+        List<Long> rightIds = request.getModuleRights().stream()
+                .flatMap(mr -> mr.getRightIds().stream())
+                .collect(Collectors.toList());
 
-		organizationRepository.save(organization);
-		
-		if(isViewDeleted) {
-			saveOrganizationHistory(organization, "U", true, "view");
-		}
-		return request;
-	
-	}
+        List<Right> foundRights = rightRepository.findAllByRightIds(rightIds);
 
-	@Override
-	public ModuleRightRequest updateRight(ModuleRightRequest request) throws ResourceNotFoundException {
-		
-		Organization organization = organizationRepository.findById(request.getOrganizationId()).filter(org -> !org.getDeleted())
-				.orElseThrow(() -> new DataNotFoundException("No organization found."));
-		
-		List<Right> orgRights = organization.getRights();
-		
-		List<Long> rightIds = request.getModuleRights().stream().map(moduleRight -> {
-			return moduleRight.getRightIds();
-		})
-		.flatMap(List::stream)
-		.collect(Collectors.toList());
-		
-		List<Right> oldRights = orgRights;
+        // ✅ Proper copy to avoid mutating the same reference
+        List<Right> removedRights = new ArrayList<>(organization.getRights());
+        removedRights.removeAll(foundRights);
 
-		List<Right> foundRights = rightRepository.findAllByRightIds(rightIds);
-		orgRights = foundRights;
-		organization.setRights(orgRights);
-		 boolean removed = oldRights.removeAll(foundRights);
-		organizationRepository.save(organization);
-		
-		if(removed) {
-			saveRightOrganizationHistory(oldRights, organization.getId(), "U");
+        organization.setRights(foundRights);
+        organizationRepository.save(organization);
 
-		}
-		
-		return request;
-	}
-	
-	private void saveRightOrganizationHistory(List<Right> rights, Long organizationId,  String operation) {
-		
-		List<RightOrganizationHistory> rightOrganizationHistoryList = rights.stream().map(right->{
-			RightOrganizationHistory rightOrganizationHistory = new RightOrganizationHistory();
-			rightOrganizationHistory.setOrganizationId(organizationId);
-			rightOrganizationHistory.setRightId(right.getId());
-			rightOrganizationHistory.setOperation(operation);
-			return rightOrganizationHistory;
-		})
-		.collect(Collectors.toList());
-		
-		rightOrganizationHistoryRepository.saveAll(rightOrganizationHistoryList);
-	}
-	
-	
+        if (!removedRights.isEmpty())
+            saveRightOrganizationHistory(removedRights, organization.getId(), "U");
 
+        return request;
+    }
+
+    @Override
+    public boolean isEmailAlreadyExists(String email) {
+        return userRepository.existsByEmail(email) 
+            || userDetailRepository.existsByEmail(email);
+    }
+
+    // --- private helpers ---
+
+    public void saveOrganizationHistory(Organization organization, String operation,
+                                        boolean moduleChange, String moduleType) {
+        OrganizationHistory org = new OrganizationHistory();
+        org.setOrganizationId(organization.getId());
+        org.setClientIP(organization.getClientIP());
+        org.setCreatedAt(organization.getCreatedAt());
+        org.setCreatedBy(organization.getCreatedBy());
+        org.setOperation(operation);
+        org.setName(organization.getName());
+        org.setOrganizationLogoImageUrl(organization.getOrganizationLogoImageUrl());
+
+        Plan plan = organization.getPlan();
+        PlanHistory planHistory = new PlanHistory();
+        planHistory.setPlanDescription(plan == null ? null : plan.getPlanDescription());
+        planHistory.setPlanName(plan == null ? null : plan.getPlanName());
+        planHistory.setPlanId(plan == null ? null : plan.getId());
+        planHistory.setOperation(operation);
+        org.setPlan(planHistory);
+
+        if (moduleChange) {
+            organization.getModules().stream()
+                    .filter(module -> "all".equals(moduleType)
+                            || ("view".equals(moduleType) && module.getViewFieldId() != null)
+                            || ("category".equals(moduleType) && module.getFieldId() != null))
+                    .forEach(module -> {
+                        ModuleOrganizationHistory moh = new ModuleOrganizationHistory();
+                        moh.setCategoryId(module.getCategoryId());
+                        moh.setFieldId(module.getFieldId());
+                        moh.setViewCategoryId(module.getViewCategoryId());
+                        moh.setViewFieldId(module.getViewFieldId());
+                        moh.setModuleId(module.getModuleId());
+                        org.getModules().add(moh);
+                    });
+        }
+
+        organizationHistoryRepository.save(org);
+    }
+
+    private void saveRightOrganizationHistory(List<Right> rights, Long organizationId, String operation) {
+        List<RightOrganizationHistory> history = rights.stream()
+                .map(right -> {
+                    RightOrganizationHistory roh = new RightOrganizationHistory();
+                    roh.setOrganizationId(organizationId);
+                    roh.setRightId(right.getId());
+                    roh.setOperation(operation);
+                    return roh;
+                })
+                .collect(Collectors.toList());
+
+        rightOrganizationHistoryRepository.saveAll(history);
+    }
+
+	 
 }
