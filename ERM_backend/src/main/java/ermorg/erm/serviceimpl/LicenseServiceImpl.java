@@ -6,16 +6,21 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import ermorg.erm.dto.response.LicenseRequest;
 import ermorg.erm.dto.response.LicenseValidationResponse;
+import ermorg.erm.dto.riskDTO.LicenseResponseDTO;
 import ermorg.erm.model.License;
 import ermorg.erm.model.Organization;
 import ermorg.erm.repository.LicenseRepository;
 import ermorg.erm.repository.OrganizationRepository;
 import ermorg.erm.service.ILicenseService;
+import ermorg.erm.util.mapper.LicenseMapper;
 import ermorg.erm.util.mapper.LicenseStatus;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -28,15 +33,16 @@ public class LicenseServiceImpl implements ILicenseService{
 	private OrganizationRepository organizationRepository;
 	
 	@Override
-	public License getActiveLicense(Long orgId) {
+	public LicenseResponseDTO getActiveLicense(Long orgId) {
 
-		return licenseRepository
-				.findByOrganizationIdAndStatusIn(orgId, List.of(LicenseStatus.ACTIVE, LicenseStatus.GRACE))
-				.orElseThrow(() -> new RuntimeException("No active license found"));
+		License license = licenseRepository.findById(orgId)
+		        .orElseThrow(() -> new RuntimeException("License not found"));
+
+		    return LicenseMapper.toDTO(license);
 	}
 	
 	@Override
-	public boolean isLicenseValid(License license) {
+	public boolean isLicenseValid(LicenseResponseDTO license) {
 
 	    LocalDate today = LocalDate.now();
 
@@ -59,7 +65,7 @@ public class LicenseServiceImpl implements ILicenseService{
 	@Override
 	public LicenseValidationResponse validateLicense(Long orgId) {
 
-	    License license = getActiveLicense(orgId);
+	    LicenseResponseDTO license = getActiveLicense(orgId);
 
 	    LocalDate today = LocalDate.now();
 
@@ -80,7 +86,7 @@ public class LicenseServiceImpl implements ILicenseService{
 
 	    return LicenseValidationResponse.builder()
 	            .valid(isValid)
-	            .status(license.getStatus().name())
+	            .status(license.getStatus())
 	            .endDate(license.getEndDate())
 	            .daysRemaining(Math.max(daysRemaining, 0))
 	            .inGracePeriod(inGrace)
@@ -88,7 +94,7 @@ public class LicenseServiceImpl implements ILicenseService{
 	}
 
 	@Override
-	public License createLicense(LicenseRequest request) {
+	public LicenseResponseDTO createLicense(LicenseRequest request) {
 
 		Organization organization = organizationRepository.findById(request.getOrganizationId())
 				.orElseThrow(() -> new RuntimeException("Organization not found"));
@@ -110,7 +116,9 @@ public class LicenseServiceImpl implements ILicenseService{
 		license.setStatus(LicenseStatus.ACTIVE);
 		license.setCreatedDate(LocalDate.now());
 		license.setUpdateDate(LocalDate.now());
-		return licenseRepository.save(license);
+		License saved = licenseRepository.save(license);
+
+	    return LicenseMapper.toDTO(saved); 
 	}
 
 	@Override
