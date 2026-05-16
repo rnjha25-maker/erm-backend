@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ermorg.erm.dto.ResponseStatus;
 import ermorg.erm.dto.response.LicenseRequest;
 import ermorg.erm.dto.response.LicenseValidationResponse;
+import ermorg.erm.dto.riskDTO.LicenseResponseDTO;
 import ermorg.erm.model.License;
 import ermorg.erm.repository.OrganizationRepository;
 import ermorg.erm.response.GeneralResponse;
@@ -43,9 +44,9 @@ public class LicenseController {
 
 	// ✅ 2. Create License
 	@PostMapping("/create")
-	public GeneralResponse<License> createLicense(@RequestBody LicenseRequest request) {
-		License license = licenseService.createLicense(request);
-		GeneralResponse<License> response = new GeneralResponse<>();
+	public GeneralResponse<LicenseResponseDTO> createLicense(@RequestBody LicenseRequest request) {
+		LicenseResponseDTO license = licenseService.createLicense(request);
+		GeneralResponse<LicenseResponseDTO> response = new GeneralResponse<>();
 		response.setData(license);
 		response.setMessage("License created successfully");
 		response.setStatus(ResponseStatus.SUCCESS);

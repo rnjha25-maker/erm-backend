@@ -2,12 +2,13 @@ package ermorg.erm.service;
 
 import ermorg.erm.dto.response.LicenseRequest;
 import ermorg.erm.dto.response.LicenseValidationResponse;
+import ermorg.erm.dto.riskDTO.LicenseResponseDTO;
 import ermorg.erm.model.License;
 
 public interface ILicenseService {
-	License getActiveLicense(Long orgId) ;
-	boolean isLicenseValid(License license) ;
+	LicenseResponseDTO getActiveLicense(Long orgId) ;
+	boolean isLicenseValid(LicenseResponseDTO license) ;
 	LicenseValidationResponse validateLicense(Long orgId);
-	License createLicense(LicenseRequest request);
+	LicenseResponseDTO  createLicense(LicenseRequest request);
 	License updateLicense(Long licenseId, LicenseRequest request) ;
 }
