@@ -1,8 +1,5 @@
 package ermorg.erm.dto.response;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import ermorg.erm.model.RiskAssessment;
 
 import lombok.Data;
@@ -12,7 +9,9 @@ public class RiskAssessmentResponse {
 
 	private long assessmentId;
 	private long riskId;
-    private List<SubRiskResponse> subRiskIds = new ArrayList<>();
+	private String riskTitle;
+    private Long subRiskId;
+    private String subRiskName;
     private String riskAnalysisType;
     private String likelihood;
     private String likelihoodProbability;
@@ -35,7 +34,11 @@ public class RiskAssessmentResponse {
     public RiskAssessmentResponse(RiskAssessment riskAssessment) {
     	this.assessmentId = riskAssessment.getId();
     	this.riskId = riskAssessment.getRisk().getId();
-		this.subRiskIds = riskAssessment.getSubRisks().stream().map(SubRiskResponse::new).toList();
+    	this.riskTitle = riskAssessment.getRisk().getRisktitle();
+		if (riskAssessment.getSubRisk() != null) {
+			this.subRiskId = riskAssessment.getSubRisk().getId();
+			this.subRiskName = riskAssessment.getSubRisk().getSubRisk();
+		}
 		this.riskAnalysisType = riskAssessment.getRiskAnalysisType();
 		this.likelihood = riskAssessment.getLikelihood();
 		this.likelihoodProbability = riskAssessment.getLikelihoodProbability();

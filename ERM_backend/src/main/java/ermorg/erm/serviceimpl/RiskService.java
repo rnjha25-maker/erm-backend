@@ -2,12 +2,15 @@ package ermorg.erm.serviceimpl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -173,6 +176,7 @@ public class RiskService implements IRiskService {
 	}
 
 	@Override
+	@Transactional
 	public RiskResponse addRiskAssessment(RiskAsessmentDto request) throws ResourceNotFoundException {
 
 		Organization organization = OrganizationContext.getOrganization();
@@ -184,16 +188,19 @@ public class RiskService implements IRiskService {
 		RiskAssessment riskAsessment = riskAsessmentRepository.findById(request.getAssessmentId())
 				.filter(as -> !as.getDeleted()).orElse(new RiskAssessment());
 
-		List<SubRisk> subRisks = risk.getSubRisk().stream()
-				.filter(subRisk -> request.getSubRiskIds().contains(subRisk.getId())).map(sbRisk -> {
-					sbRisk.setRiskAssessment(riskAsessment);
-					return sbRisk;
-				}).collect(Collectors.toList());
+		SubRisk subRisk = null;
+		if (request.getSubRiskId() != null) {
+			subRisk = risk.getSubRisk().stream()
+					.filter(existingSubRisk -> request.getSubRiskId().equals(existingSubRisk.getId()))
+					.findFirst()
+					.orElseThrow(() -> new ResourceNotFoundException(
+							"Selected sub risk does not belong to the selected risk."));
+		}
 
 		riskAsessment.setOrganization(organization);
 		riskAsessment.setCompany(company);
 		riskAsessment.setRisk(risk);
-		riskAsessment.setSubRisks(subRisks);
+		riskAsessment.setSubRisk(subRisk);
 		riskAsessment.setCustomerImpact(request.getCustomerImpact());
 		riskAsessment.setRiskAnalysisType(request.getRiskAnalysisType());
 		riskAsessment.setLikelihood(request.getLikelihood());
@@ -221,7 +228,7 @@ public class RiskService implements IRiskService {
 		riskAsessment.setResidualRiskRatingCriteria(request.getResidualRiskRatingCriteria());
 		RiskAssessment saveAssessment = riskAsessmentRepository.save(riskAsessment);
 
-		return null;
+		return new RiskResponse(saveAssessment.getRisk());
 	}
 
 	@Transactional
@@ -355,22 +362,12 @@ public class RiskService implements IRiskService {
 			throw new ResourceNotFoundException("Organization not found");
 		}
 
-		List<CustomResponse>  customResponses = new ArrayList<>();
 		RiskAssessment risk = riskAsessmentRepository.getAssessmentByOrgIdAndAssessmentId(organization.getId(), assessmentId);// .orElseThrow(() -> new
+		if (risk == null) {
+			throw new ResourceNotFoundException("Risk assessment not found");
+		}
 																				
-		List<CustomFieldResponse> customFieldResponse = fieldService.getCustomFieldResponse(1, "riskAssessment");
-		
-		customFieldResponse.stream().forEach(field -> {
-			CustomResponse customResponse;
-			try {
-				customResponse = CustomResponseMapperUtil.map(risk, field, "risk");
-				customResponses.add(customResponse);
-			} catch (IllegalArgumentException | IllegalAccessException e) {
-				// TODO Auto-generated catch block
-				log.error("getRiskView() {}", e.getMessage());
-			}
-		});
-		return customResponses;
+		return mapRiskAssessment(risk);
 	}
 	
 	@Override	@Transactional(readOnly = true)	
@@ -378,20 +375,55 @@ public class RiskService implements IRiskService {
 
 	    Organization organization = OrganizationContext.getOrganization();
 
-	    Page<RiskAssessment> page =
-	            riskAsessmentRepository.getAllByOrgId(organization.getId(), pageable);
+	    Page<Long> assessmentIdPage =
+	            riskAsessmentRepository.getAllIdsByOrgId(organization.getId(), pageable);
 
-	    return page.map(this::mapRiskAssessment);
+	    if (assessmentIdPage.isEmpty()) {
+	        return Page.empty(pageable);
+	    }
+
+	    List<RiskAssessment> assessments = riskAsessmentRepository.getAllByOrgIdAndIds(
+	            organization.getId(),
+	            assessmentIdPage.getContent()
+	    );
+
+	    Map<Long, RiskAssessment> assessmentById = assessments.stream()
+	            .collect(Collectors.toMap(RiskAssessment::getId, Function.identity()));
+
+	    List<List<CustomResponse>> responseList = assessmentIdPage.getContent().stream()
+	            .map(assessmentById::get)
+	            .filter(java.util.Objects::nonNull)
+	            .map(this::mapRiskAssessment)
+	            .collect(Collectors.toList());
+
+	    return new PageImpl<>(responseList, pageable, assessmentIdPage.getTotalElements());
 	}
 	
 	private List<CustomResponse> mapRiskAssessment(RiskAssessment riskAssessment) {
 
-	    return customResponseMapper.map(
+	    RiskAssessmentResponse response = new RiskAssessmentResponse(riskAssessment);
+	    List<CustomResponse> customResponses = new ArrayList<>(customResponseMapper.map(
 	                    "riskAssessment",
 	                    1L,
-	                    new RiskAssessmentResponse(riskAssessment),
+	                    response,
 	                    false
-	            );
+	            ));
+
+	    boolean hasSubRiskField = customResponses.stream()
+	    		.map(CustomResponse::getFieldName)
+	    		.filter(java.util.Objects::nonNull)
+	    		.map(fieldName -> fieldName.toLowerCase().replaceAll("[^a-z0-9]", ""))
+	    		.anyMatch(fieldName -> fieldName.contains("subrisk") || fieldName.contains("risksubtitle"));
+
+	    if (!hasSubRiskField) {
+	    	CustomResponse subRiskResponse = new CustomResponse();
+	    	subRiskResponse.setFieldName("Risk Sub Title");
+	    	subRiskResponse.setFieldType("Dropdown");
+	    	subRiskResponse.setValue(response.getSubRiskName());
+	    	customResponses.add(subRiskResponse);
+	    }
+
+	    return customResponses;
 	}
 
 	@Override

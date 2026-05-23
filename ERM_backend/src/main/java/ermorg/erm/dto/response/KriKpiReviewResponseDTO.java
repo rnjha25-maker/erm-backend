@@ -1,7 +1,6 @@
 package ermorg.erm.dto.response;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import ermorg.erm.model.KriKpiReview;
@@ -20,6 +19,7 @@ public class KriKpiReviewResponseDTO {
     private String businessFunction;
     private long riskOwner;
     private long riskId;//new
+    private String riskTitle;
     private List<SubRiskResponse> subRiskIds = new ArrayList<>();//new
     private String target;
     private String keyRiskParameters;
@@ -75,6 +75,7 @@ public class KriKpiReviewResponseDTO {
     public KriKpiReviewResponseDTO(KriKpiReview kriKpiReview) {
 	    this.kriId = kriKpiReview.getId();
 	    this.riskId = kriKpiReview.getRisk().getId();
+	    this.riskTitle = kriKpiReview.getRisk().getRisktitle();
 	    this.subRiskIds = kriKpiReview.getSubRisks().stream().map(SubRiskResponse::new).toList();
 	    this.businessObjectives = kriKpiReview.getBusinessObjectives();
 	    this.businessFunction = kriKpiReview.getBusinessFunction();
