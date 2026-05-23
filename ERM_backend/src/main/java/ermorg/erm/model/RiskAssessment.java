@@ -1,13 +1,9 @@
 package ermorg.erm.model;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -25,8 +21,10 @@ public class RiskAssessment  extends BaseModel{
 	@JoinColumn(name="risk_id")
     private Risk risk;
     
-	@OneToMany(mappedBy="riskAssessment")
-	private List<SubRisk> subRisks = new ArrayList<>();
+	@OneToOne
+	@JoinColumn(name = "subrisk_id")
+	private SubRisk subRisk;
+	
 	@ManyToOne
 	@JoinColumn(name = "organization_id")
 	private Organization organization;

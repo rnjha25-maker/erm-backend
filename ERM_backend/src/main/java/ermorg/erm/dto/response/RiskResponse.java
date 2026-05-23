@@ -13,6 +13,7 @@ public class RiskResponse {
 
 	private Long riskId;
 	private String risktitle;
+	private String riskTitle;
 	private String riskSource;
 	private RiskCategory category;
 	private String subCategory;
@@ -34,6 +35,7 @@ public class RiskResponse {
 	public RiskResponse(Risk risk) {
 		this.riskId = risk.getId();
 		this.risktitle = risk.getRisktitle();
+		this.riskTitle = risk.getRisktitle();
 		this.riskSource = risk.getRiskSource();
 		this.category = risk.getCategory();
 		this.subCategory = risk.getSubCategory();

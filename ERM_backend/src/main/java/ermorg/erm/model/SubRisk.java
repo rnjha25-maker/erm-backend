@@ -39,10 +39,6 @@ public class SubRisk extends BaseModel {
 	@JoinColumn(name = "risk_review_id")
 	private RiskReview riskReview;
 
-	@ManyToOne
-	@JoinColumn(name = "assessment_id")
-	private RiskAssessment riskAssessment;
-
 	@ManyToOne(cascade = CascadeType.MERGE)
 	@JoinColumn(name = "kri_kpi_review_id")
 	private KriKpiReview kriKpiReview;

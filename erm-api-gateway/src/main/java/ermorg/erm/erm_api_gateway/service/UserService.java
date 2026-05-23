@@ -39,14 +39,13 @@ public class UserService implements IUserService {
 
 		if (user == null)
 			throw new UsernameNotFoundException("User not found!");
-UserDetail userDetail = user.getUserDetail();
+		UserDetail userDetail = user.getUserDetail();
 		List<Role> roles2 = user.getRoles();
 
 		List<RoleResponse> roles = user.getRoles().stream()
-		        .map(role -> new RoleResponse(role, role.getRoleRights().stream()
-		                .map(rt -> new RightResponse(rt))
-		                .collect(Collectors.toList())))
-		        .collect(Collectors.toList());
+				.map(role -> new RoleResponse(role,
+						role.getRoleRights().stream().map(rt -> new RightResponse(rt)).collect(Collectors.toList())))
+				.collect(Collectors.toList());
 
 //		return roleResponse;
 //		List<RightResponse> rights = user.getRole() != null ? user.getRole().getRoleRights().stream()

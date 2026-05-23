@@ -44,6 +44,16 @@ public class CustomResponseMapperUtil {
 	public static CustomResponse map(Object response, CustomFieldResponse customField, String tableName)
 			throws IllegalArgumentException, IllegalAccessException {
 
+		String riskTitle = resolveRiskTitle(response, customField);
+		if (riskTitle != null) {
+			return buildResponse(customField.getFieldName(), riskTitle, customField);
+		}
+
+		String subRiskName = resolveSubRiskName(response, customField);
+		if (subRiskName != null) {
+			return buildResponse(customField.getFieldName(), subRiskName, customField);
+		}
+
 		Field matchedField = findField(response, customField, tableName);
 
 		if (matchedField == null && "id".equals(customField.getSystemFieldName())) {
@@ -91,6 +101,68 @@ public class CustomResponseMapperUtil {
 		}
 
 		return extractSingleValue(value, customField);
+	}
+
+	private static String resolveRiskTitle(Object response, CustomFieldResponse customField) {
+		if (response == null || !isRiskTitleField(customField)) {
+			return null;
+		}
+
+		String directRiskTitle = getFieldValueAsString(response, "riskTitle");
+		if (directRiskTitle != null) {
+			return directRiskTitle;
+		}
+
+		Object risk = getFieldValue(response, "risk");
+		if (risk == null) {
+			return null;
+		}
+
+		String title = getFieldValueAsString(risk, "risktitle");
+		return title != null ? title : getFieldValueAsString(risk, "riskTitle");
+	}
+
+	private static boolean isRiskTitleField(CustomFieldResponse customField) {
+		if (customField == null) {
+			return false;
+		}
+
+		return getFieldKeys(customField).stream()
+				.map(CustomResponseMapperUtil::normalizeMatchKey)
+				.anyMatch("risktitle"::equals);
+	}
+
+	private static String resolveSubRiskName(Object response, CustomFieldResponse customField) {
+		if (response == null || !isSubRiskDisplayField(customField)) {
+			return null;
+		}
+
+		String directSubRiskName = getFieldValueAsString(response, "subRiskName");
+		if (directSubRiskName != null) {
+			return directSubRiskName;
+		}
+
+		Object subRisk = getFieldValue(response, "subRisk");
+		if (subRisk == null) {
+			return null;
+		}
+
+		String title = getFieldValueAsString(subRisk, "subRisk");
+		return title != null ? title : getFieldValueAsString(subRisk, "subRiskName");
+	}
+
+	private static boolean isSubRiskDisplayField(CustomFieldResponse customField) {
+		if (customField == null) {
+			return false;
+		}
+
+		return getFieldKeys(customField).stream()
+				.map(CustomResponseMapperUtil::normalizeMatchKey)
+				.anyMatch(key -> "subriskid".equals(key)
+						|| "subrisk".equals(key)
+						|| "subriskname".equals(key)
+						|| "risksubtitle".equals(key)
+						|| "subrisktitle".equals(key));
 	}
 
 	private static String extractSingleValue(Object obj, CustomFieldResponse customField) {
@@ -189,6 +261,11 @@ public class CustomResponseMapperUtil {
 	}
 
 	private static String getFieldValueAsString(Object obj, String fieldName) {
+		Object val = getFieldValue(obj, fieldName);
+		return val != null ? val.toString() : null;
+	}
+
+	private static Object getFieldValue(Object obj, String fieldName) {
 		Field field = getField(obj.getClass(), fieldName);
 		if (field == null) {
 			return null;
@@ -196,8 +273,7 @@ public class CustomResponseMapperUtil {
 
 		try {
 			field.setAccessible(true);
-			Object val = field.get(obj);
-			return val != null ? val.toString() : null;
+			return field.get(obj);
 		} catch (IllegalAccessException ignored) {
 			return null;
 		}

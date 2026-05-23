@@ -19,7 +19,7 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/license")
+@RequestMapping("/license")
 @RequiredArgsConstructor
 public class LicenseController {
 

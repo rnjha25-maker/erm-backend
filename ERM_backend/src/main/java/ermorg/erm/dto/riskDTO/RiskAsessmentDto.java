@@ -1,8 +1,5 @@
 package ermorg.erm.dto.riskDTO;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import lombok.Data;
 
 @Data
@@ -10,7 +7,7 @@ public class RiskAsessmentDto {
 	
 	private long assessmentId;
 	private long riskId;
-    private List<Long> subRiskIds = new ArrayList<>();
+    private Long subRiskId;
     private String riskAnalysisType;
     private String likelihood;
     private String likelihoodProbability;

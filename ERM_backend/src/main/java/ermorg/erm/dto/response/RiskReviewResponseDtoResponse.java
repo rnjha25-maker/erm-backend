@@ -17,6 +17,7 @@ public class RiskReviewResponseDtoResponse {
     
     private Long riskReviewId;
     private long riskId;
+    private String riskTitle;
     private List<SubRiskResponse> subRiskIds = new ArrayList<>();
     private String revisedLikelihood;
     private String likelihoodProbability;
@@ -42,6 +43,7 @@ public class RiskReviewResponseDtoResponse {
     public RiskReviewResponseDtoResponse(RiskReview riskReview) {
     	this.riskReviewId = riskReview.getId();
     	this.riskId = riskReview.getRisk().getId();
+    	this.riskTitle = riskReview.getRisk().getRisktitle();
     	this.subRiskIds = riskReview.getSubRisks().stream().map(SubRiskResponse::new).toList();
     	this.revisedLikelihood = riskReview.getRevisedLikelihood();
 		this.likelihoodProbability = riskReview.getLikelihoodProbability();
