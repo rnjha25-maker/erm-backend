@@ -1,187 +1,178 @@
 # ERM Application - Deployment Guide
 
-## 🚀 Quick Start
+This guide provides instructions to build, run, and deploy the **ERM (Enterprise Resource Management) Application**. It covers both local development setups and production deployment on AWS EC2.
 
-### Local Development (1 minute)
-```bash
-# Start all services
-docker compose -f docker-compose.local.yml -p erm up -d
+---
 
-# Access API Gateway
-open http://localhost:8080
-
-# View logs
-docker compose -f docker-compose.local.yml -p erm logs -f
-
-# Stop services
-docker compose -f docker-compose.local.yml -p erm down
-```
-
-### EC2 Production (Automatic)
-```bash
-# Push to main branch - GitHub Actions deploys automatically
-git push origin main
-
-# Takes ~12 minutes, monitor in GitHub Actions tab
-```
+## 📋 Table of Contents
+1. [Service Architecture](#-service-architecture)
+2. [Project Structure](#-project-structure)
+3. [Local Development](#-local-development)
+   - [Option A: Docker Compose (Recommended)](#option-a-docker-compose-recommended)
+   - [Option B: Native Maven Execution](#option-b-native-maven-execution)
+4. [Production / AWS EC2 Deployment](#-production--aws-ec2-deployment)
+   - [AWS Infrastructure Setup](#aws-infrastructure-setup-one-time)
+   - [GitHub Secrets Configuration](#github-secrets-configuration)
+   - [Deployment Workflows](#deployment-workflows)
+5. [Troubleshooting & Support](#-troubleshooting--support)
+6. [Deployment Checklists](#-deployment-checklists)
 
 ---
 
 ## 📋 Service Architecture
 
-### All 10 Microservices
-- **API Gateway** (8080) - Entry point
-- **Discovery Server** (8761) - Service registry
-- **ERM Backend** (8086) - Core business logic
-- **Command Services** (8081-8085) - Write operations
-- **Query Services** (8082, 8087-8088) - Read operations
+The ERM application is composed of **10 microservices** built on top of Spring Boot, using a CQRS-inspired architecture (separated Command and Query services).
 
-### Deployment Order
-1. **Discovery Server** (infrastructure)
-2. **Microservices** (8 services in parallel)
-3. **API Gateway** (depends on all services)
+### Service Port Mapping
+* **Discovery Server (Eureka)**: Port `8761`
+* **API Gateway**: Port `8080` (Entry point)
+* **ERM Backend**: Port `8086` (Core logic)
+* **Command Services** (Write Operations):
+  * **ERM Command Organization**: Port `8081`
+  * **Org Setup Command**: Port `8083`
+  * **User Setup**: Port `8084`
+  * **Storage Service**: Port `8085`
+* **Query Services** (Read Operations):
+  * **ERM Query Organization**: Port `8082`
+  * **User Query**: Port `8087`
+  * **Org Setup Query**: Port `8088`
+* **Databases & Cache**:
+  * **MySQL Database**: Port `3307` (Default host mapping)
+  * **Redis Cache**: Port `6379`
+
+### Deployment & Startup Order
+To ensure proper service registration, always start services in this order:
+1. **Discovery Server** (Infrastructure layer)
+2. **Databases and Cache** (MySQL & Redis)
+3. **Command & Query Microservices** (Runs in parallel)
+4. **ERM Backend** (Natively or in container)
+5. **API Gateway** (Gateway routing depends on active services)
+
+---
+
+## 📊 Project Structure
+
+Below is the directory layout of key deployment and configuration files:
+
+```
+ERM/
+├── docker-compose.local.yml      # Local development container configuration
+├── docker-compose.ec2.yml        # Production EC2 Docker configuration
+├── docker-compose.yml            # Core Docker stack definition
+├── .env.ec2.example              # Environment variables template for EC2
+├── local-dev.sh                  # Local orchestration helper script
+├── deploy-services.sh            # Production EC2 deployment script
+├── .github/workflows/
+│   └── deploy-ec2.yml            # GitHub Actions CI/CD deployment pipeline
+└── README.md                     # This file
+```
 
 ---
 
 ## 🏠 Local Development
 
 ### Prerequisites
-- Docker Desktop installed
-- 2GB+ free disk space
-- Ports 8080, 8761, 3307, 6379 available
+Before starting, ensure your local environment meets these requirements:
+* **Docker Desktop** is installed and running
+* **Ports 8080 to 8088, 3307, and 6379** are free and available
+* Minimum **2GB+ of free disk space** is available
 
-### Start Services
+---
+
+### Option A: Docker Compose (Recommended)
+
+This option spins up the entire application stack including preconfigured database and cache containers in under a minute.
+
+#### Quick Start Commands
 ```bash
-# Full startup (includes MySQL & Redis)
+# 1. Start all services in background
 docker compose -f docker-compose.local.yml -p erm up -d
 
-# Or use helper script
-./local-dev.sh start
+# 2. View streaming logs
+docker compose -f docker-compose.local.yml -p erm logs -f
+
+# 3. Stop and clean up containers
+docker compose -f docker-compose.local.yml -p erm down
 ```
 
-### Access Points
-- **API Gateway**: http://localhost:8080
-- **Discovery Server**: http://localhost:8761
-- **MySQL**: localhost:3307 (root/2116)
-- **Redis**: localhost:6379
-
-### Useful Commands
+#### Running via Local Helper Script
+Alternatively, you can manage the local Docker environment using the `./local-dev.sh` script:
 ```bash
-# View service status
-docker compose -f docker-compose.local.yml -p erm ps
-
-# View logs for specific service
-docker compose -f docker-compose.local.yml -p erm logs -f erm-backend
-
-# Rebuild specific service
-docker compose -f docker-compose.local.yml -p erm up -d --build erm-backend
-
-# Stop and clean up
-docker compose -f docker-compose.local.yml -p erm down -v
+./local-dev.sh start    # Spin up the complete stack
+./local-dev.sh status   # Show status of all services
+./local-dev.sh logs     # View service logs
+./local-dev.sh rebuild  # Rebuild services after code changes
+./local-dev.sh stop     # Stop services
+./local-dev.sh clean    # Destroy containers and cleanup resources
 ```
+
+#### Exposed Local Ports
+* **Discovery Server**: `http://localhost:8761`
+* **API Gateway (Public)**: `http://localhost:8080`
+* **MySQL Database**: `localhost:3307` (Credentials: `root` / password: `2116`)
+* **Redis**: `localhost:6379`
+
+#### Container Integration Details
+* **Database Init**: First-time startup automatically imports [`docker/mysql/init/erm2.sql`](./docker/mysql/init/erm2.sql) when the database volume is empty.
+* **Database Reset**: If you need to re-run the initialization SQL, destroy the database volume using:
+  ```bash
+  docker compose down -v
+  ```
+* **Profiles**: Docker containers execute using the pre-configured `dev` Spring profile.
+* **Discovery**: Client microservices communicate using `http://discovery-server:8761/eureka/` inside the isolated Docker network.
 
 ---
 
-## ☁️ EC2 Production Deployment
+### Option B: Native Maven Execution
 
-### Prerequisites
-1. **AWS Resources** (already created):
-   - RDS MySQL database
-   - ElastiCache Redis cluster
-   - EC2 instance with Docker
+Use this approach if you are actively editing individual microservices and prefer to run them natively on your host machine.
 
-2. **GitHub Secrets** (configure in repository):
-   ```
-   EC2_HOST              - EC2 public IP
-   EC2_USER              - SSH username (ec2-user/ubuntu)
-   EC2_SSH_KEY           - SSH private key
-   EC2_PORT              - SSH port (22)
-   EC2_APP_DIR           - App directory (/opt/erm)
-   AWS_REGION            - AWS region
-   AWS_RDS_ENDPOINT      - RDS database endpoint
-   AWS_RDS_USERNAME      - RDS username
-   AWS_RDS_PASSWORD      - RDS password
-   AWS_REDIS_ENDPOINT    - ElastiCache endpoint
-   AWS_REDIS_PORT        - Redis port (6379)
-   ```
+#### 1. Configuration Check
+Update the configuration files with your local database URL, Redis credentials, and custom port settings:
+* **Discovery Server**: `discovery-server/src/main/resources/application.yaml`
+* **API Gateway**: `erm-api-gateway/src/main/resources/application.yaml`
+* **ERM Backend**: `ERM_backend/src/main/resources/application-dev.yaml`
+* **Command Services**: `command/*/src/main/resources/application-dev.yaml`
+* **Query Services**: `query/*/src/main/resources/application.properties`
 
-### Automatic Deployment
-1. **Push to main branch**
-2. **GitHub Actions automatically**:
-   - Copies code to EC2
-   - Creates `.env.ec2` with AWS credentials
-   - Deploys services in 3 phases
-   - Verifies deployment
-
-### Manual Deployment (if needed)
+#### 2. Build the Code
+Compile and package the maven projects from the root workspace directory:
 ```bash
-# SSH to EC2
-ssh -i key.pem ec2-user@your-ec2-ip
-
-# Navigate to app directory
-cd /opt/erm
-
-# Create environment file
-cat > .env.ec2 << 'EOF'
-AWS_REGION=us-east-1
-AWS_RDS_ENDPOINT=your-rds-endpoint.rds.amazonaws.com
-AWS_RDS_USERNAME=admin
-AWS_RDS_PASSWORD=your-password
-AWS_REDIS_ENDPOINT=your-redis-endpoint.cache.amazonaws.com
-AWS_REDIS_PORT=6379
-EOF
-
-# Deploy all services
-export $(cat .env.ec2 | xargs)
-docker compose -f docker-compose.ec2.yml -p erm up -d --build
+mvn clean install
 ```
+
+#### 3. Start Services Sequentially
+Open separate terminal tabs and launch services in the following order:
+
+```bash
+# 1. Start the Service Registry
+mvn spring-boot:run -pl discovery-server -am
+
+# 2. Start the API Gateway
+mvn spring-boot:run -pl erm-api-gateway -am
+
+# 3. Start the Core ERM Backend
+mvn spring-boot:run -pl ERM_backend -am
+
+# 4. Start Individual Command and Query Services
+mvn spring-boot:run -pl command/user-command -am
+# (Repeat the spring-boot:run command for other command and query service directories)
+```
+
+#### Running Specific Profiles
+By default, native execution uses the default configurations. You can explicitly activate profiles using:
+* **Development (`dev`)**: `mvn spring-boot:run -Dspring-boot.run.profiles=dev`
+* **QA (`qa`)**: `mvn spring-boot:run -Dspring-boot.run.profiles=qa`
 
 ---
 
-## 🔧 Configuration Files
+## ☁️ Production / AWS EC2 Deployment
 
-### Local Environment
-- **docker-compose.local.yml** - Complete local setup with MySQL & Redis
-- **Profile**: `dev`
-- **Database**: Local MySQL container
-- **Cache**: Local Redis container
+### AWS Infrastructure Setup (One-Time)
 
-### EC2 Environment
-- **docker-compose.ec2.yml** - Production setup with AWS services
-- **Profile**: `prod`
-- **Database**: AWS RDS MySQL
-- **Cache**: AWS ElastiCache Redis
-- **Logging**: CloudWatch
+Run these AWS CLI commands to set up the necessary production resources inside your VPC:
 
-### Environment Template
-- **.env.ec2.example** - Template for EC2 environment variables
-
----
-
-## 🛠️ Helper Scripts
-
-### Local Development
-```bash
-./local-dev.sh start    # Start all services
-./local-dev.sh stop     # Stop all services
-./local-dev.sh logs     # View logs
-./local-dev.sh status   # Show status
-./local-dev.sh rebuild  # Rebuild services
-./local-dev.sh clean    # Remove containers
-```
-
-### EC2 Deployment
-```bash
-./deploy-services.sh . all      # Deploy all services
-./deploy-services.sh . status   # Show deployment status
-./deploy-services.sh . logs     # View logs
-```
-
----
-
-## 🏗️ AWS Setup (One-time)
-
-### 1. Create RDS MySQL
+#### 1. Create RDS MySQL Instance
 ```bash
 aws rds create-db-instance \
     --db-instance-identifier erm-mysql-db \
@@ -194,7 +185,7 @@ aws rds create-db-instance \
     --vpc-security-group-ids sg-xxxxxxxx
 ```
 
-### 2. Create ElastiCache Redis
+#### 2. Create ElastiCache Redis Cluster
 ```bash
 aws elasticache create-cache-cluster \
     --cache-cluster-id erm-redis-cluster \
@@ -204,7 +195,7 @@ aws elasticache create-cache-cluster \
     --security-group-ids sg-xxxxxxxx
 ```
 
-### 3. Launch EC2 Instance
+#### 3. Launch EC2 Compute Instance
 ```bash
 aws ec2 run-instances \
     --image-id ami-0c55b159cbfafe1f0 \
@@ -217,294 +208,135 @@ sudo usermod -aG docker ubuntu
 mkdir -p /opt/erm"
 ```
 
-### 4. Configure Security Groups
-- **EC2**: Allow inbound SSH (22) and HTTP (80/443)
-- **RDS**: Allow MySQL (3306) from EC2 security group
-- **ElastiCache**: Allow Redis (6379) from EC2 security group
+#### 4. Configure Firewall / Security Groups
+* **EC2 Instance**: Allow inbound SSH (`22`) and HTTP/HTTPS (`80` / `443`).
+* **RDS MySQL**: Allow inbound traffic on port `3306` only from the EC2 security group.
+* **ElastiCache Redis**: Allow inbound traffic on port `6379` only from the EC2 security group.
 
 ---
 
-## 🔍 Troubleshooting
+### GitHub Secrets Configuration
 
-### Local Issues
+To enable automatic CI/CD deployment, configure these **Repository Secrets** under `Settings > Secrets and variables > Actions`:
+
+| Secret Key | Description | Example / Default |
+| :--- | :--- | :--- |
+| **`EC2_HOST`** | Public IP or DNS address of the EC2 Instance | `54.210.xx.xx` |
+| **`EC2_USER`** | SSH username of the EC2 instance | `ec2-user` or `ubuntu` |
+| **`EC2_SSH_KEY`** | Complete Private SSH key used to access EC2 | `-----BEGIN RSA PRIVATE KEY-----...` |
+| **`EC2_PORT`** | SSH connection port | `22` |
+| **`EC2_APP_DIR`** | Deployment directory path on EC2 target server | `/opt/erm` or `/home/ubuntu/erm` |
+| **`AWS_REGION`** | AWS Region where resources are hosted | `us-east-1` |
+| **`AWS_RDS_ENDPOINT`** | Endpoint URL of the Amazon RDS MySQL database | `erm-mysql-db.xxxx.rds.amazonaws.com` |
+| **`AWS_RDS_USERNAME`** | Master username for the RDS database | `admin` |
+| **`AWS_RDS_PASSWORD`** | Master password for the RDS database | `your-secure-password` |
+| **`AWS_REDIS_ENDPOINT`** | Primary endpoint URL of the ElastiCache Redis cluster | `erm-redis-cluster.xxxx.cache.amazonaws.com` |
+| **`AWS_REDIS_PORT`** | Redis connection port | `6379` |
+| **`MYSQL_HOST_PORT`** | Host port for mapping MySQL on EC2 | `3307` |
+
+---
+
+### Deployment Workflows
+
+#### A. Automatic CI/CD Deployment (Recommended)
+Simply push changes to the main repository branch.
 ```bash
-# Check Docker is running
-docker --version
-
-# View container logs
-docker compose -f docker-compose.local.yml -p erm logs erm-backend
-
-# Check service health
-docker compose -f docker-compose.local.yml -p erm ps
-
-# Clean and restart
-docker compose -f docker-compose.local.yml -p erm down -v
-docker compose -f docker-compose.local.yml -p erm up -d
+git push origin main
 ```
+* **Process**: GitHub Actions runs the workflow in `.github/workflows/deploy-ec2.yml`.
+* **Duration**: Takes approximately **12 minutes**.
+* **Automation steps**: Copies code to EC2, generates `.env.ec2` with environment configurations, triggers a rolling 3-phase deployment, and runs automated verification.
 
-### EC2 Issues
+#### B. Manual Deployment
+If you need to deploy directly from your machine or debug the EC2 instance, execute these commands:
+
 ```bash
-# Check GitHub Actions logs
-# Verify AWS credentials in secrets
-# Check EC2 security groups
-# Verify RDS/Redis endpoints
-
-# Manual verification on EC2
+# 1. SSH into the EC2 instance
 ssh -i key.pem ec2-user@your-ec2-ip
+
+# 2. Navigate to the application folder
 cd /opt/erm
-docker compose -f docker-compose.ec2.yml -p erm ps
-docker compose -f docker-compose.ec2.yml -p erm logs
+
+# 3. Create the production environment variables file
+cat > .env.ec2 << 'EOF'
+AWS_REGION=us-east-1
+AWS_RDS_ENDPOINT=your-rds-endpoint.rds.amazonaws.com
+AWS_RDS_USERNAME=admin
+AWS_RDS_PASSWORD=your-password
+AWS_REDIS_ENDPOINT=your-redis-endpoint.cache.amazonaws.com
+AWS_REDIS_PORT=6379
+EOF
+
+# 4. Export environment variables and deploy via Docker Compose
+export $(cat .env.ec2 | xargs)
+docker compose -f docker-compose.ec2.yml -p erm up -d --build
 ```
 
-### Common Problems
-- **Services not connecting**: Check database credentials and endpoints
-- **Out of disk space**: `docker system prune -a --volumes -f`
-- **Port conflicts**: Ensure ports 8080-8088 are available
-- **AWS connectivity**: Verify security groups and VPC settings
-
----
-
-## 📊 File Structure
-
-```
-ERM/
-├── docker-compose.local.yml      # Local development
-├── docker-compose.ec2.yml        # EC2 production
-├── .env.ec2.example              # Environment template
-├── local-dev.sh                  # Local helper script
-├── deploy-services.sh            # EC2 deployment script
-├── .github/workflows/
-│   └── deploy-ec2.yml           # GitHub Actions workflow
-└── README.md                     # This file
-```
-
----
-
-## 🚀 Deployment Workflow
-
-### Development
-```
-Code Changes → docker-compose.local.yml → Test Locally → Push to Main
-```
-
-### Production
-```
-Push to Main → GitHub Actions → Copy to EC2 → Deploy Services → Verify
-```
-
-### Service Dependencies
-```
-Discovery Server → Microservices → API Gateway
-     ↓                    ↓            ↓
-Infrastructure     Business Logic   Entry Point
-```
-
----
-
-## 📞 Support
-
-### Quick Help
-- **Local setup**: See [Local Development](#-local-development) section
-- **EC2 setup**: See [EC2 Production Deployment](#-ec2-production-deployment) section
-- **AWS setup**: See [AWS Setup](#-aws-setup-one-time) section
-- **Issues**: See [Troubleshooting](#-troubleshooting) section
-
-### Key Commands
+#### Production EC2 Helper Script
+Use the `./deploy-services.sh` script on the EC2 server to manage running containers:
 ```bash
-# Local
-docker compose -f docker-compose.local.yml -p erm up -d
-docker compose -f docker-compose.local.yml -p erm logs -f
-docker compose -f docker-compose.local.yml -p erm down
-
-# EC2
-git push origin main  # Automatic deployment
+./deploy-services.sh . all      # Deploy/redeploy all microservices
+./deploy-services.sh . status   # Inspect deployment health and status
+./deploy-services.sh . logs     # View live production container logs
 ```
 
 ---
 
-## ✅ Checklist
+## 🔍 Troubleshooting & Support
 
-### Before Local Development
-- [ ] Docker Desktop installed and running
-- [ ] Ports 8080-8088 available
-- [ ] 2GB+ free disk space
+### Local Environment Issues
 
-### Before EC2 Deployment
-- [ ] AWS resources created (RDS, ElastiCache, EC2)
-- [ ] GitHub secrets configured (11 secrets)
-- [ ] EC2 has Docker installed
-- [ ] Security groups configured
+* **Docker Health Check**: Verify that Docker is running by running `docker --version`.
+* **Check Service Registry**: Visit Eureka Dashboard at `http://localhost:8761` to verify if all microservices have successfully registered.
+* **Logs Inspection**: Run `docker compose -f docker-compose.local.yml -p erm logs erm-backend` or check the `logs-local/` directory.
+* **Complete Reset**: If services are in a broken state, run:
+  ```bash
+  docker compose -f docker-compose.local.yml -p erm down -v
+  docker compose -f docker-compose.local.yml -p erm up -d
+  ```
 
-### After Deployment
-- [ ] Services accessible at http://localhost:8080 (local)
-- [ ] Services accessible at your-EC2-ip:8080 (EC2)
-- [ ] All 10 services running
-- [ ] Database connections working
+### Production EC2 Issues
+
+* **Pipeline Status**: Review the **GitHub Actions** build logs for build errors.
+* **Check Server Connectivity**: Make sure your AWS Security Group allows inbound traffic from GitHub runner IPs or your local IP.
+* **AWS Services Verification**: Check RDS MySQL & ElastiCache Redis endpoints inside your AWS Console to ensure they are available.
+* **Manual Server Checks**: SSH to the EC2 box and check docker service status:
+  ```bash
+  ssh -i key.pem ec2-user@your-ec2-ip
+  cd /opt/erm
+  docker compose -f docker-compose.ec2.yml -p erm ps
+  docker compose -f docker-compose.ec2.yml -p erm logs
+  ```
+
+### Common Problem Solving Table
+
+| Problem | Cause | Solution |
+| :--- | :--- | :--- |
+| **Services cannot connect** | Invalid credentials or unreachable endpoints | Check RDS/Redis network security groups, check database passwords in environment configurations. |
+| **Containers fail to start** | Out of system disk space | Run `docker system prune -a --volumes -f` to free up space. |
+| **Port Conflicts** | Host ports are already occupied | Make sure no local database or application is using ports `8080-8088` or `3307`/`6379`. |
+| **AWS Connectivity Error** | VPC or Subnet Security Group mismatch | Ensure both RDS/Redis and EC2 instances are on the same VPC and security groups allow cross-access. |
+
+---
+
+## ✅ Deployment Checklists
+
+### 1. Before Local Development
+- [ ] Docker Desktop is installed, running, and has resource allocations (2GB+ space).
+- [ ] Local ports `8080-8088`, `3307`, and `6379` are free and unoccupied.
+
+### 2. Before Production EC2 Deployment
+- [ ] AWS RDS, ElastiCache, and EC2 instances are successfully provisioned and running.
+- [ ] All 11 Repository Secrets are correctly entered in GitHub.
+- [ ] Docker and the Docker Compose plugin are installed on the EC2 machine.
+- [ ] Security Groups are configured to permit traffic between EC2 and RDS/ElastiCache.
+
+### 3. After Deployment Verification
+- [ ] Service registry is visible (Local: `http://localhost:8761` | EC2: `http://your-ec2-ip:8761`).
+- [ ] API gateway is responding (Local: `http://localhost:8080` | EC2: `http://your-ec2-ip:8080`).
+- [ ] All **10 microservices** are green and showing as registered.
+- [ ] Database queries are processing without connection errors.
 
 ---
 
 **Happy deploying!** 🚀
-mvn spring-boot:run -pl discovery-server -am
-
-# Then start API gateway
-mvn spring-boot:run -pl erm-api-gateway -am
-
-# Then start other services
-mvn spring-boot:run -pl ERM_backend -am
-mvn spring-boot:run -pl command/user-command -am
-# ... etc
-```
-
-## Configuration
-
-Update configuration files with your local settings:
-
-- `discovery-server/src/main/resources/application.yaml`
-- `erm-api-gateway/src/main/resources/application.yaml`
-- `ERM_backend/src/main/resources/application-dev.yaml`
-- `command/*/src/main/resources/application-dev.yaml`
-- `query/*/src/main/resources/application.properties`
-
-Make sure to set:
-
-- Database URL, username, and password.
-- Redis host and port (where required).
-- Ports for each service so they don't conflict.
-
-## Build
-
-From root directory of each service directory:
-
-```bash
-mvn clean install
-```
-
-## Running the Application
-
-### Profiles
-
-The application supports the following profiles:
-- `dev`: Development environment (default database: localhost MySQL, Redis on localhost)
-- `qa`: QA environment (configure accordingly in application-qa.yaml)
-
-### Sequence to Start Services
-
-To run the microservices, start them in the following order to ensure proper service discovery:
-
-1. **Discovery Server** (Eureka registry)
-2. **API Gateway**
-3. **Command and Query Services** (can be started in parallel after discovery)
-4. **ERM Backend** (if not included in commands)
-
-### Manual Startup
-
-Navigate to each service directory and run:
-
-For **dev** profile:
-```bash
-mvn spring-boot:run -Dspring-boot.run.profiles=dev
-```
-
-For **qa** profile:
-```bash
-mvn spring-boot:run -Dspring-boot.run.profiles=qa
-```
-
-### Ports
-
-Ensure the following default ports are available or configured:
-- Discovery Server: 8761
-- API Gateway: (check config)
-- ERM Backend: 8086 (dev)
-- Other services: Check their application.yaml files
-
-## Testing
-
-After starting all services, test the API Gateway endpoint (e.g., http://localhost:<gateway-port>).
-
-## Troubleshooting
-
-- Ensure MySQL and Redis are running.
-- Check Eureka dashboard at http://localhost:8761 for registered services.
-- View logs in `logs-local/` directory.  
-
-## Docker Compose
-
-The repository now includes a root `Dockerfile` and `docker-compose.yml` for local containerized deployment and testing of the ERM services.
-
-Start the full stack:
-
-```bash
-docker compose up --build
-```
-
-Run it in the background:
-
-```bash
-docker compose up --build -d
-```
-
-Stop the stack:
-
-```bash
-docker compose down
-```
-
-Remove containers plus database/cache volumes:
-
-```bash
-docker compose down -v
-```
-
-### Exposed Ports
-
-- Discovery Server: `8761`
-- API Gateway: `8080`
-- ERM Command Organization: `8081`
-- ERM Query Organization: `8082`
-- Org Setup Command: `8083`
-- User Setup: `8084`
-- Storage: `8085`
-- ERM Backend: `8086`
-- User Query: `8087`
-- Org Setup Query: `8088`
-- MySQL: `3307` by default on the host (`MYSQL_HOST_PORT` can override it)
-- Redis: `6379`
-
-### Docker Notes
-
-- Containers use the `dev` Spring profile where that profile already exists in the repo.
-- MySQL runs locally in Docker with database `erm2`.
-- The MySQL container listens on `3306` internally, but publishes to host port `3307` by default to avoid conflicts with a locally installed MySQL server. Override it with `MYSQL_HOST_PORT=<port>`.
-- Local first-time setup imports [`docker/mysql/init/erm2.sql`](./docker/mysql/init/erm2.sql) automatically when the MySQL data volume is empty, so tables are created on the first local deployment.
-- If you need to re-run the dump from scratch locally, remove the MySQL volume with `docker compose down -v` and start again.
-- Redis runs as a companion cache service.
-- Eureka clients are pointed at `http://discovery-server:8761/eureka/` inside the Docker network.
-
-## GitHub Actions EC2 Deploy
-
-The repo now includes [`.github/workflows/deploy-ec2.yml`](./.github/workflows/deploy-ec2.yml) to deploy the Docker Compose stack to an EC2 instance on every push to `main`, or manually through GitHub Actions.
-
-### EC2 prerequisites
-
-- Install Docker and Docker Compose on the EC2 machine.
-- Create a target application directory on EC2, for example `/home/ubuntu/erm`.
-- Ensure the EC2 security group allows the ports you want to expose, such as `8080`, `8761`, `3307`, and `6379`.
-
-### GitHub Secrets
-
-Add these repository secrets before running the workflow:
-
-- `EC2_HOST`: Public IP or DNS of the EC2 instance
-- `EC2_USER`: SSH user, for example `ubuntu`
-- `EC2_SSH_KEY`: Private SSH key used by GitHub Actions
-- `EC2_APP_DIR`: Absolute deploy path on the EC2 server, for example `/home/ubuntu/erm`
-- `EC2_PORT`: Optional SSH port, default is `22`
-- `MYSQL_HOST_PORT`: Optional host port for MySQL on EC2, default is `3307`
-
-### Deploy behavior
-
-- The workflow copies the project files to the EC2 instance.
-- It then runs `docker compose up --build -d --remove-orphans` in the target directory.
-- On the first deployment with a fresh MySQL volume, MySQL will also import `docker/mysql/init/erm2.sql`.
- 

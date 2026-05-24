@@ -1,12 +1,15 @@
 package ermorg.erm.serviceimpl;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.domain.Page;
@@ -14,6 +17,11 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ermorg.erm.dto.response.AllRiskDropdownResponse;
 import ermorg.erm.dto.response.CustomFieldResponse;
@@ -27,6 +35,7 @@ import ermorg.erm.dto.riskDTO.UpdateRiskStatusRequest;
 import ermorg.erm.exception.ResourceNotFoundException;
 import ermorg.erm.model.Branch;
 import ermorg.erm.model.Company;
+import ermorg.erm.model.Department;
 import ermorg.erm.model.Organization;
 import ermorg.erm.model.Risk;
 import ermorg.erm.model.RiskAssessment;
@@ -45,6 +54,7 @@ import ermorg.erm.repository.SubRiskHistoryRepository;
 import ermorg.erm.repository.SubRiskRepository;
 import ermorg.erm.repository.UserHistoryRepository;
 import ermorg.erm.repository.UserRepository;
+import ermorg.erm.service.DepartmentRepository;
 import ermorg.erm.service.IRiskService;
 import ermorg.erm.util.CompanyContext;
 import ermorg.erm.util.OrganizationContext;
@@ -85,6 +95,18 @@ public class RiskService implements IRiskService {
 
 	@Autowired
 	private BranchRepository branchRepository;
+
+	@Autowired
+	private DepartmentRepository departmentRepository;
+
+	@Autowired
+	private RestTemplate restTemplate;
+
+	@Autowired
+	private ObjectMapper objectMapper;
+
+	@Value("${erm.command-organization.service-id:ERM-COMMAND-ORGANIZATION}")
+	private String commandOrganizationServiceId;
 
 	@Autowired
 	private RiskAsessmentRepository riskAsessmentRepository;
@@ -172,7 +194,7 @@ public class RiskService implements IRiskService {
 
 		}
 
-		return new RiskResponse(savedRisk);
+		return toRiskResponse(savedRisk);
 	}
 
 	@Override
@@ -228,7 +250,7 @@ public class RiskService implements IRiskService {
 		riskAsessment.setResidualRiskRatingCriteria(request.getResidualRiskRatingCriteria());
 		RiskAssessment saveAssessment = riskAsessmentRepository.save(riskAsessment);
 
-		return new RiskResponse(saveAssessment.getRisk());
+		return toRiskResponse(saveAssessment.getRisk());
 	}
 
 	@Transactional
@@ -241,7 +263,7 @@ public class RiskService implements IRiskService {
 		Risk risk = riskRepository.findById(id).filter(r -> !r.getDeleted())
 				.orElseThrow(() -> new ResourceNotFoundException("Risk not found."));
 
-		return new RiskResponse(risk);
+		return toRiskResponse(risk);
 	}
 
 	public void deleteRisk(Long id) throws ResourceNotFoundException {
@@ -279,12 +301,29 @@ public class RiskService implements IRiskService {
 
 		Page<Risk> riskPage = riskRepository.getAllRisksByOrganizationId(organization.getId(), pageable);
 
-		return riskPage.map(this::mapRisk);
+		Map<Long, String> functionNames = loadFunctionNames(riskPage.getContent());
+		Map<Long, String> branchNames = loadBranchNames(riskPage.getContent());
+		Map<String, String> businessSegmentNames = loadBusinessSegmentNames(riskPage.getContent());
+		Map<Long, String> businessVerticalNames = loadBusinessVerticalNames(riskPage.getContent());
+
+		return riskPage.map(risk -> mapRisk(risk, functionNames, branchNames, businessSegmentNames, businessVerticalNames));
 	}
 
 	private List<CustomResponse> mapRisk(Risk risk) {
 
-		return customResponseMapper.map("risk", 1L, new RiskResponse(risk), false);
+		return customResponseMapper.map("risk", 1L, toRiskResponse(risk), false);
+	}
+
+	private List<CustomResponse> mapRisk(Risk risk, Map<Long, String> functionNames, Map<Long, String> branchNames) {
+
+		return customResponseMapper.map("risk", 1L, toRiskResponse(risk, functionNames, branchNames), false);
+	}
+
+	private List<CustomResponse> mapRisk(Risk risk, Map<Long, String> functionNames, Map<Long, String> branchNames,
+			Map<String, String> businessSegmentNames, Map<Long, String> businessVerticalNames) {
+
+		return customResponseMapper.map("risk", 1L,
+				toRiskResponse(risk, functionNames, branchNames, businessSegmentNames, businessVerticalNames), false);
 	}
 
 	public void captureHistory(Risk risk, String actionType) {
@@ -339,12 +378,16 @@ public class RiskService implements IRiskService {
 		Risk risk = riskRepository.getRisksByOrgIdAndRiskId(organization.getId(), riskId);// .orElseThrow(() -> new
 																				// ResourceNotFoundException("Risk not
 																				// found."));
+		if (risk == null) {
+			throw new ResourceNotFoundException("Risk not found");
+		}
+		RiskResponse riskResponse = toRiskResponse(risk);
 		List<CustomFieldResponse> customFieldResponse = fieldService.getCustomFieldResponse(1, "risk");
 		
 		customFieldResponse.stream().forEach(field -> {
 			CustomResponse customResponse;
 			try {
-				customResponse = CustomResponseMapperUtil.map(risk, field, "risk");
+				customResponse = CustomResponseMapperUtil.map(riskResponse, field, "risk");
 				customResponses.add(customResponse);
 			} catch (IllegalArgumentException | IllegalAccessException e) {
 				// TODO Auto-generated catch block
@@ -448,7 +491,142 @@ public class RiskService implements IRiskService {
 		// Capture history for the update
 		captureHistory(risk, "U");
 		
-		return new RiskResponse(savedRisk);
+		return toRiskResponse(savedRisk);
+	}
+
+	private RiskResponse toRiskResponse(Risk risk) {
+		if (risk == null) {
+			return null;
+		}
+
+		Map<Long, String> functionNames = risk.getFunction() != null
+				? loadFunctionNames(List.of(risk))
+				: Collections.emptyMap();
+		Map<Long, String> branchNames = risk.getBranchId() != null
+				? loadBranchNames(List.of(risk))
+				: Collections.emptyMap();
+		Map<String, String> businessSegmentNames = risk.getBusinessSegment() != null
+				? loadBusinessSegmentNames(List.of(risk))
+				: Collections.emptyMap();
+		Map<Long, String> businessVerticalNames = risk.getBusinessVertical() != null
+				? loadBusinessVerticalNames(List.of(risk))
+				: Collections.emptyMap();
+
+		return toRiskResponse(risk, functionNames, branchNames, businessSegmentNames, businessVerticalNames);
+	}
+
+	private RiskResponse toRiskResponse(Risk risk, Map<Long, String> functionNames, Map<Long, String> branchNames) {
+		return toRiskResponse(risk, functionNames, branchNames, Collections.emptyMap(), Collections.emptyMap());
+	}
+
+	private RiskResponse toRiskResponse(Risk risk, Map<Long, String> functionNames, Map<Long, String> branchNames,
+			Map<String, String> businessSegmentNames, Map<Long, String> businessVerticalNames) {
+		RiskResponse response = new RiskResponse(risk);
+
+		response.setFunctionName(functionNames.get(response.getFunction()));
+		response.setBranchName(response.getBranchId() != null ? branchNames.get(response.getBranchId()) : null);
+		response.setBusinessSegmentName(businessSegmentNames.getOrDefault(response.getBusinessSegment(),
+				response.getBusinessSegment()));
+		response.setBusinessVerticalName(response.getBusinessVertical() != null
+				? businessVerticalNames.getOrDefault(response.getBusinessVertical(), response.getBusinessVertical().toString())
+				: null);
+
+		return response;
+	}
+
+	private Map<Long, String> loadFunctionNames(List<Risk> risks) {
+		Set<Long> functionIds = risks.stream()
+				.map(Risk::getFunction)
+				.filter(java.util.Objects::nonNull)
+				.collect(Collectors.toSet());
+
+		if (functionIds.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		return departmentRepository.findAllById(functionIds).stream()
+				.filter(department -> !department.getDeleted())
+				.collect(Collectors.toMap(Department::getId, Department::getName));
+	}
+
+	private Map<Long, String> loadBranchNames(List<Risk> risks) {
+		Set<Long> branchIds = risks.stream()
+				.map(Risk::getBranchId)
+				.filter(java.util.Objects::nonNull)
+				.collect(Collectors.toSet());
+
+		if (branchIds.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		return branchRepository.findAllById(branchIds).stream()
+				.filter(branch -> !branch.getDeleted())
+				.collect(Collectors.toMap(Branch::getId, Branch::getName));
+	}
+
+	private Map<String, String> loadBusinessSegmentNames(List<Risk> risks) {
+		Set<String> segmentIds = risks.stream()
+				.map(Risk::getBusinessSegment)
+				.filter(java.util.Objects::nonNull)
+				.filter(this::isNumeric)
+				.collect(Collectors.toSet());
+
+		if (segmentIds.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		return segmentIds.stream()
+				.collect(Collectors.toMap(Function.identity(), this::resolveBusinessSegmentName));
+	}
+
+	private Map<Long, String> loadBusinessVerticalNames(List<Risk> risks) {
+		Set<Long> verticalIds = risks.stream()
+				.map(Risk::getBusinessVertical)
+				.filter(java.util.Objects::nonNull)
+				.collect(Collectors.toSet());
+
+		if (verticalIds.isEmpty()) {
+			return Collections.emptyMap();
+		}
+
+		return verticalIds.stream()
+				.collect(Collectors.toMap(Function.identity(), this::resolveBusinessVerticalName));
+	}
+
+	private String resolveBusinessSegmentName(String segmentId) {
+		return resolveOrganizationLookupName(
+				String.format("http://%s/business-segment/%s", commandOrganizationServiceId, segmentId),
+				"businessSegmentName",
+				"segmentName",
+				segmentId);
+	}
+
+	private String resolveBusinessVerticalName(Long verticalId) {
+		return resolveOrganizationLookupName(
+				String.format("http://%s/business-vertical/%d", commandOrganizationServiceId, verticalId),
+				"businessVerticalName",
+				"verticalName",
+				verticalId.toString());
+	}
+
+	private String resolveOrganizationLookupName(String url, String preferredNameField, String fallbackNameField,
+			String fallbackValue) {
+		try {
+			String body = restTemplate.getForObject(url, String.class);
+			JsonNode data = objectMapper.readTree(body).path("data");
+			String name = data.path(preferredNameField).asText(null);
+			if (name == null || name.isBlank()) {
+				name = data.path(fallbackNameField).asText(null);
+			}
+			return (name == null || name.isBlank()) ? fallbackValue : name;
+		} catch (RestClientException | java.io.IOException ex) {
+			log.warn("Unable to resolve organization lookup from {}: {}", url, ex.getMessage());
+			return fallbackValue;
+		}
+	}
+
+	private boolean isNumeric(String value) {
+		return value != null && value.matches("\\d+");
 	}
 
 	

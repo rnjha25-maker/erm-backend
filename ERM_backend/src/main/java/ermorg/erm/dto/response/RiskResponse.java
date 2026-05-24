@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import ermorg.erm.constant.RiskCategory;
 import ermorg.erm.model.Risk;
+import ermorg.erm.model.User;
+import ermorg.erm.model.UserDetail;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -19,16 +21,22 @@ public class RiskResponse {
 	private String subCategory;
 	private String exposure;
 	private Long function;
+	private String functionName;
 	private Long businessVertical;
+	private String businessVerticalName;
 	private String businessSegment;
+	private String businessSegmentName;
 	private long riskOwnerId;
+	private String riskOwnerName;
 	private long riskChampionId;
+	private String riskChampionName;
 	private String riskCreationByPeriod;
 	private String riskStatus;
 	private String evidanceRequired;
 	private String riskRegisterType;
 	private String supportingEvidance;
-	private long branchId;
+	private Long branchId;
+	private String branchName;
 
 	private List<SubRiskResponse> subRisk = new ArrayList<>();
 
@@ -43,8 +51,11 @@ public class RiskResponse {
 		this.function = risk.getFunction();
 		this.businessVertical = risk.getBusinessVertical();
 		this.businessSegment = risk.getBusinessSegment();
-		this.riskOwnerId = risk.getRiskOwner().getId();
-		this.riskChampionId = risk.getRiskChampion().getId();
+		this.businessSegmentName = risk.getBusinessSegment();
+		this.riskOwnerId = risk.getRiskOwner() != null ? risk.getRiskOwner().getId() : 0;
+		this.riskOwnerName = formatUserName(risk.getRiskOwner());
+		this.riskChampionId = risk.getRiskChampion() != null ? risk.getRiskChampion().getId() : 0;
+		this.riskChampionName = formatUserName(risk.getRiskChampion());
 		this.riskCreationByPeriod = risk.getRiskCreationByPeriod();
 		this.riskStatus = risk.getRiskStatus();
 		this.evidanceRequired = risk.getEvidanceRequired();
@@ -52,8 +63,31 @@ public class RiskResponse {
 		this.supportingEvidance = risk.getSupportingEvidance();
 		this.branchId = risk.getBranchId();
 
-		this.subRisk = risk.getSubRisk().stream().map(SubRiskResponse::new).toList();
+		this.subRisk = risk.getSubRisk() != null ? risk.getSubRisk().stream().map(SubRiskResponse::new).toList()
+				: new ArrayList<>();
 
+	}
+
+	private String formatUserName(User user) {
+		if (user == null) {
+			return null;
+		}
+
+		UserDetail detail = user.getUserDetail();
+		if (detail == null) {
+			return user.getEmail();
+		}
+
+		String name = String.join(" ",
+				nullToBlank(detail.getFirstName()),
+				nullToBlank(detail.getMiddleName()),
+				nullToBlank(detail.getLastName())).trim().replaceAll("\\s+", " ");
+
+		return name.isBlank() ? user.getEmail() : name;
+	}
+
+	private String nullToBlank(String value) {
+		return value != null ? value : "";
 	}
 
 }

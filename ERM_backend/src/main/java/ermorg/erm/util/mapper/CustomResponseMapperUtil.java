@@ -7,8 +7,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import ermorg.erm.constant.BusinessVertical;
@@ -41,8 +43,18 @@ public class CustomResponseMapperUtil {
 			Velocity.class
 	);
 
+	// Reflection caching layers to eliminate runtime class traversal overhead
+	private static final Map<String, Field> FIELD_CACHE = new ConcurrentHashMap<>();
+	private static final Map<Class<?>, Field[]> ALL_FIELDS_CACHE = new ConcurrentHashMap<>();
+	private static final Map<String, Field> RESOLVED_FIELD_NAME_CACHE = new ConcurrentHashMap<>();
+	private static final Map<String, Boolean> PATH_RESOLVABILITY_CACHE = new ConcurrentHashMap<>();
+
 	public static CustomResponse map(Object response, CustomFieldResponse customField, String tableName)
 			throws IllegalArgumentException, IllegalAccessException {
+
+		if (response == null || customField == null) {
+			return null;
+		}
 
 		String riskTitle = resolveRiskTitle(response, customField);
 		if (riskTitle != null) {
@@ -54,21 +66,25 @@ public class CustomResponseMapperUtil {
 			return buildResponse(customField.getFieldName(), subRiskName, customField);
 		}
 
-		Field matchedField = findField(response, customField, tableName);
-
-		if (matchedField == null && "id".equals(customField.getSystemFieldName())) {
-			return buildResponse("id", null, customField);
+		String lookupDisplay = resolveLookupDisplayValue(response, customField);
+		if (lookupDisplay != null) {
+			return buildResponse(customField.getFieldName(), lookupDisplay, customField);
 		}
 
-		if (matchedField == null) {
+		String systemField = customField.getSystemFieldName();
+		boolean resolvable = isPathResolvable(response.getClass(), systemField, tableName);
+
+		if (!resolvable) {
+			if ("id".equals(systemField)) {
+				return buildResponse("id", null, customField);
+			}
 			return null;
 		}
 
-		matchedField.setAccessible(true);
-		Object value = matchedField.get(response);
+		Object value = getNestedValue(response, systemField, tableName);
 
 		CustomResponse customResponse = new CustomResponse();
-		customResponse.setFieldName("id".equals(customField.getSystemFieldName()) ? "id" : customField.getFieldName());
+		customResponse.setFieldName("id".equals(systemField) ? "id" : customField.getFieldName());
 		customResponse.setValue(extractValue(value, customField));
 		customResponse.setFieldType(customField.getFieldType());
 
@@ -142,6 +158,11 @@ public class CustomResponseMapperUtil {
 			return directSubRiskName;
 		}
 
+		String subRiskCollectionNames = resolveSubRiskCollectionNames(response, customField);
+		if (subRiskCollectionNames != null) {
+			return subRiskCollectionNames;
+		}
+
 		Object subRisk = getFieldValue(response, "subRisk");
 		if (subRisk == null) {
 			return null;
@@ -163,6 +184,72 @@ public class CustomResponseMapperUtil {
 						|| "subriskname".equals(key)
 						|| "risksubtitle".equals(key)
 						|| "subrisktitle".equals(key));
+	}
+
+	private static String resolveSubRiskCollectionNames(Object response, CustomFieldResponse customField) {
+		for (String fieldName : List.of("subRiskIds", "riskSubIds", "riskSubs", "subRisk")) {
+			Object value = getFieldValue(response, fieldName);
+			if (!(value instanceof Collection<?> collection)) {
+				continue;
+			}
+
+			String names = collection.stream()
+					.map(item -> extractSingleValue(item, customField))
+					.filter(Objects::nonNull)
+					.collect(Collectors.joining(", "));
+
+			if (!names.isBlank()) {
+				return names;
+			}
+		}
+
+		return null;
+	}
+
+	private static String resolveLookupDisplayValue(Object response, CustomFieldResponse customField) {
+		if (response == null || customField == null) {
+			return null;
+		}
+
+		String key = getFieldKeys(customField).stream()
+				.map(CustomResponseMapperUtil::normalizeMatchKey)
+				.collect(Collectors.joining("|"));
+
+		if (matchesAny(key, "function", "businessfunction")) {
+			return getFieldValueAsString(response, "functionName");
+		}
+
+		if (matchesAny(key, "branch", "branchid")) {
+			return getFieldValueAsString(response, "branchName");
+		}
+
+		if (matchesAny(key, "riskowner", "riskownerid", "owner")) {
+			return getFieldValueAsString(response, "riskOwnerName");
+		}
+
+		if (matchesAny(key, "riskchampion", "riskchampionid", "champion")) {
+			return getFieldValueAsString(response, "riskChampionName");
+		}
+
+		if (matchesAny(key, "businesssegment", "segment")) {
+			return getFieldValueAsString(response, "businessSegmentName");
+		}
+
+		if (matchesAny(key, "businessvertical", "vertical")) {
+			return getFieldValueAsString(response, "businessVerticalName");
+		}
+
+		return null;
+	}
+
+	private static boolean matchesAny(String combinedKey, String... expectedKeys) {
+		if (combinedKey == null || combinedKey.isBlank()) {
+			return false;
+		}
+
+		return Arrays.stream(combinedKey.split("\\|"))
+				.anyMatch(key -> Arrays.stream(expectedKeys)
+						.anyMatch(expected -> key.equals(expected) || key.contains(expected)));
 	}
 
 	private static String extractSingleValue(Object obj, CustomFieldResponse customField) {
@@ -368,38 +455,172 @@ public class CustomResponseMapperUtil {
 				|| value.getClass().isEnum();
 	}
 
-	private static Field findField(Object response, CustomFieldResponse customField, String tableName) {
-		String systemField = customField.getSystemFieldName();
-
-		if ("id".equals(systemField)) {
-			String expected = tableName.substring(0, 1).toLowerCase() + tableName.substring(1) + "Id";
-
-			Field field = getField(response.getClass(), expected);
-			if (field != null) {
-				return field;
-			}
-		}
-
-		return getField(response.getClass(), systemField);
-	}
-
 	private static Field getField(Class<?> clazz, String name) {
-	    while (clazz != null) {
-	        try {
-				return clazz.getDeclaredField(name);
-			} catch (NoSuchFieldException ignored) {
-				clazz = clazz.getSuperclass();
+		if (clazz == null || name == null) {
+			return null;
+		}
+		String key = clazz.getName() + "#" + name;
+		return FIELD_CACHE.computeIfAbsent(key, k -> {
+			Class<?> current = clazz;
+			while (current != null) {
+				try {
+					return current.getDeclaredField(name);
+				} catch (NoSuchFieldException ignored) {
+					current = current.getSuperclass();
+				}
 			}
-	    }
-	    return null;
+			return null;
+		});
 	}
 
 	private static Field[] getAllFields(Class<?> clazz) {
-		List<Field> fields = new java.util.ArrayList<>();
-		while (clazz != null && clazz != Object.class) {
-			fields.addAll(Arrays.asList(clazz.getDeclaredFields()));
-			clazz = clazz.getSuperclass();
+		if (clazz == null) {
+			return new Field[0];
 		}
-		return fields.toArray(new Field[0]);
+		return ALL_FIELDS_CACHE.computeIfAbsent(clazz, c -> {
+			List<Field> fields = new ArrayList<>();
+			Class<?> current = c;
+			while (current != null && current != Object.class) {
+				fields.addAll(Arrays.asList(current.getDeclaredFields()));
+				current = current.getSuperclass();
+			}
+			return fields.toArray(new Field[0]);
+		});
+	}
+
+	private static Field findFieldByName(Class<?> clazz, String name) {
+		if (clazz == null || name == null || name.isBlank()) {
+			return null;
+		}
+		String key = clazz.getName() + "#" + name;
+		return RESOLVED_FIELD_NAME_CACHE.computeIfAbsent(key, k -> {
+			Field field = getField(clazz, name);
+			if (field != null) {
+				return field;
+			}
+
+			String normalizedTarget = normalizeMatchKey(name);
+			for (Field f : getAllFields(clazz)) {
+				if (normalizeMatchKey(f.getName()).equals(normalizedTarget)) {
+					return f;
+				}
+			}
+			return null;
+		});
+	}
+
+	private static Object getNestedValue(Object obj, String path, String tableName) {
+		if (obj == null || path == null || path.isBlank()) {
+			return null;
+		}
+
+		if (obj instanceof Collection<?> collection) {
+			List<Object> results = new ArrayList<>();
+			for (Object item : collection) {
+				Object res = getNestedValue(item, path, tableName);
+				if (res != null) {
+					if (res instanceof Collection<?> subColl) {
+						results.addAll(subColl);
+					} else {
+						results.add(res);
+					}
+				}
+			}
+			return results.isEmpty() ? null : results;
+		}
+
+		if (path.contains(".")) {
+			int dotIndex = path.indexOf('.');
+			String segment = path.substring(0, dotIndex);
+			String remaining = path.substring(dotIndex + 1);
+
+			Field field = findFieldByName(obj.getClass(), segment);
+			if (field != null) {
+				try {
+					field.setAccessible(true);
+					Object val = field.get(obj);
+					return getNestedValue(val, remaining, tableName);
+				} catch (IllegalAccessException ignored) {
+				}
+			}
+
+			String segmentNorm = normalizeMatchKey(segment);
+			String classNorm = normalizeMatchKey(obj.getClass().getSimpleName());
+			String tableNorm = normalizeMatchKey(tableName);
+
+			if (segmentNorm.equals(classNorm) || segmentNorm.equals(tableNorm)) {
+				return getNestedValue(obj, remaining, tableName);
+			}
+
+			return null;
+		}
+
+		if ("id".equalsIgnoreCase(path)) {
+			Field idField = findFieldByName(obj.getClass(), "id");
+			if (idField == null && tableName != null) {
+				String expectedTableId = tableName.substring(0, 1).toLowerCase() + tableName.substring(1) + "Id";
+				idField = findFieldByName(obj.getClass(), expectedTableId);
+			}
+			if (idField == null) {
+				String expectedClassId = obj.getClass().getSimpleName().substring(0, 1).toLowerCase() + obj.getClass().getSimpleName().substring(1) + "Id";
+				idField = findFieldByName(obj.getClass(), expectedClassId);
+			}
+
+			if (idField != null) {
+				try {
+					idField.setAccessible(true);
+					return idField.get(obj);
+				} catch (IllegalAccessException ignored) {
+				}
+			}
+		}
+
+		Field field = findFieldByName(obj.getClass(), path);
+		if (field != null) {
+			try {
+				field.setAccessible(true);
+				return field.get(obj);
+			} catch (IllegalAccessException ignored) {
+			}
+		}
+
+		return null;
+	}
+
+	private static boolean isPathResolvable(Class<?> clazz, String path, String tableName) {
+		if (clazz == null || path == null || path.isBlank()) {
+			return false;
+		}
+		String key = clazz.getName() + "#" + path + "#" + (tableName != null ? tableName : "");
+		return PATH_RESOLVABILITY_CACHE.computeIfAbsent(key, k -> checkPathResolvability(clazz, path, tableName));
+	}
+
+	private static boolean checkPathResolvability(Class<?> clazz, String path, String tableName) {
+		if (path.contains(".")) {
+			int dotIndex = path.indexOf('.');
+			String segment = path.substring(0, dotIndex);
+			String remaining = path.substring(dotIndex + 1);
+
+			Field field = findFieldByName(clazz, segment);
+			if (field != null) {
+				return isPathResolvable(field.getType(), remaining, tableName);
+			}
+
+			String segmentNorm = normalizeMatchKey(segment);
+			String classNorm = normalizeMatchKey(clazz.getSimpleName());
+			String tableNorm = normalizeMatchKey(tableName);
+
+			if (segmentNorm.equals(classNorm) || segmentNorm.equals(tableNorm)) {
+				return isPathResolvable(clazz, remaining, tableName);
+			}
+
+			return false;
+		}
+
+		if ("id".equalsIgnoreCase(path)) {
+			return true;
+		}
+
+		return findFieldByName(clazz, path) != null;
 	}
 }
