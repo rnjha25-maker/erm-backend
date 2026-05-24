@@ -176,11 +176,15 @@ public class RiskControlService implements IRiskControlService {
 
 		List<CustomResponse> customResponses = new ArrayList<>();
 		RiskControl risk = riskControlRepository.getRisksByOrgIdAndRiskId(organization.getId(), riskId);
+		if (risk == null) {
+			throw new ResourceNotFoundException("Risk control not found");
+		}
+		RiskControlResponse riskResponse = new RiskControlResponse(risk);
 		List<CustomFieldResponse> customFieldResponse = fieldService.getCustomFieldResponse(1, "riskControl");
 		
 		customFieldResponse.stream().forEach(field -> {
 			try {
-				CustomResponse customResponse = CustomResponseMapperUtil.map(risk, field, "riskControl");
+				CustomResponse customResponse = CustomResponseMapperUtil.map(riskResponse, field, "riskControl");
 				customResponses.add(customResponse);
 			} catch (IllegalArgumentException | IllegalAccessException e) {
 			}
