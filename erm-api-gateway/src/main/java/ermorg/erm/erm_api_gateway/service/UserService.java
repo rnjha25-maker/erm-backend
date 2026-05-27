@@ -1,9 +1,6 @@
 package ermorg.erm.erm_api_gateway.service;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
@@ -14,7 +11,7 @@ import ermorg.erm.erm_api_gateway.dto.response.TokenResponseDTO;
 import ermorg.erm.erm_api_gateway.dto.response.UserResponse;
 import ermorg.erm.erm_api_gateway.exception.PasswordNotMatchedException;
 import ermorg.erm.erm_api_gateway.model.Role;
-import ermorg.erm.erm_api_gateway.model.UserDetail;
+import ermorg.erm.erm_api_gateway.model.User;
 import ermorg.erm.erm_api_gateway.repository.UserRepository;
 
 import jakarta.transaction.Transactional;
@@ -33,39 +30,24 @@ public class UserService implements IUserService {
 
 	@Override
 	@Transactional
-//	@Cacheable(value = "user", key = "#username")
 	public UserResponse getUserByUsername(String username) {
-		ermorg.erm.erm_api_gateway.model.User user = userRepository.findUserByEmail(username);
 
-		if (user == null)
-			throw new UsernameNotFoundException("User not found!");
-		UserDetail userDetail = user.getUserDetail();
-		List<Role> roles2 = user.getRoles();
+	    User user = userRepository.findByEmailWithRoles(username)
+	    		 .filter(u -> u.getEmail().equals(username))
+	            .orElseThrow(() -> new UsernameNotFoundException("User not found!"));
 
-		List<RoleResponse> roles = user.getRoles().stream()
-				.map(role -> new RoleResponse(role,
-						role.getRoleRights().stream().map(rt -> new RightResponse(rt)).collect(Collectors.toList())))
-				.collect(Collectors.toList());
+	    List<RoleResponse> roles = user.getRoles().stream()
+	            .map(this::mapToRoleResponse)
+	            .toList();
 
-//		return roleResponse;
-//		List<RightResponse> rights = user.getRole() != null ? user.getRole().getRoleRights().stream()
-//				.map(roleRight -> new RightResponse(roleRight)).collect(Collectors.toList()) : new ArrayList<>();
-//
-//
-//		
-//		List<RoleResponse> roles = new ArrayList<>();
-//		roles = user.getRole() != null ? user.getRole().getRoleRights()
-//				.stream()
-//				.map(rt-> new RoleResponse(rt.getRole(), rt.getRights()))
-//				.distinct()
-//				.collect(Collectors.toList()) : new ArrayList<>();
-//		
-//		System.out.println( "role size " + roles.size());
-//		
-//		
-//		
-		UserResponse userResponse = new UserResponse(user, roles);
-		return userResponse;
-//		return null;
+	    return new UserResponse(user, roles);
+	}
+	
+	private RoleResponse mapToRoleResponse(Role role) {
+	    List<RightResponse> rights = role.getRoleRights().stream()
+	            .map(RightResponse::new)
+	            .toList();
+
+	    return new RoleResponse(role, rights);
 	}
 }

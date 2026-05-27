@@ -21,7 +21,7 @@ public class RoleController {
 	private IRoleService roleService;
 	
 	@PostMapping("/save")
-	public GeneralResponse<RoleResponse> saveRole(@RequestBody RoleRequest roleRequest) {
+	public GeneralResponse<RoleResponse> saveRole(@RequestBody RoleRequest roleRequest) throws ResourceNotFoundException {
 		GeneralResponse<RoleResponse> response = new GeneralResponse<>();
 		
 		RoleResponse role = roleService.saveRole(roleRequest);

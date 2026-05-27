@@ -8,7 +8,7 @@ import ermorg.erm.erm_command_organization.exception.ResourceNotFoundException;
 
 public interface IRoleService {
 	
-	public RoleResponse saveRole(RoleRequest roleRequest);
+	public RoleResponse saveRole(RoleRequest roleRequest) throws ResourceNotFoundException;
 	
 	public RoleResponse getRole(long roleId) throws ResourceNotFoundException;
 	
