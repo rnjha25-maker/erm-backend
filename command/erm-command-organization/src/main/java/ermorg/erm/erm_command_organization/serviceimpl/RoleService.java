@@ -25,30 +25,44 @@ public class RoleService implements IRoleService {
 	private RoleHistoryRepository roleHistoryRepository;
 
 	@Override
-	public RoleResponse saveRole(RoleRequest roleRequest) {
-		Role role;
+	public RoleResponse saveRole(RoleRequest roleRequest) throws ResourceNotFoundException {
 
-		// Check if this is an update or create operation
-		if (roleRequest.getRoleId() > 0) {
-			role = roleRepository.findById(roleRequest.getRoleId()).filter(r -> !r.getDeleted()).orElseGet(Role::new);
-		} else {
-			role = new Role();
-		}
+	    Role role;
 
-		// Save history if updating existing role
-		if (role.getId() != null && role.getId() > 0) {
-			saveRoleHistory(role, "U");
-		}
+	    boolean isUpdate = roleRequest.getRoleId() > 0;
 
-		// Set the role fields from the request
-		role.setName(roleRequest.getRoleName());
-		role.setPriority(roleRequest.getPriority());
-		role.setDescription(roleRequest.getDescription());
+	    if (isUpdate) {
+	        role = roleRepository.findById(roleRequest.getRoleId())
+	                .filter(r -> !r.getDeleted())
+	                .orElseThrow(() -> new ResourceNotFoundException("Role not found."));
 
-		// Save the role
-		Role savedRole = roleRepository.save(role);
+	        // ✅ Check duplicate name for update (excluding current ID)
+	        roleRepository.findByNameAndDeletedFalseAndIdNot(roleRequest.getRoleName(), role.getId())
+	                .ifPresent(r -> {
+	                    throw new IllegalArgumentException("Role with this name already exists.");
+	                });
 
-		return new RoleResponse(savedRole);
+	        // Save history before update
+	        saveRoleHistory(role, "U");
+
+	    } else {
+	        // ✅ Check duplicate name for create
+	        roleRepository.findByNameAndDeletedFalse(roleRequest.getRoleName())
+	                .ifPresent(r -> {
+	                    throw new IllegalArgumentException("Role with this name already exists.");
+	                });
+
+	        role = new Role();
+	    }
+
+	    // Set fields
+	    role.setName(roleRequest.getRoleName());
+	    role.setPriority(roleRequest.getPriority());
+	    role.setDescription(roleRequest.getDescription());
+
+	    Role savedRole = roleRepository.save(role);
+
+	    return new RoleResponse(savedRole);
 	}
 
 	@Override
