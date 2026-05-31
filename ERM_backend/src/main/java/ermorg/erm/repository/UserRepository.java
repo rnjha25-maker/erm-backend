@@ -2,6 +2,7 @@ package ermorg.erm.repository;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -27,5 +28,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 			+ "AND (u.deleted IS NULL OR u.deleted != true) AND LOWER(r.name) = LOWER(:roleName)")
 	List<User> findByCompanyIdAndRoleNameIgnoreCase(@Param("companyId") Long companyId,
 			@Param("roleName") String roleName);
+
+	@Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.roles LEFT JOIN FETCH u.company WHERE u.id = :id AND (u.deleted IS NULL OR u.deleted = false)")
+	Optional<User> findActiveByIdWithRolesAndCompany(@Param("id") Long id);
 
 }

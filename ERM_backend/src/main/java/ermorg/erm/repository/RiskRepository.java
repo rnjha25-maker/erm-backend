@@ -78,12 +78,14 @@ public interface RiskRepository extends JpaRepository<Risk, Long>{
 
 	@Query("SELECT DISTINCT r FROM Risk r LEFT JOIN FETCH r.riskAssessment WHERE r.organizationId = :organizationId AND r.deleted = false "
 			+ "AND r.createdAt BETWEEN :startDate AND :endDate "
-			+ "AND (:companyId IS NULL OR r.companyId = :companyId) "
+			+ "AND (:scopeCompanyId IS NULL OR r.companyId = :scopeCompanyId) "
+			+ "AND (:scopeCreatorUserId IS NULL OR (r.createdBy IS NOT NULL AND r.createdBy.id = :scopeCreatorUserId)) "
 			+ "AND (:branchId IS NULL OR r.branchId = :branchId) "
 			+ "AND (:functionId IS NULL OR r.function = :functionId) "
 			+ "ORDER BY r.id DESC")
 	List<Risk> findRisksForErmDashboard(@Param("organizationId") Long organizationId, @Param("startDate") Date startDate,
-			@Param("endDate") Date endDate, @Param("companyId") Long companyId, @Param("branchId") Long branchId,
+			@Param("endDate") Date endDate, @Param("scopeCompanyId") Long scopeCompanyId,
+			@Param("scopeCreatorUserId") Long scopeCreatorUserId, @Param("branchId") Long branchId,
 			@Param("functionId") Long functionId);
 
 }

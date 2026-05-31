@@ -16,8 +16,8 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.data.domain.Pageable;
 
+import ermorg.erm.constant.ErmDashboardAccessScope;
 import ermorg.erm.constant.ErmDashboardPeriodType;
 import ermorg.erm.dto.response.BasicDashboardResponse;
 import ermorg.erm.dto.response.CompanyAdminDashboardDto;
@@ -42,6 +42,7 @@ import ermorg.erm.repository.UserRepository;
 import ermorg.erm.service.DepartmentRepository;
 import ermorg.erm.service.IDashboardService;
 import ermorg.erm.util.ErmDashboardPeriodBounds;
+import ermorg.erm.util.ErmDashboardRoleResolver;
 import ermorg.erm.util.CompanyContext;
 import ermorg.erm.util.OrganizationContext;
 import ermorg.erm.util.UserContext;
@@ -210,10 +211,37 @@ public class DashboardService implements IDashboardService {
 			throw new ResourceNotFoundException("No organization found.");
 		}
 
+		User ctxUser = UserContext.getUser();
+		if (ctxUser == null) {
+			throw new ResourceNotFoundException("User not found.");
+		}
+
+		User user = userRepository.findActiveByIdWithRolesAndCompany(ctxUser.getId())
+				.orElseThrow(() -> new ResourceNotFoundException("User not found."));
+
+		ErmDashboardAccessScope scope = ErmDashboardRoleResolver.resolveScope(user);
+
+		Long scopeCompanyId = null;
+		Long scopeCreatorUserId = null;
+		switch (scope) {
+		case ORGANIZATION_WIDE:
+			scopeCompanyId = companyId;
+			break;
+		case COMPANY_SCOPED:
+			if (user.getCompany() == null) {
+				throw new ResourceNotFoundException("No company for user.");
+			}
+			scopeCompanyId = user.getCompany().getId();
+			break;
+		case CREATOR_ONLY:
+			scopeCreatorUserId = user.getId();
+			break;
+		}
+
 		ErmDashboardPeriodBounds bounds = ErmDashboardPeriodBounds.forYearAndPeriod(year, periodType,
 				ZoneId.systemDefault());
 		List<Risk> risks = riskRepository.findRisksForErmDashboard(organization.getId(), bounds.getStartInclusive(),
-				bounds.getEndInclusive(), companyId, branchId, functionId);
+				bounds.getEndInclusive(), scopeCompanyId, scopeCreatorUserId, branchId, functionId);
 
 		ErmDashboardSummaryResponse response = new ErmDashboardSummaryResponse();
 		response.setTotalRisks(risks.size());
