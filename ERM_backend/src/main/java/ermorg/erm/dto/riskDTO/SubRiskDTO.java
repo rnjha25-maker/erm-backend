@@ -8,5 +8,5 @@ import lombok.Setter;
 public class SubRiskDTO {
 
 	private Long subRiskId;
-	private String subRiskTitle;
+	private String subRiskName;
 }

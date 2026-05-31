@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -157,36 +158,9 @@ public class RiskService implements IRiskService {
 		risk.setSupportingEvidance(request.getSupportingEvidance());
 
 		risk.setBranchId(branch.getId());
-		//setting new fields
 		
-//				
-//		risk.setRequesterIP(clientIp);
-		List<SubRisk> subRiskList = new ArrayList<>();
-
-		for (SubRiskDTO subRiskDTO : request.getSubRisk()) {
-			SubRisk subRisk = new SubRisk();
-			if (subRiskDTO.getSubRiskId() != null) {
-				subRisk = subRiskRepository.findById(subRiskDTO.getSubRiskId()).orElse(new SubRisk());
-			}
-
-			subRisk.setSubRisk(subRiskDTO.getSubRiskTitle());
-			subRisk.setRisk(risk);
-
-			subRisk.setOrganizationId(organization.getId());
-			subRisk.setCompanyId(company.getId());
-
-			subRiskList.add(subRisk);
-		}
-
-//		Language language = languageRepository.getLanguageByLanguageCode("en");
-//		RiskTranslation riskTranslation = riskTranslationRepository
-//				.findById(risk.getRiskTranslation() == null ? 0 : risk.getRiskTranslation().getId())
-//				.orElse(new RiskTranslation());
-
-//		riskTranslation.setLanguage(language);
-//		riskTranslation.setRisk(risk);
-//		risk.setRiskTranslation(riskTranslation);
-		risk.setSubRisk(subRiskList);
+		List<SubRisk> subRisks = buildSubRisks(request.getSubRisk(), risk, organization, company);
+        risk.setSubRisk(subRisks);
 		Risk savedRisk = riskRepository.save(risk);
 
 		if (request.getRiskId() != 0) {
@@ -195,6 +169,35 @@ public class RiskService implements IRiskService {
 		}
 
 		return toRiskResponse(savedRisk);
+	}
+	
+	private List<SubRisk> buildSubRisks(List<SubRiskDTO> dtos, Risk risk, Organization org, Company company) {
+
+		if (dtos == null || dtos.isEmpty()) {
+			return Collections.emptyList();
+		}
+
+		// Fetch all existing SubRisks in one query
+		Map<Long, SubRisk> existing = subRiskRepository
+				.findAllById(dtos.stream().map(SubRiskDTO::getSubRiskId).filter(Objects::nonNull).toList()).stream()
+				.collect(Collectors.toMap(SubRisk::getId, Function.identity()));
+
+		return dtos.stream().map(dto -> {
+
+			// ✅ Reuse if exists, else create new
+			SubRisk subRisk = Optional.ofNullable(dto.getSubRiskId()).map(existing::get).orElseGet(SubRisk::new);
+
+			// ✅ Always update name (your requirement)
+			subRisk.setSubRisk(dto.getSubRiskName());
+
+			// ✅ Common fields
+			subRisk.setRisk(risk);
+			subRisk.setOrganizationId(org.getId());
+			subRisk.setCompanyId(company.getId());
+
+			return subRisk;
+
+		}).toList();
 	}
 
 	@Override
@@ -460,7 +463,7 @@ public class RiskService implements IRiskService {
 
 	    if (!hasSubRiskField) {
 	    	CustomResponse subRiskResponse = new CustomResponse();
-	    	subRiskResponse.setFieldName("Risk Sub Title");
+	    	subRiskResponse.setFieldName("Sub Risk Title");
 	    	subRiskResponse.setFieldType("Dropdown");
 	    	subRiskResponse.setValue(response.getSubRiskName());
 	    	customResponses.add(subRiskResponse);
