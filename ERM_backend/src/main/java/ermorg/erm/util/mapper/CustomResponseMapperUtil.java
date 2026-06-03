@@ -29,7 +29,7 @@ import ermorg.erm.dto.response.CustomResponse;
 
 public class CustomResponseMapperUtil {
 
-	private static final List<Class<? extends Enum<?>>> DROPDOWN_ENUMS = List.of(
+	private static final List<Class<? extends Enum<?>>> DROPDOWN_ENUMS = Arrays.asList(
 			BusinessVertical.class,
 			ErmDashboardPeriodType.class,
 			ErmStakeholderRole.class,
@@ -187,7 +187,7 @@ public class CustomResponseMapperUtil {
 	}
 
 	private static String resolveSubRiskCollectionNames(Object response, CustomFieldResponse customField) {
-		for (String fieldName : List.of("subRiskIds", "riskSubIds", "riskSubs", "subRisk")) {
+		for (String fieldName : Arrays.asList("subRiskIds", "riskSubIds", "riskSubs", "subRisk")) {
 			Object value = getFieldValue(response, fieldName);
 			if (!(value instanceof Collection<?> collection)) {
 				continue;
@@ -198,7 +198,7 @@ public class CustomResponseMapperUtil {
 					.filter(Objects::nonNull)
 					.collect(Collectors.joining(", "));
 
-			if (!names.isBlank()) {
+			if (names != null && !names.trim().isEmpty()) {
 				return names;
 			}
 		}
@@ -243,7 +243,7 @@ public class CustomResponseMapperUtil {
 	}
 
 	private static boolean matchesAny(String combinedKey, String... expectedKeys) {
-		if (combinedKey == null || combinedKey.isBlank()) {
+		if (combinedKey == null || combinedKey.trim().isEmpty()) {
 			return false;
 		}
 
@@ -299,7 +299,7 @@ public class CustomResponseMapperUtil {
 			candidates.add(fieldKey);
 		}
 
-		candidates.addAll(List.of("name", "title", "value", "label", "displayName", "description"));
+		candidates.addAll(Arrays.asList("name", "title", "value", "label", "displayName", "description"));
 
 		return new ArrayList<>(candidates);
 	}
@@ -325,7 +325,7 @@ public class CustomResponseMapperUtil {
 	}
 
 	private static String normalizeFieldKey(String value) {
-		if (value == null || value.isBlank()) {
+		if (value == null || value.trim().isEmpty()) {
 			return null;
 		}
 
@@ -333,7 +333,7 @@ public class CustomResponseMapperUtil {
 		StringBuilder key = new StringBuilder();
 
 		for (String part : parts) {
-			if (part.isBlank()) {
+			if (part == null || part.trim().isEmpty()) {
 				continue;
 			}
 
@@ -410,12 +410,15 @@ public class CustomResponseMapperUtil {
 	}
 
 	private static Integer getOrdinal(Object value) {
-		if (value instanceof Number number) {
-			return number.intValue();
+		if (value instanceof Number) {
+			return ((Number) value).intValue();
 		}
 
-		if (value instanceof String text && text.matches("-?\\d+")) {
-			return Integer.parseInt(text);
+		if (value instanceof String) {
+			String text = ((String) value).trim();
+			if (text.matches("-?\\d+")) {
+				return Integer.parseInt(text);
+			}
 		}
 
 		return null;
@@ -424,12 +427,16 @@ public class CustomResponseMapperUtil {
 	private static boolean isMatchingEnum(String fieldKey, Class<? extends Enum<?>> enumClass) {
 		String enumKey = normalizeMatchKey(enumClass.getSimpleName());
 
+		if (fieldKey == null || fieldKey.trim().isEmpty()) {
+			return false;
+		}
+
 		return Arrays.stream(fieldKey.split("\\|"))
-				.anyMatch(key -> !key.isBlank() && (key.contains(enumKey) || enumKey.contains(key)));
+				.anyMatch(key -> key != null && !key.trim().isEmpty() && (key.contains(enumKey) || enumKey.contains(key)));
 	}
 
 	private static String normalizeMatchKey(String value) {
-		if (value == null) {
+		if (value == null || value.trim().isEmpty()) {
 			return "";
 		}
 
@@ -489,7 +496,7 @@ public class CustomResponseMapperUtil {
 	}
 
 	private static Field findFieldByName(Class<?> clazz, String name) {
-		if (clazz == null || name == null || name.isBlank()) {
+		if (clazz == null || name == null || name.trim().isEmpty()) {
 			return null;
 		}
 		String key = clazz.getName() + "#" + name;
@@ -510,17 +517,18 @@ public class CustomResponseMapperUtil {
 	}
 
 	private static Object getNestedValue(Object obj, String path, String tableName) {
-		if (obj == null || path == null || path.isBlank()) {
+		if (obj == null || path == null || path.trim().isEmpty()) {
 			return null;
 		}
 
-		if (obj instanceof Collection<?> collection) {
+		if (obj instanceof Collection<?>) {
+			Collection<?> collection = (Collection<?>) obj;
 			List<Object> results = new ArrayList<>();
 			for (Object item : collection) {
 				Object res = getNestedValue(item, path, tableName);
 				if (res != null) {
-					if (res instanceof Collection<?> subColl) {
-						results.addAll(subColl);
+					if (res instanceof Collection<?>) {
+						results.addAll((Collection<?>) res);
 					} else {
 						results.add(res);
 					}
@@ -588,7 +596,7 @@ public class CustomResponseMapperUtil {
 	}
 
 	private static boolean isPathResolvable(Class<?> clazz, String path, String tableName) {
-		if (clazz == null || path == null || path.isBlank()) {
+		if (clazz == null || path == null || path.trim().isEmpty()) {
 			return false;
 		}
 		String key = clazz.getName() + "#" + path + "#" + (tableName != null ? tableName : "");

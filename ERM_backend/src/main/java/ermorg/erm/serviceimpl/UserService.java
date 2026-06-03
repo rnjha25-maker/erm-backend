@@ -61,4 +61,39 @@ public class UserService implements IUserService {
 				.collect(Collectors.toList());
 	}
 
+    @Transactional(readOnly = true)
+    @Override
+    public String getUserNameOrEmail(Long userId) {
+        if (userId == null) {
+            return null;
+        }
+
+        return userRepository.findById(userId)
+                .filter(user -> !user.getDeleted())
+                .map(this::formatUserDisplayName)
+                .orElse(null);
+    }
+
+    private String formatUserDisplayName(User user) {
+        if (user == null) {
+            return null;
+        }
+
+        if (user.getUserDetail() != null) {
+            String combinedName = String.join(" ",
+                    nullToBlank(user.getUserDetail().getFirstName()),
+                    nullToBlank(user.getUserDetail().getMiddleName()),
+                    nullToBlank(user.getUserDetail().getLastName()))
+                    .trim().replaceAll("\\s+", " ");
+            if (!combinedName.trim().isEmpty()) {
+                return combinedName;
+            }
+        }
+
+        return user.getEmail();
+    }
+
+    private String nullToBlank(String value) {
+        return value == null ? "" : value;
+    }
 }

@@ -14,5 +14,6 @@ public interface IUserService {
 	public List<UserDto> getUserList();
 
 	public List<UserDto> getUsersByRole(ErmStakeholderRole role);
- 
+
+    String getUserNameOrEmail(Long userId);
 }
