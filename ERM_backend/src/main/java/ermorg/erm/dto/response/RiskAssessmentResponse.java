@@ -22,6 +22,7 @@ public class RiskAssessmentResponse {
     private String legalComplianceImpact;
     private String grossImpactScore;
     private String riskRating;
+    private Double riskRatingScore;
     private String velocity;
     private String riskAppetite;
     private String riskToleranceStatus;
@@ -30,7 +31,12 @@ public class RiskAssessmentResponse {
     private String riskAssessmentFrequency;
     private String riskAssessmentBy;
     private String riskReporting;
-    
+    private long assetValue;
+	private long yearlyFrequency;
+	private double offPotentialLoss;
+	private long residualRiskRatingCriteria;
+	private double yearlyLossExpectancy;
+
     public RiskAssessmentResponse(RiskAssessment riskAssessment) {
     	this.assessmentId = riskAssessment.getId();
     	this.riskId = riskAssessment.getRisk().getId();
@@ -49,6 +55,7 @@ public class RiskAssessmentResponse {
 		this.legalComplianceImpact = riskAssessment.getLegalComplianceImpact();
 		this.grossImpactScore = riskAssessment.getGrossImpactScore();
 		this.riskRating = riskAssessment.getRiskRating();
+		this.riskRatingScore = riskAssessment.getRiskRatingScore();
 		this.velocity = riskAssessment.getVelocity();
 		this.riskAppetite = riskAssessment.getRiskAppetite();
 		this.riskToleranceStatus = riskAssessment.getRiskToleranceStatus();
@@ -57,7 +64,11 @@ public class RiskAssessmentResponse {
 		this.riskAssessmentFrequency = riskAssessment.getRiskAssessmentFrequency();
 		this.riskAssessmentBy = riskAssessment.getRiskAssessmentBy();
 		this.riskReporting = riskAssessment.getRiskReporting();
-		
+		this.assetValue = riskAssessment.getAssetValue();
+		this.yearlyFrequency = riskAssessment.getYearlyFrequency();
+		this.offPotentialLoss = riskAssessment.getOffPotentialLoss();
+		this.residualRiskRatingCriteria = riskAssessment.getResidualRiskRatingCriteria();
+		this.yearlyLossExpectancy = riskAssessment.getYearlyLossExpectancy();
     }
 	
 }
