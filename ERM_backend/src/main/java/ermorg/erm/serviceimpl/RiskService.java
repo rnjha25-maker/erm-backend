@@ -385,18 +385,7 @@ public class RiskService implements IRiskService {
 			throw new ResourceNotFoundException("Risk not found");
 		}
 		RiskResponse riskResponse = toRiskResponse(risk);
-		List<CustomFieldResponse> customFieldResponse = fieldService.getCustomFieldResponse(1, "risk");
-		
-		customFieldResponse.stream().forEach(field -> {
-			CustomResponse customResponse;
-			try {
-				customResponse = CustomResponseMapperUtil.map(riskResponse, field, "risk");
-				customResponses.add(customResponse);
-			} catch (IllegalArgumentException | IllegalAccessException e) {
-				// TODO Auto-generated catch block
-				log.error("getRiskView() {}", e.getMessage());
-			}
-		});
+		customResponses.addAll(customResponseMapper.map("risk", 1L, riskResponse, false));
 		return customResponses;
 	}
 	
