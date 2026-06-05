@@ -43,6 +43,13 @@ public class KriKpiReviewStrategyConfig implements FieldStrategy {
 
         map.put(n("kriEvaluationBy"),
                 r -> fieldMapperUtils.resolveUser(r.getKriEvaluationBy()));
+        map.put(n("subRiskIds"),
+                r -> fieldMapperUtils.stringify(fieldMapperUtils.resolveSubList(r.getSubRisks())));
+        map.put(n("riskId"),
+                KriKpiReviewResponseDTO::getRiskTitle);
+
+        map.put(n("reporting"),
+                KriKpiReviewResponseDTO::getReporting);
 
         return map;
     }

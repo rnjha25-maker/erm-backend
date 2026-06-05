@@ -5,6 +5,7 @@ import java.util.List;
 
 import ermorg.erm.model.KriKpiReview;
 
+import ermorg.erm.model.SubRisk;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -71,6 +72,7 @@ public class KriKpiReviewResponseDTO {
     private String lastKriEvaluationDate;
     private String nextEvaluationDate;
     private String status;
+    private List<SubRisk> subRisks;
     
     public KriKpiReviewResponseDTO(KriKpiReview kriKpiReview) {
 	    this.kriId = kriKpiReview.getId();
@@ -124,5 +126,7 @@ public class KriKpiReviewResponseDTO {
 	    this.lastKriEvaluationDate = kriKpiReview.getLastKriEvaluationDate() != null ? kriKpiReview.getLastKriEvaluationDate().toString() : null;
 	    this.nextEvaluationDate = kriKpiReview.getNextEvaluationDate().toString();
 	    this.status = kriKpiReview.getStatus();
+        this.subRisks = kriKpiReview.getSubRisks();
+        this.riskToleranceStatus = kriKpiReview.getRisk().getRiskAssessment().getRiskToleranceStatus();
     }
 }
