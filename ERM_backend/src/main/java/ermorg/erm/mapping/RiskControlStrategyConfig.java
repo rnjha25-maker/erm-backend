@@ -32,7 +32,7 @@ public class RiskControlStrategyConfig implements FieldStrategy {
     private Map<String, Function<RiskControlResponse, Object>> buildCustomStrategies() {
         Map<String, Function<RiskControlResponse, Object>> map = new HashMap<>();
 
-        map.put(n("subRiskName"),
+        map.put(n("riskSubs"),
                 r -> fieldMapperUtils.stringify(fieldMapperUtils.resolveSubList(r.getRiskSubs())));
 
         map.put(n("primaryResponsible"),
@@ -40,6 +40,10 @@ public class RiskControlStrategyConfig implements FieldStrategy {
 
         map.put(n("approver"),
                 r -> fieldMapperUtils.resolveUser(r.getApprover()));
+        map.put(n("riskSubs"),RiskControlResponse::getRiskSubs);
+        map.put(n("controlSubTitle"),
+                r -> fieldMapperUtils.stringify(fieldMapperUtils.resolveSubList(r.getControlSubTitle())));
+
 
         return map;
     }
