@@ -127,6 +127,6 @@ public class KriKpiReviewResponseDTO {
 	    this.nextEvaluationDate = kriKpiReview.getNextEvaluationDate().toString();
 	    this.status = kriKpiReview.getStatus();
         this.subRisks = kriKpiReview.getSubRisks();
-        this.riskToleranceStatus = kriKpiReview.getRisk().getRiskAssessment().getRiskToleranceStatus();
+        this.riskToleranceStatus = (kriKpiReview.getRisk() != null && kriKpiReview.getRisk().getRiskAssessment() != null) ? kriKpiReview.getRisk().getRiskAssessment().getRiskToleranceStatus() : "";
     }
 }
