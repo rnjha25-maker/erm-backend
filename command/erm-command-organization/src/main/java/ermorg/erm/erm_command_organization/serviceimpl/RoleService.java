@@ -26,43 +26,49 @@ public class RoleService implements IRoleService {
 
 	@Override
 	public RoleResponse saveRole(RoleRequest roleRequest) throws ResourceNotFoundException {
+		Role role;
+		boolean isUpdate = roleRequest.getRoleId() > 0;
+		String requestedRoleCode = toRoleCode(roleRequest.getRoleName());
 
-	    Role role;
+		if (isUpdate) {
+			role = roleRepository.findById(roleRequest.getRoleId())
+					.filter(r -> !r.getDeleted())
+					.orElseThrow(() -> new ResourceNotFoundException("Role not found."));
 
-	    boolean isUpdate = roleRequest.getRoleId() > 0;
+			roleRepository.findByNameAndDeletedFalseAndIdNot(roleRequest.getRoleName(), role.getId())
+					.ifPresent(r -> {
+						throw new IllegalArgumentException("Role with this name already exists.");
+					});
 
-	    if (isUpdate) {
-	        role = roleRepository.findById(roleRequest.getRoleId())
-	                .filter(r -> !r.getDeleted())
-	                .orElseThrow(() -> new ResourceNotFoundException("Role not found."));
+			if (role.getRoleCode() != null && !role.getRoleCode().equals(requestedRoleCode)
+					&& roleRepository.existsByRoleCodeIgnoreCase(requestedRoleCode)) {
+				throw new IllegalArgumentException("Role code already exists.");
+			}
 
-	        // ✅ Check duplicate name for update (excluding current ID)
-	        roleRepository.findByNameAndDeletedFalseAndIdNot(roleRequest.getRoleName(), role.getId())
-	                .ifPresent(r -> {
-	                    throw new IllegalArgumentException("Role with this name already exists.");
-	                });
+			saveRoleHistory(role, "U");
+		} else {
+			roleRepository.findByNameAndDeletedFalse(roleRequest.getRoleName())
+					.ifPresent(r -> {
+						throw new IllegalArgumentException("Role with this name already exists.");
+					});
 
-	        // Save history before update
-	        saveRoleHistory(role, "U");
+			if (roleRepository.existsByRoleCodeIgnoreCase(requestedRoleCode)) {
+				throw new IllegalArgumentException("Role code already exists.");
+			}
 
-	    } else {
-	        // ✅ Check duplicate name for create
-	        roleRepository.findByNameAndDeletedFalse(roleRequest.getRoleName())
-	                .ifPresent(r -> {
-	                    throw new IllegalArgumentException("Role with this name already exists.");
-	                });
+			role = new Role();
+		}
 
-	        role = new Role();
-	    }
+		role.setName(roleRequest.getRoleName());
+		role.setNormalizedName(normalizeName(roleRequest.getRoleName()));
+		if (role.getRoleCode() == null || role.getRoleCode().isBlank()) {
+			role.setRoleCode(requestedRoleCode);
+		}
+		role.setPriority(roleRequest.getPriority());
+		role.setDescription(roleRequest.getDescription());
 
-	    // Set fields
-	    role.setName(roleRequest.getRoleName());
-	    role.setPriority(roleRequest.getPriority());
-	    role.setDescription(roleRequest.getDescription());
-
-	    Role savedRole = roleRepository.save(role);
-
-	    return new RoleResponse(savedRole);
+		Role savedRole = roleRepository.save(role);
+		return new RoleResponse(savedRole);
 	}
 
 	@Override
@@ -74,8 +80,10 @@ public class RoleService implements IRoleService {
 
 	@Override
 	public List<RoleResponse> getAllRoles() {
-		return roleRepository.findAll().stream().filter(r -> !r.getDeleted() && !r.getName().equals("orgAdmin"))
-				.map(role -> new RoleResponse(role)).collect(Collectors.toList());
+		return roleRepository.findAll().stream()
+				.filter(r -> !r.getDeleted() && !"orgAdmin".equals(r.getName()))
+				.map(RoleResponse::new)
+				.collect(Collectors.toList());
 	}
 
 	@Override
@@ -85,13 +93,10 @@ public class RoleService implements IRoleService {
 
 		role.setDeleted(true);
 		roleRepository.save(role);
-
 		saveRoleHistory(role, "D");
-
 	}
 
 	private void saveRoleHistory(Role role, String operation) {
-
 		RoleHistory roleHistory = new RoleHistory();
 		roleHistory.setDeleted(role.getDeleted());
 		roleHistory.setRoleId(role.getId());
@@ -101,7 +106,19 @@ public class RoleService implements IRoleService {
 		roleHistory.setOperation(operation);
 
 		roleHistoryRepository.save(roleHistory);
-
 	}
 
+	private String normalizeName(String value) {
+		return value == null ? null : value.trim().replaceAll("\\s+", " ").toLowerCase();
+	}
+
+	private String toRoleCode(String value) {
+		if (value == null || value.isBlank()) {
+			throw new IllegalArgumentException("Role name is required.");
+		}
+		return value.trim()
+				.replaceAll("[^A-Za-z0-9]+", "_")
+				.replaceAll("(^_+|_+$)", "")
+				.toUpperCase();
+	}
 }

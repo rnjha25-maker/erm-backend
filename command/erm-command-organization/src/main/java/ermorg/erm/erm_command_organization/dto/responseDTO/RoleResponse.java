@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 public class RoleResponse {
 
 	private long roleId;
+	private String roleCode;
 	private String roleName;
 	private String description;
 	private long priority;
@@ -20,9 +21,10 @@ public class RoleResponse {
 	
 	public RoleResponse(Role role) {
 		this.roleId = role.getId();
+		this.roleCode = role.getRoleCode();
 		this.roleName = role.getName();
 		this.description = role.getDescription();
 		this.rights = role.getRoleRights() != null ? role.getRoleRights().stream().map(roleRight -> new RightMappingRespose(roleRight)).collect(Collectors.toSet()) : new HashSet<>();
-//		this.priority = role.getPriority();
+		this.priority = role.getPriority() == null ? 0 : role.getPriority();
 	}
 }
