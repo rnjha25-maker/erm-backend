@@ -28,7 +28,6 @@ public class OrganizationValidationService {
 			throw new OrganizationValidationException("Invalid organization.");
 		}
 
-		/*
 		Organization organization = organizationRepository.findById(organizationId)
 				.orElseThrow(() -> new OrganizationValidationException("Organization not found."));
 
@@ -43,7 +42,6 @@ public class OrganizationValidationService {
 		if (!isLicenseValid(license)) {
 			throw new OrganizationValidationException("Organization license expired.");
 		}
-		*/
 	}
 
 	private boolean isLicenseValid(License license) {

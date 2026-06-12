@@ -2,6 +2,8 @@ package ermorg.erm.erm_command_organization.controller;
 
 import java.util.List;
 
+import ermorg.erm.erm_command_organization.model.RoleType;
+import ermorg.erm.erm_command_organization.repository.RoleTypeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,7 +21,7 @@ public class RoleController {
 	
 	@Autowired
 	private IRoleService roleService;
-	
+
 	@PostMapping("/save")
 	public GeneralResponse<RoleResponse> saveRole(@RequestBody RoleRequest roleRequest) throws ResourceNotFoundException {
 		GeneralResponse<RoleResponse> response = new GeneralResponse<>();
@@ -67,6 +69,18 @@ public class RoleController {
 		response.setData(role);
 		response.setStatus(ResponseStatus.SUCCESS);
 		
+		return response;
+	}
+
+	@GetMapping("/roletype/all")
+	public GeneralResponse<List<RoleType>> getAllRoleType() throws ResourceNotFoundException {
+		GeneralResponse<List<RoleType>> response = new GeneralResponse<>();
+
+		List<RoleType> role = roleService.getRoleType();
+
+		response.setData(role);
+		response.setStatus(ResponseStatus.SUCCESS);
+
 		return response;
 	}
 

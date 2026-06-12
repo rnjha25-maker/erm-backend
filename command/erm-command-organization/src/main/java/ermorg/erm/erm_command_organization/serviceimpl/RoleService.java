@@ -1,6 +1,7 @@
 package ermorg.erm.erm_command_organization.serviceimpl;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,16 +11,25 @@ import ermorg.erm.erm_command_organization.dto.requestDTO.RoleRequest;
 import ermorg.erm.erm_command_organization.dto.responseDTO.RoleResponse;
 import ermorg.erm.erm_command_organization.exception.ResourceNotFoundException;
 import ermorg.erm.erm_command_organization.model.Role;
+import ermorg.erm.erm_command_organization.model.RoleType;
 import ermorg.erm.erm_command_organization.model.history.RoleHistory;
 import ermorg.erm.erm_command_organization.repository.RoleRepository;
+import ermorg.erm.erm_command_organization.repository.RoleTypeRepository;
 import ermorg.erm.erm_command_organization.repository.history.RoleHistoryRepository;
 import ermorg.erm.erm_command_organization.service.IRoleService;
+import ermorg.erm.erm_command_organization.service.RoleTypeValidator;
 
 @Service
 public class RoleService implements IRoleService {
 
 	@Autowired
 	private RoleRepository roleRepository;
+
+	@Autowired
+	private RoleTypeRepository roleTypeRepository;
+
+	@Autowired
+	private RoleTypeValidator roleTypeValidator;
 
 	@Autowired
 	private RoleHistoryRepository roleHistoryRepository;
@@ -55,10 +65,27 @@ public class RoleService implements IRoleService {
 	        role = new Role();
 	    }
 
-	    // Set fields
+	    // Set basic fields
 	    role.setName(roleRequest.getRoleName());
 	    role.setPriority(roleRequest.getPriority());
 	    role.setDescription(roleRequest.getDescription());
+
+	    // Validate and set RoleType if provided
+		if (roleRequest.getRoleTypeCode() != null && !roleRequest.getRoleTypeCode().trim().isEmpty()) {
+			Optional<RoleType> roleTypeOpt = roleTypeValidator.validateRoleType(roleRequest.getRoleTypeCode());
+
+			roleTypeOpt.ifPresent(role::setRoleType);
+
+			// Optional: handle case when not found
+			if (roleTypeOpt.isEmpty()) {
+				throw new IllegalArgumentException("Invalid role type code.");
+			}
+
+		} else if (!isUpdate) {
+			// For new roles, roleType is required
+			throw new IllegalArgumentException("Role type code is required for new roles.");
+		}
+	    // For update, if roleTypeCode is not provided, keep existing roleType
 
 	    Role savedRole = roleRepository.save(role);
 
@@ -75,7 +102,7 @@ public class RoleService implements IRoleService {
 	@Override
 	public List<RoleResponse> getAllRoles() {
 		return roleRepository.findAll().stream().filter(r -> !r.getDeleted() && !r.getName().equals("orgAdmin"))
-				.map(role -> new RoleResponse(role)).collect(Collectors.toList());
+				.map(RoleResponse::new).collect(Collectors.toList());
 	}
 
 	@Override
@@ -88,6 +115,12 @@ public class RoleService implements IRoleService {
 
 		saveRoleHistory(role, "D");
 
+	}
+
+	@Override
+	public List<RoleType> getRoleType() throws ResourceNotFoundException {
+		roleTypeRepository.findAll();
+		return List.of();
 	}
 
 	private void saveRoleHistory(Role role, String operation) {

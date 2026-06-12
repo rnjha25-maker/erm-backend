@@ -7,15 +7,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
-import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
-import org.springframework.security.web.server.authentication.ServerAuthenticationConverter;
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.server.WebFilter;
@@ -46,13 +43,9 @@ public class SecurityConfig {
     };
 
     @Bean
-    public SecurityWebFilterChain securityFilterChain(
-            ServerHttpSecurity http,
-            ReactiveAuthenticationManager authManager,
-            ServerAuthenticationConverter authConverter) {
-
-        AuthenticationWebFilter authFilter = new AuthenticationWebFilter(jwtRequestFilter);
-        authFilter.setServerAuthenticationConverter(authConverter);
+    public SecurityWebFilterChain securityFilterChain(ServerHttpSecurity http) {
+        // We use the existing `JwtRequestFilter` (a `WebFilter`) to populate
+        // the security context, so there's no ReactiveAuthenticationManager here.
         List<String> origins = Arrays.asList(allowedOrigins.split("\\s*,\\s*"));
         
         
@@ -77,10 +70,7 @@ public class SecurityConfig {
                 )
 
                 .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
-
-                .authenticationManager(jwtRequestFilter)
-
-                .addFilterAt(authFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+                // Add our JWT-based WebFilter at the authentication phase
                 .addFilterAt(new JwtFilter(jwtRequestFilter), SecurityWebFiltersOrder.AUTHENTICATION)
 
                 .build();

@@ -9,5 +9,5 @@ public class RoleRequest {
 	private String roleName;
 	private long priority;
 	private String description;
-
+	private String roleTypeCode;
 }
