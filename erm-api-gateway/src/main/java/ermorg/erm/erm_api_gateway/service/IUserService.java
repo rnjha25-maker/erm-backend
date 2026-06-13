@@ -1,16 +1,14 @@
 package ermorg.erm.erm_api_gateway.service;
-
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-
-import ermorg.erm.erm_api_gateway.dto.response.TokenResponseDTO;
 import ermorg.erm.erm_api_gateway.dto.response.UserResponse;
-import ermorg.erm.erm_api_gateway.exception.PasswordNotMatchedException;
+import reactor.core.publisher.Mono;
 
 public interface IUserService {
 
-	public TokenResponseDTO generateToken(String username, String password)
-			throws UsernameNotFoundException, PasswordNotMatchedException;
+	Mono<UserResponse> getUserByUsernameReactive(String username);
 
+	/**
+	 * Synchronous accessor used by blocking services (kept for compatibility).
+	 */
 	UserResponse getUserByUsername(String username);
 
 }

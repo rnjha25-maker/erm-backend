@@ -5,6 +5,7 @@ import java.util.Locale;
 import java.util.Set;
 
 import ermorg.erm.constant.ErmDashboardAccessScope;
+import ermorg.erm.constant.RoleTypeCode;
 import ermorg.erm.model.Role;
 import ermorg.erm.model.User;
 
@@ -13,6 +14,7 @@ import ermorg.erm.model.User;
  * Precedence when multiple tiers match: organization admin wins, then company/advance, then basic.
  */
 public final class ErmDashboardRoleResolver {
+
 
 	private static final Set<String> ORG_ADMIN_NAMES_NORMALIZED = Set.of("org admin", "organization admin");
 
@@ -46,15 +48,16 @@ public final class ErmDashboardRoleResolver {
 			if (role == null) {
 				continue;
 			}
+			RoleTypeCode roleTypeCode = RoleTypeCode.valueOf(role.getRoleType().getName());
 			String n = normalizeRoleName(role.getName());
 			if (n.isEmpty()) {
 				continue;
 			}
-			if (ORG_ADMIN_NAMES_NORMALIZED.contains(n)) {
+			if (roleTypeCode == RoleTypeCode.ORG_ADMIN) {
 				orgAdmin = true;
-			} else if (COMPANY_OR_ADVANCED_NAMES_NORMALIZED.contains(n)) {
+			} else if (roleTypeCode == RoleTypeCode.COMPANY_ADMIN) {
 				companyOrAdvance = true;
-			} else if (BASIC_USER_NAMES_NORMALIZED.contains(n)) {
+			} else if (roleTypeCode == RoleTypeCode.BASIC_USER) {
 				basic = true;
 			}
 		}

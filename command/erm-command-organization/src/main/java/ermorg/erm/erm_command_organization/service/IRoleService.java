@@ -5,6 +5,7 @@ import java.util.List;
 import ermorg.erm.erm_command_organization.dto.requestDTO.RoleRequest;
 import ermorg.erm.erm_command_organization.dto.responseDTO.RoleResponse;
 import ermorg.erm.erm_command_organization.exception.ResourceNotFoundException;
+import ermorg.erm.erm_command_organization.model.RoleType;
 
 public interface IRoleService {
 	
@@ -15,5 +16,7 @@ public interface IRoleService {
 	public List<RoleResponse> getAllRoles();
 	
 	public void deleteRole(long roleId) throws ResourceNotFoundException;
+
+	public List<RoleType> getRoleType() throws ResourceNotFoundException;
 
 }

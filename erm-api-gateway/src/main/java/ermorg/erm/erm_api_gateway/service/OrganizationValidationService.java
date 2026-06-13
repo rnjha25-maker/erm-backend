@@ -43,7 +43,7 @@ public class OrganizationValidationService {
 		if (!isLicenseValid(license)) {
 			throw new OrganizationValidationException("Organization license expired.");
 		}
-		*/
+		 */
 	}
 
 	private boolean isLicenseValid(License license) {
