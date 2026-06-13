@@ -53,11 +53,11 @@ public final class ErmDashboardRoleResolver {
 			if (n.isEmpty()) {
 				continue;
 			}
-			if (roleTypeCode == RoleTypeCode.ADMIN) {
+			if (roleTypeCode == RoleTypeCode.ORG_ADMIN) {
 				orgAdmin = true;
-			} else if (roleTypeCode == RoleTypeCode.COMPANY) {
+			} else if (roleTypeCode == RoleTypeCode.COMPANY_ADMIN) {
 				companyOrAdvance = true;
-			} else if (roleTypeCode == RoleTypeCode.BUSINESS) {
+			} else if (roleTypeCode == RoleTypeCode.BASIC_USER) {
 				basic = true;
 			}
 		}
