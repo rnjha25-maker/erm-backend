@@ -4,6 +4,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -230,6 +231,9 @@ public class DashboardService implements IDashboardService {
 
 		Long scopeCompanyId = null;
 		Long scopeCreatorUserId = null;
+		boolean applyBranchDepartmentScope = false;
+		List<Long> scopeBranchIds = Collections.emptyList();
+		List<Long> scopeDepartmentIds = Collections.emptyList();
 		switch (scope) {
 		case ORGANIZATION_WIDE:
 			scopeCompanyId = companyId;
@@ -240,6 +244,15 @@ public class DashboardService implements IDashboardService {
 			}
 			scopeCompanyId = user.getCompany().getId();
 			break;
+		case ADVANCED_USER_SCOPED:
+			if (user.getCompany() == null) {
+				throw new ResourceNotFoundException("No company for user.");
+			}
+			scopeCompanyId = user.getCompany().getId();
+			scopeBranchIds = ErmDashboardRoleResolver.resolveAssignedBranchIds(user);
+			scopeDepartmentIds = ErmDashboardRoleResolver.resolveAssignedDepartmentIds(user);
+			applyBranchDepartmentScope = true;
+			break;
 		case CREATOR_ONLY:
 			scopeCreatorUserId = user.getId();
 			break;
@@ -247,8 +260,14 @@ public class DashboardService implements IDashboardService {
 
 		ErmDashboardPeriodBounds bounds = ErmDashboardPeriodBounds.forYearAndPeriod(year, periodType,
 				ZoneId.systemDefault());
-		List<Risk> risks = riskRepository.findRisksForErmDashboard(organization.getId(), bounds.getStartInclusive(),
-				bounds.getEndInclusive(), scopeCompanyId, scopeCreatorUserId, branchId, functionId);
+		List<Risk> risks;
+		if (applyBranchDepartmentScope && scopeBranchIds.isEmpty() && scopeDepartmentIds.isEmpty()) {
+			risks = Collections.emptyList();
+		} else {
+			risks = riskRepository.findRisksForErmDashboard(organization.getId(), bounds.getStartInclusive(),
+					bounds.getEndInclusive(), scopeCompanyId, scopeCreatorUserId, branchId, functionId,
+					applyBranchDepartmentScope, scopeBranchIds, scopeDepartmentIds);
+		}
 
 		ErmDashboardSummaryResponse response = new ErmDashboardSummaryResponse();
 		response.setTotalRisks(risks.size());
