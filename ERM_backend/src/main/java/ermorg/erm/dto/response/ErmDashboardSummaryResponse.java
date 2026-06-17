@@ -18,4 +18,18 @@ public class ErmDashboardSummaryResponse {
 	private List<NamedCount> byAnalysisType = new ArrayList<>();
 	private List<NamedCount> byFinancialExposure = new ArrayList<>();
 	private List<NamedCount> bySource = new ArrayList<>();
+
+	/** Org admin only; null for company/advance/basic users. */
+	private List<ErmRatingHierarchyGroup> byRatingHierarchy;
+
+	/** Org admin only; null for company/advance/basic users. */
+	private List<ErmCompanyCategoryGroup> byCompanyCategory;
+
+	private List<ErmBranchRatingGroup> byBranchRating = new ArrayList<>();
+
+	private List<ErmFunctionRatingGroup> byFunctionRating = new ArrayList<>();
+
+	private List<ErmCategoryBranchGroup> byCategoryBranch = new ArrayList<>();
+
+	private List<ErmOwnerRatingGroup> byOwnerRating = new ArrayList<>();
 }
