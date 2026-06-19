@@ -83,6 +83,7 @@ public class MaturityService implements IErmMaturityService {
         m.setStatus(req.getStatus());
         m.setWeightageScore(BigDecimal.valueOf(Double.parseDouble(req.getWeightageScore())));
         m.setOrganization(organization);
+		m.setAssessmentAreaName(req.getAssessmentAreaName());
         m.setCompany(company);
 	}
 

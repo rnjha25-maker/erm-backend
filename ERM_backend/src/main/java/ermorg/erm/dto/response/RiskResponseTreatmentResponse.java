@@ -13,7 +13,7 @@ public class RiskResponseTreatmentResponse {
 	private long riskResponseTreatmentId;
 	private long riskId;
 	private String riskTitle;
-    private List<SubRiskResponse> riskSubIds = new ArrayList<>();
+    private List<SubRiskResponse> subRisk = new ArrayList<>();
     private String controlPresence;
     private String controlDescription;
     private String controlGapsIdentified;
@@ -34,7 +34,7 @@ public class RiskResponseTreatmentResponse {
 	    this.riskResponseTreatmentId = riskResponseTreatment.getId();
     	this.riskId = riskResponseTreatment.getRisk().getId();
     	this.riskTitle = riskResponseTreatment.getRisk().getRisktitle();
-    	this.riskSubIds = riskResponseTreatment.getSubRisks().stream().map(SubRiskResponse::new).toList();
+    	this.subRisk = riskResponseTreatment.getSubRisks().stream().map(SubRiskResponse::new).toList();
     	this.controlPresence = riskResponseTreatment.getControlPresence();
 		this.controlDescription = riskResponseTreatment.getControlDescription();
 		this.controlGapsIdentified = riskResponseTreatment.getControlGapsIdentified();
