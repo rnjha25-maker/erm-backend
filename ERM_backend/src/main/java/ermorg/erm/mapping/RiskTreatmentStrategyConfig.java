@@ -33,13 +33,16 @@ public class RiskTreatmentStrategyConfig implements FieldStrategy {
         Map<String, Function<RiskResponseTreatmentResponse, Object>> map = new HashMap<>();
 
         map.put(n("subRiskName"),
-                r -> fieldMapperUtils.stringify(fieldMapperUtils.resolveSubList(r.getRiskSubIds())));
-
+                r -> fieldMapperUtils.stringify(fieldMapperUtils.resolveSubList(r.getSubRisk())));
+        map.put(n("subRiskIds"),
+                r -> fieldMapperUtils.stringify(fieldMapperUtils.resolveSubList(r.getSubRisk())));
+        
         map.put(n("controlEvaluationBy"),
                 r -> fieldMapperUtils.resolveUserFromObject(r.getControlEvaluationBy()));
 
         map.put(n("riskReporting"),
                 r -> fieldMapperUtils.resolveUser(r.getRiskReporting()));
+        map.put(n("riskId"), RiskResponseTreatmentResponse::getRiskTitle);
 
         return map;
     }
