@@ -86,8 +86,10 @@ public class FieldService implements IFieldService {
 	    List<ModuleOrganization> orgModules =
 	            orgModuleRepository.findByOrganizationIdAndModuleId(orgId, moduleId);
 
-	    List<Long> categoryIds = orgModules.stream()
-	            .filter(module -> !module.getDeleted())
+	    List<Long> categoryIds = orgModuleRepository
+	            .findByOrganizationIdAndModuleId(orgId, moduleId)
+	            .stream()
+	            .filter(module -> Boolean.FALSE.equals(module.getDeleted()))
 	            .map(ModuleOrganization::getCategoryId)
 	            .collect(Collectors.toList());
 

@@ -1,10 +1,9 @@
 package ermorg.erm.dto.response;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 import ermorg.erm.dto.riskDTO.RiskSubControlDto;
+import ermorg.erm.model.Risk;
 import ermorg.erm.model.RiskControl;
 
 import lombok.Data;
@@ -50,7 +49,17 @@ public class RiskControlResponse {
 		this.actualDate = riskControl.getActualDate();
 		this.lastControlAssessmentDate = riskControl.getLastControlAssessmentDate();
 		this.nextControlAssessmentDate = riskControl.getNextControlAssessmentDate();
-		this.riskSubs = riskControl.getRisk().getSubRisk().stream().map(sub -> new SubRiskResponse(sub)).toList();
-		this.controlSubTitle = riskControl.getSubControls().stream().map(sub -> new RiskSubControlDto(sub)).toList();
+		this.riskSubs = Optional.ofNullable(riskControl.getRisk())
+				.map(Risk::getSubRisk)
+				.orElse(Collections.emptyList())
+				.stream()
+				.map(SubRiskResponse::new)
+				.toList();
+
+		this.controlSubTitle = Optional.ofNullable(riskControl.getSubControls())
+				.orElse(Collections.emptyList())
+				.stream()
+				.map(RiskSubControlDto::new)
+				.toList();
     }
 }
