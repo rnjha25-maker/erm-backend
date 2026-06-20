@@ -9,5 +9,7 @@ public enum ErmDashboardAccessScope {
 
 	COMPANY_SCOPED,
 
+	ADVANCED_USER_SCOPED,
+
 	CREATOR_ONLY
 }

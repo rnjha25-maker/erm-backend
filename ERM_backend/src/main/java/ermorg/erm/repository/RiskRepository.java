@@ -1,5 +1,6 @@
 package ermorg.erm.repository;
 
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
@@ -76,16 +77,20 @@ public interface RiskRepository extends JpaRepository<Risk, Long>{
 	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.deleted = false")
 	Page<Risk> getAllRisksWithOwnerAndChampionPaged(@Param("organizationId") Long organizationId, Pageable pageable);
 
-	@Query("SELECT DISTINCT r FROM Risk r LEFT JOIN FETCH r.riskAssessment WHERE r.organizationId = :organizationId AND r.deleted = false "
+	@Query("SELECT DISTINCT r FROM Risk r LEFT JOIN FETCH r.riskAssessment LEFT JOIN FETCH r.riskOwner ro LEFT JOIN FETCH ro.userDetail WHERE r.organizationId = :organizationId AND r.deleted = false "
 			+ "AND r.createdAt BETWEEN :startDate AND :endDate "
 			+ "AND (:scopeCompanyId IS NULL OR r.companyId = :scopeCompanyId) "
 			+ "AND (:scopeCreatorUserId IS NULL OR (r.createdBy IS NOT NULL AND r.createdBy.id = :scopeCreatorUserId)) "
 			+ "AND (:branchId IS NULL OR r.branchId = :branchId) "
 			+ "AND (:functionId IS NULL OR r.function = :functionId) "
+			+ "AND (:applyBranchDepartmentScope = false OR (SIZE(:scopeBranchIds) > 0 AND r.branchId IN :scopeBranchIds) "
+			+ "OR (SIZE(:scopeDepartmentIds) > 0 AND r.function IN :scopeDepartmentIds)) "
 			+ "ORDER BY r.id DESC")
 	List<Risk> findRisksForErmDashboard(@Param("organizationId") Long organizationId, @Param("startDate") Date startDate,
 			@Param("endDate") Date endDate, @Param("scopeCompanyId") Long scopeCompanyId,
 			@Param("scopeCreatorUserId") Long scopeCreatorUserId, @Param("branchId") Long branchId,
-			@Param("functionId") Long functionId);
+			@Param("functionId") Long functionId, @Param("applyBranchDepartmentScope") boolean applyBranchDepartmentScope,
+			@Param("scopeBranchIds") Collection<Long> scopeBranchIds,
+			@Param("scopeDepartmentIds") Collection<Long> scopeDepartmentIds);
 
 }

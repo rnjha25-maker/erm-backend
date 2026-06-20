@@ -4,6 +4,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -24,6 +25,12 @@ import ermorg.erm.dto.response.CompanyAdminDashboardDto;
 import ermorg.erm.dto.response.CustomResponse;
 import ermorg.erm.dto.response.ErmDashboardSummaryResponse;
 import ermorg.erm.dto.response.ErmHierarchyBreakdown;
+import ermorg.erm.dto.response.ErmBranchRatingGroup;
+import ermorg.erm.dto.response.ErmCategoryBranchGroup;
+import ermorg.erm.dto.response.ErmCompanyCategoryGroup;
+import ermorg.erm.dto.response.ErmFunctionRatingGroup;
+import ermorg.erm.dto.response.ErmOwnerRatingGroup;
+import ermorg.erm.dto.response.ErmRatingHierarchyGroup;
 import ermorg.erm.dto.response.NamedCount;
 import ermorg.erm.dto.response.OrgAdminDashboardDto;
 import ermorg.erm.dto.response.RiskResponse;
@@ -35,6 +42,7 @@ import ermorg.erm.model.Organization;
 import ermorg.erm.model.Risk;
 import ermorg.erm.model.RiskAssessment;
 import ermorg.erm.model.User;
+import ermorg.erm.model.UserDetail;
 import ermorg.erm.repository.BranchRepository;
 import ermorg.erm.repository.CompanyRepository;
 import ermorg.erm.repository.RiskRepository;
@@ -223,6 +231,9 @@ public class DashboardService implements IDashboardService {
 
 		Long scopeCompanyId = null;
 		Long scopeCreatorUserId = null;
+		boolean applyBranchDepartmentScope = false;
+		List<Long> scopeBranchIds = Collections.emptyList();
+		List<Long> scopeDepartmentIds = Collections.emptyList();
 		switch (scope) {
 		case ORGANIZATION_WIDE:
 			scopeCompanyId = companyId;
@@ -233,6 +244,15 @@ public class DashboardService implements IDashboardService {
 			}
 			scopeCompanyId = user.getCompany().getId();
 			break;
+		case ADVANCED_USER_SCOPED:
+			if (user.getCompany() == null) {
+				throw new ResourceNotFoundException("No company for user.");
+			}
+			scopeCompanyId = user.getCompany().getId();
+			scopeBranchIds = ErmDashboardRoleResolver.resolveAssignedBranchIds(user);
+			scopeDepartmentIds = ErmDashboardRoleResolver.resolveAssignedDepartmentIds(user);
+			applyBranchDepartmentScope = true;
+			break;
 		case CREATOR_ONLY:
 			scopeCreatorUserId = user.getId();
 			break;
@@ -240,8 +260,14 @@ public class DashboardService implements IDashboardService {
 
 		ErmDashboardPeriodBounds bounds = ErmDashboardPeriodBounds.forYearAndPeriod(year, periodType,
 				ZoneId.systemDefault());
-		List<Risk> risks = riskRepository.findRisksForErmDashboard(organization.getId(), bounds.getStartInclusive(),
-				bounds.getEndInclusive(), scopeCompanyId, scopeCreatorUserId, branchId, functionId);
+		List<Risk> risks;
+		if (applyBranchDepartmentScope && scopeBranchIds.isEmpty() && scopeDepartmentIds.isEmpty()) {
+			risks = Collections.emptyList();
+		} else {
+			risks = riskRepository.findRisksForErmDashboard(organization.getId(), bounds.getStartInclusive(),
+					bounds.getEndInclusive(), scopeCompanyId, scopeCreatorUserId, branchId, functionId,
+					applyBranchDepartmentScope, scopeBranchIds, scopeDepartmentIds);
+		}
 
 		ErmDashboardSummaryResponse response = new ErmDashboardSummaryResponse();
 		response.setTotalRisks(risks.size());
@@ -250,13 +276,6 @@ public class DashboardService implements IDashboardService {
 				r -> r.getCategory() == null ? "UNKNOWN" : r.getCategory().name(), Collectors.counting()));
 		response.setByCategory(sortedCounts(byCategory, Map.of()));
 
-		Map<String, Long> byCompany = risks.stream().collect(Collectors.groupingBy(
-				r -> r.getCompanyId() == null ? "NONE" : String.valueOf(r.getCompanyId()), Collectors.counting()));
-		Map<String, Long> byFunction = risks.stream().collect(Collectors.groupingBy(
-				r -> r.getFunction() == null ? "NONE" : String.valueOf(r.getFunction()), Collectors.counting()));
-		Map<String, Long> byBranch = risks.stream().collect(Collectors.groupingBy(
-				r -> r.getBranchId() == null ? "NONE" : String.valueOf(r.getBranchId()), Collectors.counting()));
-
 		Map<String, String> companyLabels = resolveCompanyLabels(risks);
 		Map<String, String> functionLabels = resolveDepartmentLabels(risks);
 		Map<String, String> branchLabels = resolveBranchLabels(risks);
@@ -264,11 +283,14 @@ public class DashboardService implements IDashboardService {
 		functionLabels.put("NONE", "Unassigned");
 		branchLabels.put("NONE", "Unassigned");
 
-		ErmHierarchyBreakdown hierarchy = new ErmHierarchyBreakdown();
-		hierarchy.setByCompany(sortedCounts(byCompany, companyLabels));
-		hierarchy.setByFunction(sortedCounts(byFunction, functionLabels));
-		hierarchy.setByBranch(sortedCounts(byBranch, branchLabels));
-		response.setHierarchy(hierarchy);
+		Map<String, String> ownerLabels = resolveOwnerLabels(risks);
+		ownerLabels.put("NONE", "Unassigned");
+
+		response.setHierarchy(buildHierarchyBreakdown(risks, companyLabels, functionLabels, branchLabels));
+		response.setByBranchRating(buildByBranchRating(risks, branchLabels));
+		response.setByFunctionRating(buildByFunctionRating(risks, functionLabels));
+		response.setByCategoryBranch(buildByCategoryBranch(risks, branchLabels));
+		response.setByOwnerRating(buildByOwnerRating(risks, ownerLabels));
 
 		Map<String, Long> byPriority = risks.stream()
 				.collect(Collectors.groupingBy(r -> assessmentBucket(r.getRiskAssessment(), RiskAssessment::getRiskPriority),
@@ -300,7 +322,235 @@ public class DashboardService implements IDashboardService {
 				.collect(Collectors.groupingBy(r -> unknownIfBlank(r.getRiskSource()), Collectors.counting()));
 		response.setBySource(sortedCounts(bySource, Map.of()));
 
+		if (scope == ErmDashboardAccessScope.ORGANIZATION_WIDE) {
+			response.setByRatingHierarchy(buildByRatingHierarchy(risks, companyLabels, functionLabels, branchLabels));
+			response.setByCompanyCategory(buildByCompanyCategory(risks, companyLabels));
+		} else {
+			response.setByRatingHierarchy(null);
+			response.setByCompanyCategory(null);
+		}
+
 		return response;
+	}
+
+	private ErmHierarchyBreakdown buildHierarchyBreakdown(List<Risk> risks, Map<String, String> companyLabels,
+			Map<String, String> functionLabels, Map<String, String> branchLabels) {
+		Map<String, Long> byCompany = risks.stream().collect(Collectors.groupingBy(
+				r -> r.getCompanyId() == null ? "NONE" : String.valueOf(r.getCompanyId()), Collectors.counting()));
+		Map<String, Long> byFunction = risks.stream()
+				.collect(Collectors.groupingBy(DashboardService::functionKey, Collectors.counting()));
+		Map<String, Long> byBranch = risks.stream()
+				.collect(Collectors.groupingBy(DashboardService::branchKey, Collectors.counting()));
+
+		ErmHierarchyBreakdown hierarchy = new ErmHierarchyBreakdown();
+		hierarchy.setByCompany(sortedCounts(byCompany, companyLabels));
+		hierarchy.setByFunction(sortedCounts(byFunction, functionLabels));
+		hierarchy.setByBranch(sortedCounts(byBranch, branchLabels));
+		return hierarchy;
+	}
+
+	private List<ErmRatingHierarchyGroup> buildByRatingHierarchy(List<Risk> risks, Map<String, String> companyLabels,
+			Map<String, String> functionLabels, Map<String, String> branchLabels) {
+		Map<String, List<Risk>> byRatingKey = risks.stream().collect(Collectors.groupingBy(
+				r -> assessmentBucket(r.getRiskAssessment(), RiskAssessment::getRiskRating)));
+
+		return byRatingKey.entrySet().stream().sorted((a, b) -> compareRatingKeys(a.getKey(), b.getKey())).map(entry -> {
+			String ratingKey = entry.getKey();
+			List<Risk> subset = entry.getValue();
+			ErmRatingHierarchyGroup group = new ErmRatingHierarchyGroup();
+			group.setKey(ratingKey);
+			group.setDisplayLabel(ratingKey);
+			group.setTotal(subset.size());
+			group.setHierarchy(buildHierarchyBreakdown(subset, companyLabels, functionLabels, branchLabels));
+			return group;
+		}).collect(Collectors.toList());
+	}
+
+	private static int compareRatingKeys(String a, String b) {
+		if ("UNASSESSED".equals(a)) {
+			return 1;
+		}
+		if ("UNASSESSED".equals(b)) {
+			return -1;
+		}
+		return a.compareTo(b);
+	}
+
+	private List<ErmCompanyCategoryGroup> buildByCompanyCategory(List<Risk> risks,
+			Map<String, String> companyLabels) {
+		Map<String, List<Risk>> byCompanyKey = risks.stream().collect(Collectors.groupingBy(DashboardService::companyKey));
+
+		return byCompanyKey.entrySet().stream().sorted((a, b) -> compareCompanyKeys(a.getKey(), b.getKey()))
+				.map(entry -> {
+					String companyKey = entry.getKey();
+					List<Risk> subset = entry.getValue();
+					Map<String, Long> byCategory = subset.stream()
+							.collect(Collectors.groupingBy(DashboardService::categoryKey, Collectors.counting()));
+
+					ErmCompanyCategoryGroup group = new ErmCompanyCategoryGroup();
+					group.setKey(companyKey);
+					group.setDisplayLabel(companyLabels.getOrDefault(companyKey, companyKey));
+					group.setTotal(subset.size());
+					group.setByCategory(sortedCounts(byCategory, Map.of()));
+					return group;
+				}).collect(Collectors.toList());
+	}
+
+	private static String companyKey(Risk r) {
+		return r.getCompanyId() == null ? "NONE" : String.valueOf(r.getCompanyId());
+	}
+
+	private static String categoryKey(Risk r) {
+		return r.getCategory() == null ? "UNKNOWN" : r.getCategory().name();
+	}
+
+	private static int compareCategoryKeys(String a, String b) {
+		if ("UNKNOWN".equals(a)) {
+			return 1;
+		}
+		if ("UNKNOWN".equals(b)) {
+			return -1;
+		}
+		return a.compareTo(b);
+	}
+
+	private static int compareCompanyKeys(String a, String b) {
+		if ("NONE".equals(a)) {
+			return 1;
+		}
+		if ("NONE".equals(b)) {
+			return -1;
+		}
+		return a.compareTo(b);
+	}
+
+	private List<ErmBranchRatingGroup> buildByBranchRating(List<Risk> risks, Map<String, String> branchLabels) {
+		Map<String, List<Risk>> byBranchKey = risks.stream().collect(Collectors.groupingBy(DashboardService::branchKey));
+
+		return byBranchKey.entrySet().stream().sorted((a, b) -> compareBranchKeys(a.getKey(), b.getKey()))
+				.map(entry -> {
+					String key = entry.getKey();
+					List<Risk> subset = entry.getValue();
+					Map<String, Long> byRating = subset.stream().collect(Collectors.groupingBy(
+							r -> assessmentBucket(r.getRiskAssessment(), RiskAssessment::getRiskRating),
+							Collectors.counting()));
+
+					ErmBranchRatingGroup group = new ErmBranchRatingGroup();
+					group.setKey(key);
+					group.setDisplayLabel(branchLabels.getOrDefault(key, key));
+					group.setTotal(subset.size());
+					group.setByRating(sortedRatingCounts(byRating));
+					return group;
+				}).collect(Collectors.toList());
+	}
+
+	private List<ErmFunctionRatingGroup> buildByFunctionRating(List<Risk> risks, Map<String, String> functionLabels) {
+		Map<String, List<Risk>> byFunctionKey = risks.stream()
+				.collect(Collectors.groupingBy(DashboardService::functionKey));
+
+		return byFunctionKey.entrySet().stream().sorted((a, b) -> compareFunctionKeys(a.getKey(), b.getKey()))
+				.map(entry -> {
+					String key = entry.getKey();
+					List<Risk> subset = entry.getValue();
+					Map<String, Long> byRating = subset.stream().collect(Collectors.groupingBy(
+							r -> assessmentBucket(r.getRiskAssessment(), RiskAssessment::getRiskRating),
+							Collectors.counting()));
+
+					ErmFunctionRatingGroup group = new ErmFunctionRatingGroup();
+					group.setKey(key);
+					group.setDisplayLabel(functionLabels.getOrDefault(key, key));
+					group.setTotal(subset.size());
+					group.setByRating(sortedRatingCounts(byRating));
+					return group;
+				}).collect(Collectors.toList());
+	}
+
+	private List<ErmOwnerRatingGroup> buildByOwnerRating(List<Risk> risks, Map<String, String> ownerLabels) {
+		Map<String, List<Risk>> byOwnerKey = risks.stream().collect(Collectors.groupingBy(DashboardService::ownerKey));
+
+		return byOwnerKey.entrySet().stream().sorted((a, b) -> compareOwnerKeys(a.getKey(), b.getKey()))
+				.map(entry -> {
+					String key = entry.getKey();
+					List<Risk> subset = entry.getValue();
+					Map<String, Long> byRating = subset.stream().collect(Collectors.groupingBy(
+							r -> assessmentBucket(r.getRiskAssessment(), RiskAssessment::getRiskRating),
+							Collectors.counting()));
+
+					ErmOwnerRatingGroup group = new ErmOwnerRatingGroup();
+					group.setKey(key);
+					group.setDisplayLabel(ownerLabels.getOrDefault(key, key));
+					group.setTotal(subset.size());
+					group.setByRating(sortedRatingCounts(byRating));
+					return group;
+				}).collect(Collectors.toList());
+	}
+
+	private List<ErmCategoryBranchGroup> buildByCategoryBranch(List<Risk> risks, Map<String, String> branchLabels) {
+		Map<String, List<Risk>> byCategory = risks.stream().collect(Collectors.groupingBy(DashboardService::categoryKey));
+
+		return byCategory.entrySet().stream().sorted((a, b) -> compareCategoryKeys(a.getKey(), b.getKey()))
+				.map(entry -> {
+					String key = entry.getKey();
+					List<Risk> subset = entry.getValue();
+					Map<String, Long> byBranch = subset.stream()
+							.collect(Collectors.groupingBy(DashboardService::branchKey, Collectors.counting()));
+
+					ErmCategoryBranchGroup group = new ErmCategoryBranchGroup();
+					group.setKey(key);
+					group.setDisplayLabel(key);
+					group.setTotal(subset.size());
+					group.setByBranch(sortedCounts(byBranch, branchLabels));
+					return group;
+				}).collect(Collectors.toList());
+	}
+
+	private static String branchKey(Risk r) {
+		return r.getBranchId() == null ? "NONE" : String.valueOf(r.getBranchId());
+	}
+
+	private static int compareBranchKeys(String a, String b) {
+		if ("NONE".equals(a)) {
+			return 1;
+		}
+		if ("NONE".equals(b)) {
+			return -1;
+		}
+		return a.compareTo(b);
+	}
+
+	private static String functionKey(Risk r) {
+		return r.getFunction() == null ? "NONE" : String.valueOf(r.getFunction());
+	}
+
+	private static int compareFunctionKeys(String a, String b) {
+		if ("NONE".equals(a)) {
+			return 1;
+		}
+		if ("NONE".equals(b)) {
+			return -1;
+		}
+		return a.compareTo(b);
+	}
+
+	private static String ownerKey(Risk r) {
+		return r.getRiskOwner() == null ? "NONE" : String.valueOf(r.getRiskOwner().getId());
+	}
+
+	private static int compareOwnerKeys(String a, String b) {
+		if ("NONE".equals(a)) {
+			return 1;
+		}
+		if ("NONE".equals(b)) {
+			return -1;
+		}
+		return a.compareTo(b);
+	}
+
+	private static List<NamedCount> sortedRatingCounts(Map<String, Long> counts) {
+		return counts.entrySet().stream().sorted((a, b) -> compareRatingKeys(a.getKey(), b.getKey())).map(e -> {
+			String key = e.getKey();
+			return new NamedCount(key, e.getValue(), key);
+		}).collect(Collectors.toList());
 	}
 
 	private static String assessmentBucket(RiskAssessment a, java.util.function.Function<RiskAssessment, String> field) {
@@ -368,6 +618,31 @@ public class DashboardService implements IDashboardService {
 			for (Branch b : branchRepository.findAllById(ids)) {
 				labels.put(String.valueOf(b.getId()), b.getName());
 			}
+		}
+		return labels;
+	}
+
+	private Map<String, String> resolveOwnerLabels(List<Risk> risks) {
+		Map<String, String> labels = new HashMap<>();
+		for (Risk risk : risks) {
+			User owner = risk.getRiskOwner();
+			if (owner == null) {
+				continue;
+			}
+			String key = String.valueOf(owner.getId());
+			if (labels.containsKey(key)) {
+				continue;
+			}
+			UserDetail detail = owner.getUserDetail();
+			if (detail != null) {
+				String name = (detail.getFirstName() + " " + detail.getLastName()).trim();
+				if (!name.isBlank()) {
+					labels.put(key, name);
+					continue;
+				}
+			}
+			String email = owner.getEmail();
+			labels.put(key, email != null && !email.isBlank() ? email : key);
 		}
 		return labels;
 	}
