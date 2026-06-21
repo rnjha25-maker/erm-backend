@@ -83,13 +83,14 @@ public interface RiskRepository extends JpaRepository<Risk, Long>{
 			+ "AND (:scopeCreatorUserId IS NULL OR (r.createdBy IS NOT NULL AND r.createdBy.id = :scopeCreatorUserId)) "
 			+ "AND (:branchId IS NULL OR r.branchId = :branchId) "
 			+ "AND (:functionId IS NULL OR r.function = :functionId) "
-			+ "AND (:applyBranchDepartmentScope = false OR (SIZE(:scopeBranchIds) > 0 AND r.branchId IN :scopeBranchIds) "
-			+ "OR (SIZE(:scopeDepartmentIds) > 0 AND r.function IN :scopeDepartmentIds)) "
+			+ "AND (:applyBranchDepartmentScope = false OR ((:scopeByBranch = true AND r.branchId IN :scopeBranchIds) "
+			+ "OR (:scopeByDepartment = true AND r.function IN :scopeDepartmentIds))) "
 			+ "ORDER BY r.id DESC")
 	List<Risk> findRisksForErmDashboard(@Param("organizationId") Long organizationId, @Param("startDate") Date startDate,
 			@Param("endDate") Date endDate, @Param("scopeCompanyId") Long scopeCompanyId,
 			@Param("scopeCreatorUserId") Long scopeCreatorUserId, @Param("branchId") Long branchId,
 			@Param("functionId") Long functionId, @Param("applyBranchDepartmentScope") boolean applyBranchDepartmentScope,
+			@Param("scopeByBranch") boolean scopeByBranch, @Param("scopeByDepartment") boolean scopeByDepartment,
 			@Param("scopeBranchIds") Collection<Long> scopeBranchIds,
 			@Param("scopeDepartmentIds") Collection<Long> scopeDepartmentIds);
 
