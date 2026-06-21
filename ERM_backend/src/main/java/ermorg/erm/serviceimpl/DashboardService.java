@@ -264,9 +264,13 @@ public class DashboardService implements IDashboardService {
 		if (applyBranchDepartmentScope && scopeBranchIds.isEmpty() && scopeDepartmentIds.isEmpty()) {
 			risks = Collections.emptyList();
 		} else {
+			boolean scopeByBranch = applyBranchDepartmentScope && !scopeBranchIds.isEmpty();
+			boolean scopeByDepartment = applyBranchDepartmentScope && !scopeDepartmentIds.isEmpty();
+			List<Long> queryBranchIds = scopeByBranch ? scopeBranchIds : List.of(-1L);
+			List<Long> queryDepartmentIds = scopeByDepartment ? scopeDepartmentIds : List.of(-1L);
 			risks = riskRepository.findRisksForErmDashboard(organization.getId(), bounds.getStartInclusive(),
 					bounds.getEndInclusive(), scopeCompanyId, scopeCreatorUserId, branchId, functionId,
-					applyBranchDepartmentScope, scopeBranchIds, scopeDepartmentIds);
+					applyBranchDepartmentScope, scopeByBranch, scopeByDepartment, queryBranchIds, queryDepartmentIds);
 		}
 
 		ErmDashboardSummaryResponse response = new ErmDashboardSummaryResponse();
