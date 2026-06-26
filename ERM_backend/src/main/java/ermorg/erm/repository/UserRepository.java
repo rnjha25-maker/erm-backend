@@ -33,4 +33,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 			+ "LEFT JOIN FETCH u.branch LEFT JOIN FETCH u.department WHERE u.id = :id AND (u.deleted IS NULL OR u.deleted = false)")
 	Optional<User> findActiveByIdWithRolesAndCompany(@Param("id") Long id);
 
+	@Query("SELECT u FROM User u LEFT JOIN FETCH u.userDetail WHERE u.organization.id = :orgId "
+			+ "AND (u.deleted IS NULL OR u.deleted = false)")
+	List<User> findActiveUsersByOrganizationId(@Param("orgId") Long orgId);
+
 }

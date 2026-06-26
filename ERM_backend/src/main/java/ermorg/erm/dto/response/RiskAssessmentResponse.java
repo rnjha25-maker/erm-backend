@@ -31,6 +31,7 @@ public class RiskAssessmentResponse {
     private String riskAssessmentFrequency;
     private String riskAssessmentBy;
     private String riskReporting;
+    private String stage;
     private long assetValue;
 	private long yearlyFrequency;
 	private double offPotentialLoss;
@@ -64,6 +65,7 @@ public class RiskAssessmentResponse {
 		this.riskAssessmentFrequency = riskAssessment.getRiskAssessmentFrequency();
 		this.riskAssessmentBy = riskAssessment.getRiskAssessmentBy();
 		this.riskReporting = riskAssessment.getRiskReporting();
+		this.stage = riskAssessment.getStage();
 		this.assetValue = riskAssessment.getAssetValue();
 		this.yearlyFrequency = riskAssessment.getYearlyFrequency();
 		this.offPotentialLoss = riskAssessment.getOffPotentialLoss();

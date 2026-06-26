@@ -51,6 +51,7 @@ public class RiskAssessment  extends BaseModel{
     private String riskAssessmentFrequency;
     private String riskAssessmentBy;
     private String riskReporting;
+    private String stage;
     
   //newly added
 	

@@ -36,7 +36,6 @@ public class KriKpiReviewController {
 		response.setStatus(ResponseStatus.SUCCESS);
 
 		response.setMessage("Saved.");
-		;
 		return response;
 	}
 

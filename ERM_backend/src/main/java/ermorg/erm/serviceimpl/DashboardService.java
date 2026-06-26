@@ -666,10 +666,35 @@ public class DashboardService implements IDashboardService {
 		List<List<CustomResponse>> responseList = new ArrayList<>();
 		for (Risk risk : topRisk) {
 			List<CustomResponse> customResponse = customResponseMapper.map("risk", 1l, new RiskResponse(risk), true);
+			addAssessmentDashboardFields(customResponse, risk.getRiskAssessment());
 			responseList.add(customResponse);
 		}
 
 		return responseList;
+	}
+
+	private void addAssessmentDashboardFields(List<CustomResponse> customResponse, RiskAssessment assessment) {
+		addDashboardField(customResponse, "Likelihood", assessment != null ? assessment.getLikelihood() : null);
+		addDashboardField(customResponse, "Velocity", assessment != null ? assessment.getVelocity() : null);
+		addDashboardField(customResponse, "Gross Impact Score",
+				assessment != null ? assessment.getGrossImpactScore() : null);
+		addDashboardField(customResponse, "Risk Rating", assessment != null ? assessment.getRiskRating() : null);
+	}
+
+	private void addDashboardField(List<CustomResponse> customResponse, String fieldName, String value) {
+		String normalized = fieldName.toLowerCase().replaceAll("[^a-z0-9]", "");
+		boolean exists = customResponse.stream()
+				.map(CustomResponse::getFieldName)
+				.filter(Objects::nonNull)
+				.map(name -> name.toLowerCase().replaceAll("[^a-z0-9]", ""))
+				.anyMatch(normalized::equals);
+		if (!exists) {
+			CustomResponse response = new CustomResponse();
+			response.setFieldName(fieldName);
+			response.setFieldType("Text");
+			response.setValue(value);
+			customResponse.add(response);
+		}
 	}
 
 	private List<Date> calculatePeriod(String period) {
