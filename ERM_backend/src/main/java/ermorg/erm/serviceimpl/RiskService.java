@@ -235,7 +235,7 @@ public class RiskService implements IRiskService {
 		riskAsessment.setCustomerImpact(request.getCustomerImpact());
 		riskAsessment.setReputationalImpact(request.getReputationalImpact());
 		riskAsessment.setLegalComplianceImpact(request.getLegalComplianceImpact());
-		riskAsessment.setGrossImpactScore(request.getGrossImpactScore());
+		riskAsessment.setGrossImpactScore(calculateGrossImpactScore(request));
 		riskAsessment.setRiskRating(request.getRiskRating());
 		riskAsessment.setVelocity(request.getVelocity());
 		riskAsessment.setRiskAppetite(request.getRiskAppetite());
@@ -245,6 +245,7 @@ public class RiskService implements IRiskService {
 		riskAsessment.setRiskAssessmentFrequency(request.getRiskAssessmentFrequency());
 		riskAsessment.setRiskAssessmentBy(request.getRiskAssessmentBy());
 		riskAsessment.setRiskReporting(request.getRiskReporting());
+		riskAsessment.setStage(request.getStage());
 		riskAsessment.setAssetValue(request.getAssetValue());
 		riskAsessment.setOffPotentialLoss(request.getOffPotentialLoss());
 		riskAsessment.setYearlyFrequency(request.getYearlyFrequency());
@@ -457,8 +458,62 @@ public class RiskService implements IRiskService {
 	    	subRiskResponse.setValue(response.getSubRiskName());
 	    	customResponses.add(subRiskResponse);
 	    }
+	    ensureField(customResponses, "Likelihood", response.getLikelihood());
+	    ensureField(customResponses, "Velocity", response.getVelocity());
+	    ensureField(customResponses, "Gross Impact Score", response.getGrossImpactScore());
+	    ensureField(customResponses, "Risk Rating", response.getRiskRating());
 
 	    return customResponses;
+	}
+
+	private void ensureField(List<CustomResponse> customResponses, String fieldName, String value) {
+		String normalized = normalizeFieldName(fieldName);
+		boolean exists = customResponses.stream()
+				.map(CustomResponse::getFieldName)
+				.filter(java.util.Objects::nonNull)
+				.map(this::normalizeFieldName)
+				.anyMatch(normalized::equals);
+		if (!exists) {
+			CustomResponse response = new CustomResponse();
+			response.setFieldName(fieldName);
+			response.setFieldType("Text");
+			response.setValue(value);
+			customResponses.add(response);
+		}
+	}
+
+	private String normalizeFieldName(String value) {
+		return value == null ? "" : value.toLowerCase().replaceAll("[^a-z0-9]", "");
+	}
+
+	private String calculateGrossImpactScore(RiskAsessmentDto request) {
+		Double likelihood = parseNumber(request.getLikelihood());
+		Double impact = java.util.stream.Stream.of(
+				request.getFinancialImpact(),
+				request.getOperationalImpact(),
+				request.getCustomerImpact(),
+				request.getReputationalImpact(),
+				request.getLegalComplianceImpact())
+				.map(this::parseNumber)
+				.filter(java.util.Objects::nonNull)
+				.max(Double::compareTo)
+				.orElse(null);
+		if (likelihood == null || impact == null) {
+			return request.getGrossImpactScore();
+		}
+		double score = likelihood * impact;
+		return score == Math.rint(score) ? String.valueOf((long) score) : String.valueOf(score);
+	}
+
+	private Double parseNumber(String value) {
+		if (value == null || value.isBlank()) {
+			return null;
+		}
+		try {
+			return Double.parseDouble(value.trim());
+		} catch (NumberFormatException ex) {
+			return null;
+		}
 	}
 
 	@Override
