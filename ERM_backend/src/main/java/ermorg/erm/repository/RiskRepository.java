@@ -42,22 +42,22 @@ public interface RiskRepository extends JpaRepository<Risk, Long>{
 	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.companyId = :companyId AND r.deleted = false")
 	Page<Risk> getAllRisksByCompany(@Param("companyId") Long companyId, Pageable pageable);
 	
-	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.createdBy.id = :userId AND r.deleted = false ORDER BY r.id DESC")
+	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.riskAssessment LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.createdBy.id = :userId AND r.deleted = false ORDER BY r.id DESC")
 	List<Risk> getAllRisksByOrgIdAndCreatedByNoPage(@Param("organizationId") Long organizationId, @Param("userId") Long userId);
 	
-	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.createdBy.id = :userId AND r.createdAt between :startDate AND :endDate AND r.deleted = false ORDER BY r.id DESC")
+	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.riskAssessment LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.createdBy.id = :userId AND r.createdAt between :startDate AND :endDate AND r.deleted = false ORDER BY r.id DESC")
 	List<Risk> getAllRisksByOrgIdAndCreatedByDateRangeNoPage(@Param("organizationId") Long organizationId, @Param("userId") Long userId, @Param("startDate") Date startDate, @Param("endDate") Date endDate);
 
-	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.deleted = false ORDER BY r.id DESC")
+	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.riskAssessment LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.deleted = false ORDER BY r.id DESC")
 	List<Risk> getAllRisksByOrgIdNoPage(@Param("organizationId") Long organizationId);
 	
-	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.createdAt between :startDate AND :endDate AND r.deleted = false ORDER BY r.id DESC")
+	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.riskAssessment LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.createdAt between :startDate AND :endDate AND r.deleted = false ORDER BY r.id DESC")
 	List<Risk> getAllRisksByOrgIdDateRangeNoPage(@Param("organizationId") Long organizationId, @Param("startDate") Date startDate, @Param("endDate") Date endDate);
 	
-	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.companyId = :companyId AND r.createdAt between :startDate AND :endDate AND r.deleted = false ORDER BY r.id DESC")
+	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.riskAssessment LEFT JOIN FETCH r.subRisk WHERE r.companyId = :companyId AND r.createdAt between :startDate AND :endDate AND r.deleted = false ORDER BY r.id DESC")
 	List<Risk> getAllRisksByCompanyDateRangeNoPage(@Param("companyId") Long companyId, @Param("startDate") Date startDate, @Param("endDate") Date endDate);
 
-	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.companyId = :companyId AND r.deleted = false ORDER BY r.id DESC")
+	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.riskAssessment LEFT JOIN FETCH r.subRisk WHERE r.companyId = :companyId AND r.deleted = false ORDER BY r.id DESC")
 	List<Risk> getAllRisksByCompanyNoPage(@Param("companyId") Long companyId);
 	
 	// Optimized dashboard queries - fetch critical data upfront

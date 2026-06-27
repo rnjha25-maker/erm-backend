@@ -26,6 +26,7 @@ public class RiskAsessmentDto {
     private String riskAssessmentFrequency;
     private String riskAssessmentBy;
     private String riskReporting;
+    private String stage;
     
   //new fields
     private long assetValue;

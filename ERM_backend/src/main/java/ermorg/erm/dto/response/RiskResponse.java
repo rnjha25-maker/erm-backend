@@ -37,6 +37,11 @@ public class RiskResponse {
 	private String supportingEvidance;
 	private Long branchId;
 	private String branchName;
+	private String likelihood;
+	private String velocity;
+	private String grossImpactScore;
+	private String riskRating;
+	private String assessmentStage;
 
 	private List<SubRiskResponse> subRisk = new ArrayList<>();
 
@@ -62,6 +67,13 @@ public class RiskResponse {
 		this.riskRegisterType = risk.getRiskRegisterType();
 		this.supportingEvidance = risk.getSupportingEvidance();
 		this.branchId = risk.getBranchId();
+		if (risk.getRiskAssessment() != null) {
+			this.likelihood = risk.getRiskAssessment().getLikelihood();
+			this.velocity = risk.getRiskAssessment().getVelocity();
+			this.grossImpactScore = risk.getRiskAssessment().getGrossImpactScore();
+			this.riskRating = risk.getRiskAssessment().getRiskRating();
+			this.assessmentStage = risk.getRiskAssessment().getStage();
+		}
 
 		this.subRisk = risk.getSubRisk() != null ? risk.getSubRisk().stream().map(SubRiskResponse::new).toList()
 				: new ArrayList<>();
