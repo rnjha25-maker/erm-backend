@@ -1,5 +1,6 @@
 package ermorg.erm.serviceimpl;
 
+import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -8,6 +9,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -29,6 +31,7 @@ import ermorg.erm.dto.response.ErmBranchRatingGroup;
 import ermorg.erm.dto.response.ErmCategoryBranchGroup;
 import ermorg.erm.dto.response.ErmCompanyCategoryGroup;
 import ermorg.erm.dto.response.ErmFunctionRatingGroup;
+import ermorg.erm.dto.response.ErmMaturitySummaryGroup;
 import ermorg.erm.dto.response.ErmOwnerRatingGroup;
 import ermorg.erm.dto.response.ErmRatingHierarchyGroup;
 import ermorg.erm.dto.response.NamedCount;
@@ -38,6 +41,7 @@ import ermorg.erm.exception.ResourceNotFoundException;
 import ermorg.erm.model.Branch;
 import ermorg.erm.model.Company;
 import ermorg.erm.model.Department;
+import ermorg.erm.model.ERMMaturityAssessment;
 import ermorg.erm.model.Organization;
 import ermorg.erm.model.Risk;
 import ermorg.erm.model.RiskAssessment;
@@ -45,6 +49,7 @@ import ermorg.erm.model.User;
 import ermorg.erm.model.UserDetail;
 import ermorg.erm.repository.BranchRepository;
 import ermorg.erm.repository.CompanyRepository;
+import ermorg.erm.repository.ErmMaturityRepository;
 import ermorg.erm.repository.RiskRepository;
 import ermorg.erm.repository.UserRepository;
 import ermorg.erm.service.DepartmentRepository;
@@ -75,6 +80,9 @@ public class DashboardService implements IDashboardService {
 	private UserRepository userRepository;
 	@Autowired
 	private BranchRepository branchRepository;
+
+	@Autowired
+	private ErmMaturityRepository ermMaturityRepository;
 
 	@Override
 	public BasicDashboardResponse getBasicDashboardData(String period, Pageable pageable)
@@ -334,7 +342,130 @@ public class DashboardService implements IDashboardService {
 			response.setByCompanyCategory(null);
 		}
 
+		boolean scopeByDepartment = applyBranchDepartmentScope && !scopeDepartmentIds.isEmpty();
+		populateErmMaturitySummary(response, organization, bounds, scopeCompanyId, functionId,
+				applyBranchDepartmentScope, scopeByDepartment, scopeDepartmentIds);
+
 		return response;
+	}
+
+	private void populateErmMaturitySummary(ErmDashboardSummaryResponse response, Organization organization,
+			ErmDashboardPeriodBounds bounds, Long scopeCompanyId, Long functionId,
+			boolean applyBranchDepartmentScope, boolean scopeByDepartment, List<Long> scopeDepartmentIds) {
+
+		List<ERMMaturityAssessment> assessments = ermMaturityRepository.findForErmDashboard(organization.getId(),
+				bounds.getStartInclusive(), bounds.getEndInclusive(), scopeCompanyId, functionId);
+
+		Map<String, List<ERMMaturityAssessment>> byGroup = assessments.stream()
+				.collect(Collectors.groupingBy(ERMMaturityAssessment::getErmMaturityId));
+
+		Set<Long> functionDeptIds = new HashSet<>();
+		for (List<ERMMaturityAssessment> group : byGroup.values()) {
+			List<Long> activeDeptIds = activeDepartmentIds(firstRowDepartmentIds(group));
+			if (!isCompanyWiseMaturity(activeDeptIds)) {
+				functionDeptIds.addAll(activeDeptIds);
+			}
+		}
+		Map<String, String> departmentLabels = resolveDepartmentLabelsByIds(functionDeptIds);
+
+		List<ErmMaturitySummaryGroup> companyWise = new ArrayList<>();
+		List<ErmMaturitySummaryGroup> functionWise = new ArrayList<>();
+
+		byGroup.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
+			List<ERMMaturityAssessment> group = entry.getValue();
+			List<Long> activeDeptIds = activeDepartmentIds(firstRowDepartmentIds(group));
+
+			if (!passesMaturityDepartmentScope(activeDeptIds, applyBranchDepartmentScope, scopeByDepartment,
+					scopeDepartmentIds)) {
+				return;
+			}
+
+			ErmMaturitySummaryGroup summary = buildMaturitySummaryGroup(entry.getKey(), group, activeDeptIds,
+					departmentLabels);
+			if (isCompanyWiseMaturity(activeDeptIds)) {
+				companyWise.add(summary);
+			} else {
+				functionWise.add(summary);
+			}
+		});
+
+		response.setErmMaturityCompanyWise(companyWise);
+		response.setErmMaturityFunctionWise(functionWise);
+	}
+
+	private ErmMaturitySummaryGroup buildMaturitySummaryGroup(String ermMaturityId,
+			List<ERMMaturityAssessment> group, List<Long> activeDeptIds, Map<String, String> departmentLabels) {
+
+		ERMMaturityAssessment first = group.get(0);
+		BigDecimal totalWeightageScore = group.stream().map(ERMMaturityAssessment::getWeightageScore)
+				.filter(Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add);
+
+		String overallMaturityLevel = group.stream().map(ERMMaturityAssessment::getOverallMaturityLevel)
+				.filter(level -> level != null && !level.isBlank()).findFirst().orElse(null);
+
+		ErmMaturitySummaryGroup summary = new ErmMaturitySummaryGroup();
+		summary.setErmMaturityId(ermMaturityId);
+		summary.setTotalWeightageScore(totalWeightageScore);
+		summary.setOverallMaturityLevel(overallMaturityLevel);
+		summary.setDepartmentIds(new ArrayList<>(activeDeptIds));
+
+		Company company = first.getCompany();
+		if (company != null) {
+			summary.setCompanyId(company.getId());
+		}
+
+		if (isCompanyWiseMaturity(activeDeptIds)) {
+			summary.setDisplayLabel(company != null && company.getName() != null ? company.getName() : ermMaturityId);
+		} else {
+			summary.setDisplayLabel(resolveMaturityFunctionDisplayLabel(activeDeptIds, departmentLabels));
+		}
+		return summary;
+	}
+
+	private static List<Long> firstRowDepartmentIds(List<ERMMaturityAssessment> group) {
+		if (group.isEmpty()) {
+			return List.of();
+		}
+		List<Long> ids = group.get(0).getDepartmentIds();
+		return ids != null ? ids : List.of();
+	}
+
+	private static List<Long> activeDepartmentIds(List<Long> departmentIds) {
+		if (departmentIds == null) {
+			return List.of();
+		}
+		return departmentIds.stream().filter(id -> id != null && id != 0).distinct().sorted().toList();
+	}
+
+	private static boolean isCompanyWiseMaturity(List<Long> activeDeptIds) {
+		return activeDeptIds.isEmpty();
+	}
+
+	private static boolean passesMaturityDepartmentScope(List<Long> activeDeptIds, boolean applyBranchDepartmentScope,
+			boolean scopeByDepartment, List<Long> scopeDepartmentIds) {
+		if (!applyBranchDepartmentScope || !scopeByDepartment) {
+			return true;
+		}
+		if (isCompanyWiseMaturity(activeDeptIds)) {
+			return true;
+		}
+		return activeDeptIds.stream().anyMatch(scopeDepartmentIds::contains);
+	}
+
+	private static String resolveMaturityFunctionDisplayLabel(List<Long> activeDeptIds,
+			Map<String, String> departmentLabels) {
+		return activeDeptIds.stream().map(id -> departmentLabels.getOrDefault(String.valueOf(id), String.valueOf(id)))
+				.collect(Collectors.joining(", "));
+	}
+
+	private Map<String, String> resolveDepartmentLabelsByIds(Set<Long> ids) {
+		Map<String, String> labels = new HashMap<>();
+		if (!ids.isEmpty()) {
+			for (Department d : departmentRepostory.findAllById(ids)) {
+				labels.put(String.valueOf(d.getId()), d.getName());
+			}
+		}
+		return labels;
 	}
 
 	private ErmHierarchyBreakdown buildHierarchyBreakdown(List<Risk> risks, Map<String, String> companyLabels,

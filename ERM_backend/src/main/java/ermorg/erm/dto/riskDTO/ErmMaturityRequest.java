@@ -7,6 +7,8 @@ import lombok.Data;
 @Data
 public class ErmMaturityRequest {
 
-	private List<ErmMaturityDto>  maturityRequest;
+	private Long companyId;
+
+	private List<ErmMaturityDto> maturityRequest;
 }
 

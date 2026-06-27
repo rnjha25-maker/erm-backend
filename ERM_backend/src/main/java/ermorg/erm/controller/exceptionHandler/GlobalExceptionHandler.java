@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import ermorg.erm.dto.ResponseStatus;
+import ermorg.erm.exception.LimitExceedException;
 import ermorg.erm.exception.ResourceNotFoundException;
 import ermorg.erm.response.GeneralResponse;
 
@@ -55,6 +56,18 @@ public class GlobalExceptionHandler {
 	
 	@ExceptionHandler(IllegalArgumentException.class)
 	public ResponseEntity<GeneralResponse<Object>> handleIllegalArgument(IllegalArgumentException ex) {
+
+		GeneralResponse<Object> response = new GeneralResponse<>();
+
+		response.setMessage(ex.getMessage());
+		response.setStatus(ResponseStatus.FAILED);
+
+		log.warn(ex.getMessage());
+		return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+	}
+
+	@ExceptionHandler(LimitExceedException.class)
+	public ResponseEntity<GeneralResponse<Object>> handleLimitExceed(LimitExceedException ex) {
 
 		GeneralResponse<Object> response = new GeneralResponse<>();
 

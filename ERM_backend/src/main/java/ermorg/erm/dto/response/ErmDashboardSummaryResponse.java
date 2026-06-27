@@ -32,4 +32,8 @@ public class ErmDashboardSummaryResponse {
 	private List<ErmCategoryBranchGroup> byCategoryBranch = new ArrayList<>();
 
 	private List<ErmOwnerRatingGroup> byOwnerRating = new ArrayList<>();
+
+	private List<ErmMaturitySummaryGroup> ermMaturityCompanyWise = new ArrayList<>();
+
+	private List<ErmMaturitySummaryGroup> ermMaturityFunctionWise = new ArrayList<>();
 }

@@ -17,8 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 import ermorg.erm.dto.ResponseStatus;
 import ermorg.erm.dto.response.CustomResponse;
 import ermorg.erm.dto.response.ErmMaturityResponse;
-import ermorg.erm.dto.riskDTO.ErmMaturityDto;
 import ermorg.erm.dto.riskDTO.ErmMaturityRequest;
+import ermorg.erm.exception.LimitExceedException;
 import ermorg.erm.exception.ResourceNotFoundException;
 import ermorg.erm.response.GeneralResponse;
 import ermorg.erm.service.IErmMaturityService;
@@ -31,12 +31,8 @@ public class MaturityController {
 	private IErmMaturityService ermMaturityService;
 
 	@PostMapping("/save")
-	public GeneralResponse<ErmMaturityResponse> save(@RequestBody List<ErmMaturityDto> maturityList)
-			throws ResourceNotFoundException {
-
-		// Wrap the list in ErmMaturityRequest for the service
-		ErmMaturityRequest request = new ErmMaturityRequest();
-		request.setMaturityRequest(maturityList);
+	public GeneralResponse<ErmMaturityResponse> save(@RequestBody ErmMaturityRequest request)
+			throws ResourceNotFoundException, LimitExceedException {
 
 		ErmMaturityResponse data = ermMaturityService.save(request);
 
