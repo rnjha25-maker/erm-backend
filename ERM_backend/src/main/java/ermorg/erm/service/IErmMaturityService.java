@@ -5,6 +5,7 @@ import java.util.List;
 import ermorg.erm.dto.response.CustomResponse;
 import ermorg.erm.dto.response.ErmMaturityResponse;
 import ermorg.erm.dto.riskDTO.ErmMaturityRequest;
+import ermorg.erm.exception.LimitExceedException;
 import ermorg.erm.exception.ResourceNotFoundException;
 
 import org.springframework.data.domain.Page;
@@ -12,7 +13,7 @@ import org.springframework.data.domain.Pageable;
 
 public interface IErmMaturityService {
 
-	public ErmMaturityResponse save(ErmMaturityRequest request) throws ResourceNotFoundException;
+	public ErmMaturityResponse save(ErmMaturityRequest request) throws ResourceNotFoundException, LimitExceedException;
 
 	public ErmMaturityResponse get(Long maturityId)throws ResourceNotFoundException;
 

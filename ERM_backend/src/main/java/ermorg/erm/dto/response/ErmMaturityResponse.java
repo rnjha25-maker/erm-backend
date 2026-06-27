@@ -1,6 +1,7 @@
 package ermorg.erm.dto.response;
 
 import java.util.Date;
+import java.util.List;
 
 import ermorg.erm.model.ERMMaturityAssessment;
 
@@ -34,6 +35,9 @@ public class ErmMaturityResponse {
     private Date lastAssessmentDate;
     private Date nextAssessmentDate;
 
+    private String ermMaturityId;
+
+    private List<Long> departmentIds;
 
     public ErmMaturityResponse(ERMMaturityAssessment assessment) {
 	    this.maturityId = assessment.getId();
@@ -41,7 +45,7 @@ public class ErmMaturityResponse {
 	    this.assessmentAreaId = assessment.getAssessmentAreaId();
 	    this.keyAssessmentParameters = assessment.getKeyAssessmentParameters();
 	    this.status = assessment.getStatus();
-	    this.weightageScore = assessment.getWeightageScore().toString();
+	    this.weightageScore = assessment.getWeightageScore() != null ? assessment.getWeightageScore().toString() : null;
 	    this.marksAchieved = assessment.getMarksAchieved();
 	    this.overallMaturityLevel = assessment.getOverallMaturityLevel();
 	    this.assessedBy = assessment.getAssessedBy();
@@ -49,5 +53,7 @@ public class ErmMaturityResponse {
 	    this.actualDate = assessment.getActualDate();
 	    this.lastAssessmentDate = assessment.getLastAssessmentDate();
 	    this.nextAssessmentDate = assessment.getNextAssessmentDate();
+	    this.ermMaturityId = assessment.getErmMaturityId();
+	    this.departmentIds = assessment.getDepartmentIds();
     }
 }

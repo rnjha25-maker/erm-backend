@@ -1,6 +1,7 @@
 package ermorg.erm.dto.riskDTO;
 
 import java.util.Date;
+import java.util.List;
 
 import lombok.Data;
 
@@ -8,6 +9,8 @@ import lombok.Data;
 public class ErmMaturityDto {
 
 	private long maturityId;
+
+	private List<Long> departmentIds;
 
     private String assessmentAreaName;
 

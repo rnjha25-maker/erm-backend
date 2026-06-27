@@ -1,9 +1,13 @@
 package ermorg.erm.model;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -14,7 +18,8 @@ import lombok.Setter;
 @Getter
 @Setter
 @Table(name = "erm_maturity_assessments", indexes = {
-	@jakarta.persistence.Index(name = "idx_ermaturity_org_deleted", columnList  = "organization_id, deleted")
+	@jakarta.persistence.Index(name = "idx_ermaturity_org_deleted", columnList  = "organization_id, deleted"),
+	@jakarta.persistence.Index(name = "idx_ermaturity_org_erm_id_deleted", columnList = "organization_id, erm_maturity_id, deleted")
 })
 @Entity
 public class ERMMaturityAssessment extends BaseModel {
@@ -54,6 +59,14 @@ public class ERMMaturityAssessment extends BaseModel {
 
 	@Column(name = "next_assessment_date")
 	private Date nextAssessmentDate;
+
+	@Column(name = "erm_maturity_id")
+	private String ermMaturityId;
+
+	@ElementCollection
+	@CollectionTable(name = "erm_maturity_department_ids", joinColumns = @JoinColumn(name = "maturity_assessment_id"))
+	@Column(name = "department_id")
+	private List<Long> departmentIds = new ArrayList<>();
 	
 	@ManyToOne
 	@JoinColumn(name = "organization_id")

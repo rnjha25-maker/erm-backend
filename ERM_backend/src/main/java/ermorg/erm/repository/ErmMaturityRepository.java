@@ -1,5 +1,6 @@
 package ermorg.erm.repository;
 
+import java.util.Date;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -28,5 +29,19 @@ public interface ErmMaturityRepository extends JpaRepository<ERMMaturityAssessme
 	
 	@Query("Select m from ERMMaturityAssessment m where m.organization.id = :orgId AND m.id in (:maturityIds) AND m.deleted = false")
 	public Page<ERMMaturityAssessment> getAllByOrgAndMaturityIdsPageable(@Param("orgId")Long orgId, @Param("maturityIds") List<Long> maturityIds, Pageable pageable);
+
+	@Query("SELECT COUNT(m) FROM ERMMaturityAssessment m WHERE m.organization.id = :orgId AND m.ermMaturityId = :ermMaturityId AND m.deleted = false")
+	long countByOrganizationIdAndErmMaturityId(@Param("orgId") Long orgId, @Param("ermMaturityId") String ermMaturityId);
+
+	@Query("SELECT DISTINCT m FROM ERMMaturityAssessment m LEFT JOIN FETCH m.company "
+			+ "WHERE m.organization.id = :orgId AND m.deleted = false "
+			+ "AND m.ermMaturityId IS NOT NULL "
+			+ "AND COALESCE(m.lastAssessmentDate, m.createdAt) BETWEEN :startDate AND :endDate "
+			+ "AND (:scopeCompanyId IS NULL OR m.company.id = :scopeCompanyId) "
+			+ "AND (:functionId IS NULL OR :functionId MEMBER OF m.departmentIds) "
+			+ "ORDER BY m.ermMaturityId")
+	List<ERMMaturityAssessment> findForErmDashboard(@Param("orgId") Long orgId, @Param("startDate") Date startDate,
+			@Param("endDate") Date endDate, @Param("scopeCompanyId") Long scopeCompanyId,
+			@Param("functionId") Long functionId);
 
 }
