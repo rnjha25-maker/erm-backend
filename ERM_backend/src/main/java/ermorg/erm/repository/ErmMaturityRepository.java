@@ -38,7 +38,7 @@ public interface ErmMaturityRepository extends JpaRepository<ERMMaturityAssessme
 			+ "AND m.ermMaturityId IS NOT NULL "
 			+ "AND COALESCE(m.lastAssessmentDate, m.createdAt) BETWEEN :startDate AND :endDate "
 			+ "AND (:scopeCompanyId IS NULL OR m.company.id = :scopeCompanyId) "
-			+ "AND (:functionId IS NULL OR :functionId MEMBER OF m.departmentIds) "
+			+ "AND (:functionId IS NULL OR :functionId = 0 OR (:functionId <> 0 AND :functionId MEMBER OF m.departmentIds)) "
 			+ "ORDER BY m.ermMaturityId")
 	List<ERMMaturityAssessment> findForErmDashboard(@Param("orgId") Long orgId, @Param("startDate") Date startDate,
 			@Param("endDate") Date endDate, @Param("scopeCompanyId") Long scopeCompanyId,

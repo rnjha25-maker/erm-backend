@@ -370,6 +370,7 @@ public class DashboardService implements IDashboardService {
 
 		List<ErmMaturitySummaryGroup> companyWise = new ArrayList<>();
 		List<ErmMaturitySummaryGroup> functionWise = new ArrayList<>();
+		boolean functionIdIsSpecific = functionId != null && functionId != 0;
 
 		byGroup.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
 			List<ERMMaturityAssessment> group = entry.getValue();
@@ -377,6 +378,10 @@ public class DashboardService implements IDashboardService {
 
 			if (!passesMaturityDepartmentScope(activeDeptIds, applyBranchDepartmentScope, scopeByDepartment,
 					scopeDepartmentIds)) {
+				return;
+			}
+
+			if (functionIdIsSpecific && !activeDeptIds.contains(functionId)) {
 				return;
 			}
 
