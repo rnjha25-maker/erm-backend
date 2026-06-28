@@ -24,6 +24,7 @@ import ermorg.erm.repository.CompanyRepository;
 import ermorg.erm.repository.ErmMaturityRepository;
 import ermorg.erm.service.IErmMaturityService;
 import ermorg.erm.util.CompanyContext;
+import ermorg.erm.util.MaturityLevelResolver;
 import ermorg.erm.util.OrganizationContext;
 import ermorg.erm.util.mapper.CustomResponseMapper;
 
@@ -60,8 +61,9 @@ public class MaturityService implements IErmMaturityService {
 					"Maximum 9 maturity assessments already exist for group: " + ermMaturityId);
 		}
 
-		double totalMarks = maturityItems.stream().mapToDouble(dto -> parseMarksAchieved(dto.getMarksAchieved())).sum();
-		String maturityLabel = resolveMaturityLabel(totalMarks);
+		double totalMarks = maturityItems.stream()
+				.mapToDouble(dto -> MaturityLevelResolver.parseMarksAchieved(dto.getMarksAchieved())).sum();
+		String maturityLabel = MaturityLevelResolver.resolveMaturityLabel(totalMarks);
 
 		List<Long> maturityIds = maturityItems.stream().map(ErmMaturityDto::getMaturityId).collect(Collectors.toList());
 		List<ERMMaturityAssessment> ermMaturityList = ermMaturityRepository
@@ -125,29 +127,6 @@ public class MaturityService implements IErmMaturityService {
 			return String.valueOf(companyId);
 		}
 		return companyId + "_" + activeDeptIds.stream().map(String::valueOf).collect(Collectors.joining("_"));
-	}
-
-	private double parseMarksAchieved(String marksAchieved) {
-		if (marksAchieved == null || marksAchieved.isBlank()) {
-			return 0;
-		}
-		return Double.parseDouble(marksAchieved.trim());
-	}
-
-	private String resolveMaturityLabel(double totalMarks) {
-		if (totalMarks < 20) {
-			return "Nascent";
-		}
-		if (totalMarks < 40) {
-			return "Emerging";
-		}
-		if (totalMarks < 60) {
-			return "Developed";
-		}
-		if (totalMarks <= 80) {
-			return "Integrated";
-		}
-		return "Advanced";
 	}
 
 	private void fillFields(ERMMaturityAssessment m, ErmMaturityDto req, Organization organization, Company company,

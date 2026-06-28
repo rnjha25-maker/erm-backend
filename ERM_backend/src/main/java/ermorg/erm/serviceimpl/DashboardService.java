@@ -56,6 +56,7 @@ import ermorg.erm.service.DepartmentRepository;
 import ermorg.erm.service.IDashboardService;
 import ermorg.erm.util.ErmDashboardPeriodBounds;
 import ermorg.erm.util.ErmDashboardRoleResolver;
+import ermorg.erm.util.MaturityLevelResolver;
 import ermorg.erm.util.CompanyContext;
 import ermorg.erm.util.OrganizationContext;
 import ermorg.erm.util.UserContext;
@@ -356,6 +357,10 @@ public class DashboardService implements IDashboardService {
 		List<ERMMaturityAssessment> assessments = ermMaturityRepository.findForErmDashboard(organization.getId(),
 				bounds.getStartInclusive(), bounds.getEndInclusive(), scopeCompanyId, functionId);
 
+		assessments = new ArrayList<>(assessments.stream()
+				.collect(Collectors.toMap(ERMMaturityAssessment::getId, a -> a, (a, b) -> a))
+				.values());
+
 		Map<String, List<ERMMaturityAssessment>> byGroup = assessments.stream()
 				.collect(Collectors.groupingBy(ERMMaturityAssessment::getErmMaturityId));
 
@@ -370,6 +375,7 @@ public class DashboardService implements IDashboardService {
 
 		List<ErmMaturitySummaryGroup> companyWise = new ArrayList<>();
 		List<ErmMaturitySummaryGroup> functionWise = new ArrayList<>();
+		boolean functionIdIsSpecific = functionId != null && functionId != 0;
 
 		byGroup.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
 			List<ERMMaturityAssessment> group = entry.getValue();
@@ -377,6 +383,10 @@ public class DashboardService implements IDashboardService {
 
 			if (!passesMaturityDepartmentScope(activeDeptIds, applyBranchDepartmentScope, scopeByDepartment,
 					scopeDepartmentIds)) {
+				return;
+			}
+
+			if (functionIdIsSpecific && !activeDeptIds.contains(functionId)) {
 				return;
 			}
 
@@ -397,11 +407,10 @@ public class DashboardService implements IDashboardService {
 			List<ERMMaturityAssessment> group, List<Long> activeDeptIds, Map<String, String> departmentLabels) {
 
 		ERMMaturityAssessment first = group.get(0);
-		BigDecimal totalWeightageScore = group.stream().map(ERMMaturityAssessment::getWeightageScore)
-				.filter(Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add);
+		BigDecimal totalWeightageScore = MaturityLevelResolver.sumMarksAchieved(
+				group.stream().map(ERMMaturityAssessment::getMarksAchieved).toList());
 
-		String overallMaturityLevel = group.stream().map(ERMMaturityAssessment::getOverallMaturityLevel)
-				.filter(level -> level != null && !level.isBlank()).findFirst().orElse(null);
+		String overallMaturityLevel = MaturityLevelResolver.resolveMaturityLabel(totalWeightageScore.doubleValue());
 
 		ErmMaturitySummaryGroup summary = new ErmMaturitySummaryGroup();
 		summary.setErmMaturityId(ermMaturityId);
