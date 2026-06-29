@@ -15,6 +15,7 @@ public interface SystemTableRepository extends JpaRepository<SystemTable, Long> 
 	@Query("SELECT t FROM SystemTable t WHERE t.module.id = :moduleId")
 	public List<SystemTable> findAllByModuleId(@Param("moduleId") Long moduleId);
 
+	@Query("SELECT t FROM SystemTable t WHERE t.tableName = :tableName AND t.deleted = false")
 	public SystemTable findByTableName(String tableName);
 
 }
