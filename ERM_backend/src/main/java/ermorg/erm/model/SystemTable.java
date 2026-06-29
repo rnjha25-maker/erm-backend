@@ -3,12 +3,7 @@ package ermorg.erm.model;
 import java.util.List;
 import java.util.Objects;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,7 +12,8 @@ import lombok.Setter;
 @Entity
 @Table(name="system_tables")
 public class SystemTable extends BaseModel{
-	
+
+	@Column(name = "table_name")   // ✅ IMPORTANT
 	private String tableName;
 	
 	@OneToMany(mappedBy="systemTable", cascade = CascadeType.ALL)
