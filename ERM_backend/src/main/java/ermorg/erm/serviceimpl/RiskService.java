@@ -148,10 +148,11 @@ public class RiskService implements IRiskService {
 		risk.setFunction(request.getFunction());
 		risk.setBusinessVertical(request.getBusinessVertical());
 		risk.setBusinessSegment(request.getBusinessSegment());
-
+		risk.setRiskRegisterType(request.getRiskRegisterType());	
+		risk.setRiskCreationByPeriod(request.getRiskCreationByPeriod());
 		risk.setRiskOwner(owner);
 		risk.setRiskChampion(riskChampion);
-
+		risk.setSupportingEvidance(request.getSupportingEvidance());
 		risk.setRiskStatus(request.getRiskStatus());
 
 		risk.setEvidanceRequired(request.getEvidanceRequired());
