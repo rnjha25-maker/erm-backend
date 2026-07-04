@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
@@ -306,25 +307,36 @@ public class DashboardService implements IDashboardService {
 		response.setByOwnerRating(buildByOwnerRating(risks, ownerLabels));
 
 		Map<String, Long> byPriority = risks.stream()
-				.collect(Collectors.groupingBy(r -> assessmentBucket(r.getRiskAssessment(), RiskAssessment::getRiskPriority),
+				.flatMap(this::streamAssessments)
+				.collect(Collectors.groupingBy(
+						a -> assessmentBucket(a, RiskAssessment::getRiskPriority),
 						Collectors.counting()));
 		response.setByPriority(sortedCounts(byPriority, Map.of()));
 
-		Map<String, Long> byTreatment = risks.stream().collect(Collectors.groupingBy(
-				r -> assessmentBucket(r.getRiskAssessment(), RiskAssessment::getRiskTreatmentStrategy),
-				Collectors.counting()));
+		Map<String, Long> byTreatment = risks.stream()
+				.flatMap(this::streamAssessments)
+				.collect(Collectors.groupingBy(
+						a -> assessmentBucket(a, RiskAssessment::getRiskTreatmentStrategy),
+						Collectors.counting()));
 		response.setByTreatmentStrategy(sortedCounts(byTreatment, Map.of()));
 
-		Map<String, Long> byImpact = risks.stream().collect(Collectors.groupingBy(
-				r -> assessmentBucket(r.getRiskAssessment(), RiskAssessment::getGrossImpactScore), Collectors.counting()));
+		Map<String, Long> byImpact = risks.stream()
+				.flatMap(this::streamAssessments)
+				.collect(Collectors.groupingBy(
+						a -> assessmentBucket(a, RiskAssessment::getGrossImpactScore),
+						Collectors.counting()));
 		response.setByImpact(sortedCounts(byImpact, Map.of()));
 
-		Map<String, Long> byRating = risks.stream().collect(Collectors.groupingBy(
-				r -> assessmentBucket(r.getRiskAssessment(), RiskAssessment::getRiskRating), Collectors.counting()));
+		Map<String, Long> byRating = risks.stream()
+				.flatMap(this::streamAssessments)
+				.collect(Collectors.groupingBy(
+						a -> assessmentBucket(a, RiskAssessment::getRiskRating),
+						Collectors.counting()));
 		response.setByRating(sortedCounts(byRating, Map.of()));
 
-		Map<String, Long> byAnalysisType = risks.stream().collect(Collectors.groupingBy(
-				r -> normalizedAnalysisType(r.getRiskAssessment()), Collectors.counting()));
+		Map<String, Long> byAnalysisType = risks.stream()
+				.flatMap(this::streamAssessments)
+				.collect(Collectors.groupingBy(DashboardService::normalizedAnalysisType, Collectors.counting()));
 		response.setByAnalysisType(sortedCounts(byAnalysisType, Map.of()));
 
 		Map<String, Long> byFinancialExposure = risks.stream()
@@ -495,8 +507,11 @@ public class DashboardService implements IDashboardService {
 
 	private List<ErmRatingHierarchyGroup> buildByRatingHierarchy(List<Risk> risks, Map<String, String> companyLabels,
 			Map<String, String> functionLabels, Map<String, String> branchLabels) {
-		Map<String, List<Risk>> byRatingKey = risks.stream().collect(Collectors.groupingBy(
-				r -> assessmentBucket(r.getRiskAssessment(), RiskAssessment::getRiskRating)));
+		Map<String, List<Risk>> byRatingKey = risks.stream()
+				.flatMap(this::streamRiskAssessmentPairs)
+				.collect(Collectors.groupingBy(
+						p -> assessmentBucket(p.assessment(), RiskAssessment::getRiskRating),
+						Collectors.mapping(RiskAssessmentPair::risk, Collectors.toList())));
 
 		return byRatingKey.entrySet().stream().sorted((a, b) -> compareRatingKeys(a.getKey(), b.getKey())).map(entry -> {
 			String ratingKey = entry.getKey();
@@ -575,14 +590,16 @@ public class DashboardService implements IDashboardService {
 				.map(entry -> {
 					String key = entry.getKey();
 					List<Risk> subset = entry.getValue();
-					Map<String, Long> byRating = subset.stream().collect(Collectors.groupingBy(
-							r -> assessmentBucket(r.getRiskAssessment(), RiskAssessment::getRiskRating),
-							Collectors.counting()));
+					Map<String, Long> byRating = subset.stream()
+							.flatMap(this::streamAssessments)
+							.collect(Collectors.groupingBy(
+									a -> assessmentBucket(a, RiskAssessment::getRiskRating),
+									Collectors.counting()));
 
 					ErmBranchRatingGroup group = new ErmBranchRatingGroup();
 					group.setKey(key);
 					group.setDisplayLabel(branchLabels.getOrDefault(key, key));
-					group.setTotal(subset.size());
+					group.setTotal(subset.stream().flatMap(this::streamAssessments).count());
 					group.setByRating(sortedRatingCounts(byRating));
 					return group;
 				}).collect(Collectors.toList());
@@ -596,14 +613,16 @@ public class DashboardService implements IDashboardService {
 				.map(entry -> {
 					String key = entry.getKey();
 					List<Risk> subset = entry.getValue();
-					Map<String, Long> byRating = subset.stream().collect(Collectors.groupingBy(
-							r -> assessmentBucket(r.getRiskAssessment(), RiskAssessment::getRiskRating),
-							Collectors.counting()));
+					Map<String, Long> byRating = subset.stream()
+							.flatMap(this::streamAssessments)
+							.collect(Collectors.groupingBy(
+									a -> assessmentBucket(a, RiskAssessment::getRiskRating),
+									Collectors.counting()));
 
 					ErmFunctionRatingGroup group = new ErmFunctionRatingGroup();
 					group.setKey(key);
 					group.setDisplayLabel(functionLabels.getOrDefault(key, key));
-					group.setTotal(subset.size());
+					group.setTotal(subset.stream().flatMap(this::streamAssessments).count());
 					group.setByRating(sortedRatingCounts(byRating));
 					return group;
 				}).collect(Collectors.toList());
@@ -616,14 +635,16 @@ public class DashboardService implements IDashboardService {
 				.map(entry -> {
 					String key = entry.getKey();
 					List<Risk> subset = entry.getValue();
-					Map<String, Long> byRating = subset.stream().collect(Collectors.groupingBy(
-							r -> assessmentBucket(r.getRiskAssessment(), RiskAssessment::getRiskRating),
-							Collectors.counting()));
+					Map<String, Long> byRating = subset.stream()
+							.flatMap(this::streamAssessments)
+							.collect(Collectors.groupingBy(
+									a -> assessmentBucket(a, RiskAssessment::getRiskRating),
+									Collectors.counting()));
 
 					ErmOwnerRatingGroup group = new ErmOwnerRatingGroup();
 					group.setKey(key);
 					group.setDisplayLabel(ownerLabels.getOrDefault(key, key));
-					group.setTotal(subset.size());
+					group.setTotal(subset.stream().flatMap(this::streamAssessments).count());
 					group.setByRating(sortedRatingCounts(byRating));
 					return group;
 				}).collect(Collectors.toList());
@@ -719,9 +740,12 @@ public class DashboardService implements IDashboardService {
 		if (r.getExposure() != null && !r.getExposure().isBlank()) {
 			return r.getExposure().trim();
 		}
-		RiskAssessment a = r.getRiskAssessment();
-		if (a != null && a.getFinancialImpact() != null && !a.getFinancialImpact().isBlank()) {
-			return a.getFinancialImpact().trim();
+		if (r.getRiskAssessments() != null) {
+			for (RiskAssessment a : r.getRiskAssessments()) {
+				if (!a.getDeleted() && a.getFinancialImpact() != null && !a.getFinancialImpact().isBlank()) {
+					return a.getFinancialImpact().trim();
+				}
+			}
 		}
 		return "UNKNOWN";
 	}
@@ -806,7 +830,7 @@ public class DashboardService implements IDashboardService {
 		List<List<CustomResponse>> responseList = new ArrayList<>();
 		for (Risk risk : topRisk) {
 			List<CustomResponse> customResponse = customResponseMapper.map("risk", 1l, new RiskResponse(risk), true);
-			addAssessmentDashboardFields(customResponse, risk.getRiskAssessment());
+			addAssessmentDashboardFields(customResponse, primaryAssessment(risk));
 			responseList.add(customResponse);
 		}
 
@@ -835,6 +859,32 @@ public class DashboardService implements IDashboardService {
 			response.setValue(value);
 			customResponse.add(response);
 		}
+	}
+
+	private record RiskAssessmentPair(Risk risk, RiskAssessment assessment) {
+	}
+
+	private Stream<RiskAssessment> streamAssessments(Risk risk) {
+		if (risk.getRiskAssessments() == null || risk.getRiskAssessments().isEmpty()) {
+			return Stream.of((RiskAssessment) null);
+		}
+		return risk.getRiskAssessments().stream().filter(a -> !a.getDeleted());
+	}
+
+	private Stream<RiskAssessmentPair> streamRiskAssessmentPairs(Risk risk) {
+		if (risk.getRiskAssessments() == null || risk.getRiskAssessments().isEmpty()) {
+			return Stream.of(new RiskAssessmentPair(risk, null));
+		}
+		return risk.getRiskAssessments().stream()
+				.filter(a -> !a.getDeleted())
+				.map(a -> new RiskAssessmentPair(risk, a));
+	}
+
+	private RiskAssessment primaryAssessment(Risk risk) {
+		if (risk.getRiskAssessments() == null) {
+			return null;
+		}
+		return risk.getRiskAssessments().stream().filter(a -> !a.getDeleted()).findFirst().orElse(null);
 	}
 
 	private List<Date> calculatePeriod(String period) {

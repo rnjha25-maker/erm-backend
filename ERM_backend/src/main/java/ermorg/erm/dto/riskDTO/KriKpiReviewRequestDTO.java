@@ -17,6 +17,7 @@ public class KriKpiReviewRequestDTO {
     private String businessObjectives;
     private String businessFunction;
     private long riskId;//new
+    private long riskAssessmentId;
     private long riskOwner;
     private List<Long> subRiskIds = new ArrayList<>();//new
     private String target;

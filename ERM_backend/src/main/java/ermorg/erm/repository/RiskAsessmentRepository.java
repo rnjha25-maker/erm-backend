@@ -1,6 +1,7 @@
 package ermorg.erm.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,6 +14,9 @@ import ermorg.erm.model.RiskAssessment;
 
 @Repository
 public interface RiskAsessmentRepository extends JpaRepository<RiskAssessment, Long> {
+
+	@Query("SELECT r FROM RiskAssessment r LEFT JOIN FETCH r.risk WHERE r.id = :id AND r.organization.id = :orgId AND r.deleted = false")
+	Optional<RiskAssessment> findByIdAndOrganizationIdAndDeletedFalse(@Param("id") Long id, @Param("orgId") Long organizationId);
 
 	@Query("SELECT r FROM RiskAssessment r LEFT JOIN FETCH r.risk LEFT JOIN FETCH "
 			+ "r.subRisk WHERE r.organization.id = :orgId AND r.id = :assessmentId AND r.deleted = false")

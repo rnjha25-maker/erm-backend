@@ -17,9 +17,9 @@ import lombok.Setter;
 @Entity
 public class RiskAssessment  extends BaseModel{
 
-	@OneToOne
-	@JoinColumn(name="risk_id")
-    private Risk risk;
+	@ManyToOne
+	@JoinColumn(name = "risk_id")
+	private Risk risk;
     
 	@OneToOne
 	@JoinColumn(name = "subrisk_id")

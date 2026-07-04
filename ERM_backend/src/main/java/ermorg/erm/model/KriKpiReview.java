@@ -25,10 +25,14 @@ public class KriKpiReview extends BaseModel {
 
 	
 	@ManyToOne
-	@JoinColumn(name="risk_id")
+	@JoinColumn(name = "risk_id")
 	private Risk risk;
-	
-	@OneToMany(mappedBy="kriKpiReview")
+
+	@ManyToOne
+	@JoinColumn(name = "risk_assessment_id")
+	private RiskAssessment riskAssessment;
+
+	@OneToMany(mappedBy = "kriKpiReview")
 	private List<SubRisk> subRisks = new ArrayList<>();
 	
 	@Column(name = "business_objectives")

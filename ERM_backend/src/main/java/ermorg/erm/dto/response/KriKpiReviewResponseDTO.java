@@ -18,6 +18,7 @@ public class KriKpiReviewResponseDTO {
     private String businessFunction;
     private long riskOwner;
     private long riskId;
+    private long riskAssessmentId;
     private String riskTitle;
 
     // ✅ ONLY DTO (NO ENTITY)
@@ -90,6 +91,10 @@ public class KriKpiReviewResponseDTO {
         if (kriKpiReview.getRisk() != null) {
             this.riskId = kriKpiReview.getRisk().getId();
             this.riskTitle = kriKpiReview.getRisk().getRisktitle();
+        }
+
+        if (kriKpiReview.getRiskAssessment() != null) {
+            this.riskAssessmentId = kriKpiReview.getRiskAssessment().getId();
         }
 
         // ✅ SAFE mapping (DTO only)
@@ -167,11 +172,9 @@ public class KriKpiReviewResponseDTO {
 
         this.status = kriKpiReview.getStatus();
 
-        // ✅ SAFE derived field
         this.riskToleranceStatus =
-                (kriKpiReview.getRisk() != null &&
-                        kriKpiReview.getRisk().getRiskAssessment() != null)
-                        ? kriKpiReview.getRisk().getRiskAssessment().getRiskToleranceStatus()
+                kriKpiReview.getRiskAssessment() != null
+                        ? kriKpiReview.getRiskAssessment().getRiskToleranceStatus()
                         : "";
     }
 }

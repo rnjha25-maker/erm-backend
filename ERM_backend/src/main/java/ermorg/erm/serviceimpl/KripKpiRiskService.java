@@ -17,9 +17,11 @@ import ermorg.erm.model.Company;
 import ermorg.erm.model.KriKpiReview;
 import ermorg.erm.model.Organization;
 import ermorg.erm.model.Risk;
+import ermorg.erm.model.RiskAssessment;
 import ermorg.erm.model.SubRisk;
 import ermorg.erm.model.User;
 import ermorg.erm.repository.KriKpiRiskRepository;
+import ermorg.erm.repository.RiskAsessmentRepository;
 import ermorg.erm.repository.RiskRepository;
 import ermorg.erm.repository.UserRepository;
 import ermorg.erm.service.IKriKpiRiskService;
@@ -42,6 +44,9 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 	@Autowired
 	private RiskRepository riskRepository;
 
+	@Autowired
+	private RiskAsessmentRepository riskAsessmentRepository;
+
 	@Override
 	public KriKpiReviewResponseDTO save(KriKpiReviewRequestDTO request) throws ResourceNotFoundException {
 		Organization organization = OrganizationContext.getOrganization();
@@ -51,6 +56,14 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 
 		Risk risk = riskRepository.findById(request.getRiskId()).filter(r -> !r.getDeleted())
 				.orElseThrow(() -> new ResourceNotFoundException("No risk found for selected risk."));
+
+		RiskAssessment riskAssessment = riskAsessmentRepository
+				.findByIdAndOrganizationIdAndDeletedFalse(request.getRiskAssessmentId(), organization.getId())
+				.orElseThrow(() -> new ResourceNotFoundException("No risk assessment found for selected assessment."));
+
+		if (riskAssessment.getRisk() == null || !riskAssessment.getRisk().getId().equals(risk.getId())) {
+			throw new ResourceNotFoundException("Selected risk assessment does not belong to the selected risk.");
+		}
 		
 		User evaluationBy = userRepository.findById(request.getKriEvaluationBy()).filter(r -> !r.getDeleted())
 				.orElseThrow(() -> new ResourceNotFoundException("No user found for selected evaluation by."));
@@ -81,6 +94,7 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 		kriKpiReview.setRiskOwner(owner);
 		kriKpiReview.setKriEvaluationBy(evaluationBy);
 		kriKpiReview.setRisk(risk);
+		kriKpiReview.setRiskAssessment(riskAssessment);
 		kriKpiReview.setSubRisks(subRisks);
 
 		KriKpiReview saved = kriKpiReskRepository.save(kriKpiReview);
