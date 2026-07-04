@@ -255,7 +255,7 @@ public class RiskService implements IRiskService {
 		riskAsessment.setResidualRiskRatingCriteria(request.getResidualRiskRatingCriteria());
 		RiskAssessment saveAssessment = riskAsessmentRepository.save(riskAsessment);
 
-		return toRiskResponse(saveAssessment.getRisk());
+		return toRiskResponse(riskRepository.getRiskWithAssessments(saveAssessment.getRisk().getId()));
 	}
 
 	@Transactional
@@ -265,8 +265,10 @@ public class RiskService implements IRiskService {
 	}
 
 	public RiskResponse getRisk(Long id) throws ResourceNotFoundException {
-		Risk risk = riskRepository.findById(id).filter(r -> !r.getDeleted())
-				.orElseThrow(() -> new ResourceNotFoundException("Risk not found."));
+		Risk risk = riskRepository.getRiskWithAssessments(id);
+		if (risk == null) {
+			throw new ResourceNotFoundException("Risk not found.");
+		}
 
 		return toRiskResponse(risk);
 	}
