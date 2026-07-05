@@ -27,6 +27,14 @@ public class Approval extends BaseModel {
 	@JoinColumn(name = "submitter_id")
 	private User submitter;
 
+	@ManyToOne
+	@JoinColumn(name = "organization_id")
+	private Organization organization;
+
+	@ManyToOne
+	@JoinColumn(name = "company_id")
+	private Company company;
+
 	@Column(name = "page_link", length = 1000)
 	private String pageLink;
 
@@ -37,6 +45,18 @@ public class Approval extends BaseModel {
 	private String comment;
 
 	private Date notifiedAt;
+	private Date assignedNotifiedAt;
+	private Date decisionNotifiedAt;
+	private Date dueAt;
+	private Integer escalationLevel = 0;
+	private Date escalatedAt;
+	private Date closedAt;
+
+	@Column(name = "source_module")
+	private String sourceModule;
+
+	@Column(name = "source_record_id")
+	private String sourceRecordId;
 
 	private String recordName;
 
