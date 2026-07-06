@@ -99,6 +99,7 @@ public class FieldService implements IFieldService {
 		category.setMappedWithTable(request.getTableName());
 		category.setModule(module);
 		categories.add(category);
+		category.setDisplayOrder(request.getDisplayOrder());
 		// Update module
 		module.setCategories(categories);
 		
