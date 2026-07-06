@@ -13,7 +13,7 @@ public class FieldRequestDTO {
 	@NotBlank(message="Category must be provided.")
 	private String category;
 	private long categoryId;
-	
+	private int displayOrder;
 	private String tableName;
 	@NotNull(message="Please select table.")
 	private long tableId;
