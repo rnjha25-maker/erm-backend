@@ -42,6 +42,6 @@ public interface RiskReviewRepository extends JpaRepository<RiskReview, Long> {
     @Query("SELECT r FROM RiskReview r WHERE r.organization.id = :orgId AND r.id = :rieviewId AND r.deleted = false")
 	RiskReview getByOrgAndReivewId(@Param("orgId")Long orgId, @Param("rieviewId")Long rieviewId);
 
-    @Query("SELECT r FROM RiskReview r WHERE r.organization.id = :orgId AND r.deleted = false")
+    @Query("SELECT r FROM RiskReview r WHERE r.organization.id = :orgId AND r.deleted = false ORDER BY r.id DESC")
 	List<RiskReview> getByOrgId(@Param("orgId")Long id);
 }

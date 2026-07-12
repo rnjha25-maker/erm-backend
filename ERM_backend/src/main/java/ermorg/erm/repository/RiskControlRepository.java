@@ -18,10 +18,10 @@ public interface RiskControlRepository extends JpaRepository<RiskControl, Long> 
 	@Query("SELECT r FROM RiskControl r LEFT JOIN FETCH r.primaryResponsible LEFT JOIN FETCH r.approver LEFT JOIN FETCH r.subRisk LEFT JOIN FETCH r.risk WHERE r.organization.id = :orgId AND r.id = :controlId AND r.deleted = false")
 	RiskControl getOrObject(@Param("orgId")Long orgId, @Param("controlId") Long controlId);
 
-	@Query("SELECT r FROM RiskControl r LEFT JOIN FETCH r.primaryResponsible LEFT JOIN FETCH r.approver LEFT JOIN FETCH r.subRisk LEFT JOIN FETCH r.risk WHERE r.organization.id = :organizationId AND r.deleted = false")
+	@Query("SELECT r FROM RiskControl r LEFT JOIN FETCH r.primaryResponsible LEFT JOIN FETCH r.approver LEFT JOIN FETCH r.subRisk LEFT JOIN FETCH r.risk WHERE r.organization.id = :organizationId AND r.deleted = false ORDER BY r.id DESC")
 	Page<RiskControl> getAllRisksByOrganizationId(@Param("organizationId") Long organizationId, Pageable pageable);
 	
-	@Query("SELECT r FROM RiskControl r LEFT JOIN FETCH r.primaryResponsible LEFT JOIN FETCH r.approver LEFT JOIN FETCH r.subRisk LEFT JOIN FETCH r.risk WHERE r.organization.id = :organizationId AND r.deleted = false")
+	@Query("SELECT r FROM RiskControl r LEFT JOIN FETCH r.primaryResponsible LEFT JOIN FETCH r.approver LEFT JOIN FETCH r.subRisk LEFT JOIN FETCH r.risk WHERE r.organization.id = :organizationId AND r.deleted = false ORDER BY r.id DESC")
 	List<RiskControl> getAllRisksByOrganizationIdNoPage(@Param("organizationId") Long organizationId);
 
 	@Query("SELECT r FROM RiskControl r LEFT JOIN FETCH r.primaryResponsible LEFT JOIN FETCH r.approver LEFT JOIN FETCH r.subRisk LEFT JOIN FETCH r.risk WHERE r.organization.id = :organizationId AND r.id = :riskId AND r.deleted = false")

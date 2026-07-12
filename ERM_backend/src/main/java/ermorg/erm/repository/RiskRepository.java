@@ -18,28 +18,28 @@ public interface RiskRepository extends JpaRepository<Risk, Long>{
 	Risk save(Risk risk);
 	
 	// Paginated methods for better performance with large datasets
-	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.deleted = false")
+	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.deleted = false ORDER BY r.id DESC")
 	Page<Risk> getAllRisksByOrganizationId(@Param("organizationId") Long organizationId, Pageable pageable);
 	
 	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.id = :riskId AND r.deleted = false")
 	Risk getRisksByOrgIdAndRiskId(@Param("organizationId") Long organizationId, @Param("riskId") Long riskId);
 	
-	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.createdBy.id = :userId AND r.deleted = false")
+	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.createdBy.id = :userId AND r.deleted = false ORDER BY r.id DESC")
 	Page<Risk> getAllRisksByOrgIdAndCreatedBy(@Param("organizationId") Long organizationId, @Param("userId") Long userId, Pageable pageable);
 	
-	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.createdBy.id = :userId AND r.createdAt between :startDate AND :endDate AND r.deleted = false")
+	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.createdBy.id = :userId AND r.createdAt between :startDate AND :endDate AND r.deleted = false ORDER BY r.id DESC")
 	Page<Risk> getAllRisksByOrgIdAndCreatedByDateRange(@Param("organizationId") Long organizationId, @Param("userId") Long userId, @Param("startDate") Date startDate, @Param("endDate") Date endDate, Pageable pageable);
 
-	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.deleted = false")
+	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.deleted = false ORDER BY r.id DESC")
 	Page<Risk> getAllRisksByOrgId(@Param("organizationId") Long organizationId, Pageable pageable);
 	
-	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.createdAt between :startDate AND :endDate AND r.deleted = false")
+	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.createdAt between :startDate AND :endDate AND r.deleted = false ORDER BY r.id DESC")
 	Page<Risk> getAllRisksByOrgIdDateRange(@Param("organizationId") Long organizationId, @Param("startDate") Date startDate, @Param("endDate") Date endDate, Pageable pageable);
 	
-	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.companyId = :companyId AND r.createdAt between :startDate AND :endDate AND r.deleted = false")
+	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.companyId = :companyId AND r.createdAt between :startDate AND :endDate AND r.deleted = false ORDER BY r.id DESC")
 	Page<Risk> getAllRisksByCompanyDateRange(@Param("companyId") Long companyId, @Param("startDate") Date startDate, @Param("endDate") Date endDate, Pageable pageable);
 
-	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.companyId = :companyId AND r.deleted = false")
+	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.companyId = :companyId AND r.deleted = false ORDER BY r.id DESC")
 	Page<Risk> getAllRisksByCompany(@Param("companyId") Long companyId, Pageable pageable);
 	
 	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.riskAssessments WHERE r.organizationId = :organizationId AND r.createdBy.id = :userId AND r.deleted = false ORDER BY r.id DESC")
@@ -67,7 +67,7 @@ public interface RiskRepository extends JpaRepository<Risk, Long>{
 	@Query(value = "SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.deleted = false ORDER BY r.id DESC", nativeQuery = false)
 	List<Risk> getTopRisksByOrganization(@Param("organizationId") Long organizationId, @Param("limit") int limit);
 	
-	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.deleted = false")
+	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.deleted = false ORDER BY r.id DESC")
 	Page<Risk> getRisksPagedOptimized(@Param("organizationId") Long organizationId, Pageable pageable);
 	
 	// JOIN FETCH queries to prevent N+1 queries when accessing related entities
@@ -77,7 +77,7 @@ public interface RiskRepository extends JpaRepository<Risk, Long>{
 	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.deleted = false ORDER BY r.id DESC")
 	List<Risk> getAllRisksWithOwnerAndChampion(@Param("organizationId") Long organizationId);
 	
-	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.deleted = false")
+	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.deleted = false ORDER BY r.id DESC")
 	Page<Risk> getAllRisksWithOwnerAndChampionPaged(@Param("organizationId") Long organizationId, Pageable pageable);
 
 	@Query("SELECT DISTINCT r FROM Risk r LEFT JOIN FETCH r.riskAssessments LEFT JOIN FETCH r.riskOwner ro LEFT JOIN FETCH ro.userDetail WHERE r.organizationId = :organizationId AND r.deleted = false "

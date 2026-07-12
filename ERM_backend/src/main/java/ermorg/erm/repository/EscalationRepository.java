@@ -89,6 +89,6 @@ public interface EscalationRepository extends JpaRepository<Escalation, Long> {
     @Query("SELECT e FROM Escalation e WHERE e.organization.id = :orgId AND e.id = :id AND e.deleted = false")
     Escalation findByOrgIdAndId(@Param("orgId")Long orgId, @Param("id")Long id);
 
-    @Query("SELECT e FROM Escalation e WHERE e.organization.id = :id AND e.deleted = false")
+    @Query("SELECT e FROM Escalation e WHERE e.organization.id = :id AND e.deleted = false ORDER BY e.id DESC")
 	List<Escalation> getByOrgId(@Param("id")Long id);
 }

@@ -17,13 +17,13 @@ public interface RiskResponseTreatmentRepository extends JpaRepository<RiskRespo
 	@Query("SELECT r FROM RiskResponseTreatment r LEFT JOIN FETCH r.riskReporting LEFT JOIN FETCH r.subRisks LEFT JOIN FETCH r.risk WHERE r.organization.id = :orgId AND r.id = :treatmentId AND r.deleted = false")
 	RiskResponseTreatment getOrgRiskResponseTreatment(@Param("orgId") Long orgId, @Param("treatmentId") Long treatmentId);
 	
-	@Query("SELECT r FROM RiskResponseTreatment r LEFT JOIN FETCH r.riskReporting LEFT JOIN FETCH r.subRisks LEFT JOIN FETCH r.risk WHERE r.organization.id = :organizationId AND r.deleted = false")
+	@Query("SELECT r FROM RiskResponseTreatment r LEFT JOIN FETCH r.riskReporting LEFT JOIN FETCH r.subRisks LEFT JOIN FETCH r.risk WHERE r.organization.id = :organizationId AND r.deleted = false ORDER BY r.id DESC")
 	Page<RiskResponseTreatment> getAllOrgRiskResponseTreatments(@Param("organizationId") Long organizationId, Pageable pageable);
 	
-	@Query("SELECT r FROM RiskResponseTreatment r LEFT JOIN FETCH r.riskReporting LEFT JOIN FETCH r.subRisks LEFT JOIN FETCH r.risk WHERE r.organization.id = :organizationId AND r.deleted = false")
+	@Query("SELECT r FROM RiskResponseTreatment r LEFT JOIN FETCH r.riskReporting LEFT JOIN FETCH r.subRisks LEFT JOIN FETCH r.risk WHERE r.organization.id = :organizationId AND r.deleted = false ORDER BY r.id DESC")
 	List<RiskResponseTreatment> getAllOrgRiskResponseTreatmentsNoPage(@Param("organizationId") Long organizationId);
 
-	@Query("SELECT r FROM RiskResponseTreatment r LEFT JOIN FETCH r.riskReporting LEFT JOIN FETCH r.subRisks LEFT JOIN FETCH r.risk WHERE r.organization.id = :organizationId AND r.deleted = false")
+	@Query("SELECT r FROM RiskResponseTreatment r LEFT JOIN FETCH r.riskReporting LEFT JOIN FETCH r.subRisks LEFT JOIN FETCH r.risk WHERE r.organization.id = :organizationId AND r.deleted = false ORDER BY r.id DESC")
 	List<RiskResponseTreatment> getAllOrgRiskResponseTreatments(@Param("organizationId") Long organizationId);
 	
 }
