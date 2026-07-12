@@ -23,7 +23,7 @@ public interface RiskAsessmentRepository extends JpaRepository<RiskAssessment, L
 	RiskAssessment getAssessmentByOrgIdAndAssessmentId(@Param("orgId") Long orgId,
 			@Param("assessmentId") Long assessmentId);
 
-	@Query("SELECT r.id FROM RiskAssessment r WHERE r.organization.id = :orgId AND r.deleted = false")
+	@Query("SELECT r.id FROM RiskAssessment r WHERE r.organization.id = :orgId AND r.deleted = false ORDER BY r.id DESC")
 	Page<Long> getAllIdsByOrgId(@Param("orgId") Long orgId, Pageable pageable);
 
 	@Query("SELECT DISTINCT r FROM RiskAssessment r LEFT JOIN FETCH r.risk LEFT JOIN "
@@ -32,7 +32,7 @@ public interface RiskAsessmentRepository extends JpaRepository<RiskAssessment, L
 			@Param("assessmentIds") List<Long> assessmentIds);
 
 	@Query("SELECT DISTINCT r FROM RiskAssessment r LEFT JOIN FETCH r.risk LEFT "
-			+ "JOIN FETCH r.subRisk WHERE r.organization.id = :orgId AND r.deleted = false")
+			+ "JOIN FETCH r.subRisk WHERE r.organization.id = :orgId AND r.deleted = false ORDER BY r.id DESC")
 	List<RiskAssessment> getAllByOrgIdNoPage(@Param("orgId") Long orgId);
 
 }

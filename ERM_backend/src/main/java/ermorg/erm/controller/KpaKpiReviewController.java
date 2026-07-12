@@ -50,7 +50,7 @@ public class KpaKpiReviewController {
 
     @GetMapping
     public GeneralResponse<Page<KpaKpiReviewResponseDTO>> getAll(
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String search) throws ResourceNotFoundException {
         GeneralResponse<Page<KpaKpiReviewResponseDTO>> response = new GeneralResponse<>();

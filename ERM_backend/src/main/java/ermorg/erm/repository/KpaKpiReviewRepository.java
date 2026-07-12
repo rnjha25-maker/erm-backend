@@ -33,6 +33,7 @@ public interface KpaKpiReviewRepository extends JpaRepository<KpaKpiReview, Long
               AND (:search IS NULL
                    OR LOWER(k.kpa) LIKE LOWER(CONCAT('%', :search, '%'))
                    OR LOWER(k.keyPerformanceIndicator) LIKE LOWER(CONCAT('%', :search, '%')))
+            ORDER BY k.id DESC
             """)
     Page<KpaKpiReview> getByOrgIdAndCompanyId(
             @Param("orgId") Long orgId,

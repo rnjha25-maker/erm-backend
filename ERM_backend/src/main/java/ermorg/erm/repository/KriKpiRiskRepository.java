@@ -15,7 +15,7 @@ public interface KriKpiRiskRepository extends JpaRepository<KriKpiReview, Long> 
 	@Query("SELECT k FROM KriKpiReview k LEFT JOIN FETCH k.riskAssessment WHERE k.organization.id = :orgId AND k.id = :kriId AND k.deleted = false")
 	KriKpiReview getByOrgIdAndKriId(@Param("orgId") Long id, @Param("kriId") Long kriId);
 
-	@Query("SELECT k FROM KriKpiReview k LEFT JOIN FETCH k.riskAssessment WHERE k.organization.id = :orgId AND k.deleted = false")
+	@Query("SELECT k FROM KriKpiReview k LEFT JOIN FETCH k.riskAssessment WHERE k.organization.id = :orgId AND k.deleted = false ORDER BY k.id DESC")
 	List<KriKpiReview> getByOrgId(@Param("orgId") Long orgId);
 
 }
