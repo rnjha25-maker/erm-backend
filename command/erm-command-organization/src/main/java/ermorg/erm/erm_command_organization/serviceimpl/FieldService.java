@@ -149,7 +149,6 @@ public class FieldService implements IFieldService {
 	    if (!module.getCategories().contains(category)) {
 	        module.getCategories().add(category);
 	    }
-	    Modules savedModule = null ;
 
 	    // 10. Save module
 	    try {

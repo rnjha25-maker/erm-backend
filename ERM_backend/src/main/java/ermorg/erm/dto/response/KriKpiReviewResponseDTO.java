@@ -2,9 +2,12 @@ package ermorg.erm.dto.response;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import ermorg.erm.constant.RiskAcceptanceLevel;
 import ermorg.erm.model.KriKpiReview;
+import ermorg.erm.model.Risk;
+import ermorg.erm.model.RiskAssessment;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -191,11 +194,12 @@ public class KriKpiReviewResponseDTO {
 
     // ✅ SAFE derived field
         if (this.riskToleranceStatus == null) {
-        this.riskToleranceStatus =
-                (kriKpiReview.getRisk() != null &&
-                        kriKpiReview.getRisk().getRiskAssessment() != null)
-                        ? kriKpiReview.getRisk().getRiskAssessment().getRiskToleranceStatus()
-                        : "";
-    }
+            this.riskToleranceStatus = Optional.ofNullable(kriKpiReview.getRisk())
+                    .map(Risk::getRiskAssessments)
+                    .filter(list -> !list.isEmpty())
+                    .map(list -> list.get(0))
+                    .map(RiskAssessment::getRiskToleranceStatus)
+                    .orElse("");
+        }
 }
 }
