@@ -1,5 +1,6 @@
 package ermorg.erm.dto.response;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import ermorg.erm.model.RiskAssessment;
 
 import lombok.Data;
@@ -32,6 +33,8 @@ public class RiskAssessmentResponse {
     private String riskAssessmentBy;
     private String riskReporting;
     private String stage;
+    private String riskAppetiteStatus;
+    private RiskAcceptanceLevel riskAcceptanceLevel;
     private long assetValue;
 	private long yearlyFrequency;
 	private double offPotentialLoss;
@@ -66,6 +69,8 @@ public class RiskAssessmentResponse {
 		this.riskAssessmentBy = riskAssessment.getRiskAssessmentBy();
 		this.riskReporting = riskAssessment.getRiskReporting();
 		this.stage = riskAssessment.getStage();
+		this.riskAppetiteStatus = riskAssessment.getRiskAppetiteStatus();
+		this.riskAcceptanceLevel = riskAssessment.getRiskAcceptanceLevel();
 		this.assetValue = riskAssessment.getAssetValue();
 		this.yearlyFrequency = riskAssessment.getYearlyFrequency();
 		this.offPotentialLoss = riskAssessment.getOffPotentialLoss();

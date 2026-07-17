@@ -1,5 +1,6 @@
 package ermorg.erm.dto.response;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import ermorg.erm.model.SubRisk;
 
 import lombok.Getter;

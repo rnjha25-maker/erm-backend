@@ -20,5 +20,15 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 			    ORDER BY c.displayOrder
 			""")
 	List<Category> findAllByOrgAndModule(Long orgId, Long moduleId);
+
+	@Query("""
+			    SELECT DISTINCT c FROM Category c
+			    LEFT JOIN FETCH c.fields f
+			    WHERE c.module.id = :moduleId
+			      AND c.mappedWithTable = :tableName
+			      AND c.deleted = false
+			    ORDER BY c.displayOrder
+			""")
+	List<Category> findAllByModuleIdAndMappedWithTableAndDeletedFalse(Long moduleId, String tableName);
 }
 

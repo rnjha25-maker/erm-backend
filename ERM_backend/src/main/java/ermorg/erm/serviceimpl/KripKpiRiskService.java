@@ -68,6 +68,12 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 		User evaluationBy = userRepository.findById(request.getKriEvaluationBy()).filter(r -> !r.getDeleted())
 				.orElseThrow(() -> new ResourceNotFoundException("No user found for selected evaluation by."));
 
+		User reporting = null;
+		if (request.getReporting() > 0) {
+			reporting = userRepository.findById(request.getReporting()).filter(r -> !r.getDeleted())
+					.orElseThrow(() -> new ResourceNotFoundException("No user found for selected reporting."));
+		}
+
 		KriKpiReview kriKpiReview;
 		if (request.getKriId() == 0) {
 			// Create new entity for new KRI reviews
@@ -93,6 +99,7 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 		kriKpiReview.setCompany(company);
 		kriKpiReview.setRiskOwner(owner);
 		kriKpiReview.setKriEvaluationBy(evaluationBy);
+		kriKpiReview.setReporting(reporting);
 		kriKpiReview.setRisk(risk);
 		kriKpiReview.setRiskAssessment(riskAssessment);
 		kriKpiReview.setSubRisks(subRisks);

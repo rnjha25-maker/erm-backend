@@ -86,23 +86,28 @@ public class FieldService implements IFieldService {
 	    List<ModuleOrganization> orgModules =
 	            orgModuleRepository.findByOrganizationIdAndModuleId(orgId, moduleId);
 
-	    List<Long> categoryIds = orgModuleRepository
-	            .findByOrganizationIdAndModuleId(orgId, moduleId)
-	            .stream()
-	            .filter(module -> Boolean.FALSE.equals(module.getDeleted()))
+	    List<Long> categoryIds = orgModules.stream()
+	            .filter(module -> Boolean.FALSE.equals(module.getDeleted()) && module.getCategoryId() != null)
 	            .map(ModuleOrganization::getCategoryId)
 	            .collect(Collectors.toList());
 
-	    List<Category> categories = categoryRepository.findAllById(categoryIds);
-
-	    Category category = categories.stream()
-	            .filter(cat -> !cat.getDeleted()
+	    List<Category> categories = categoryRepository.findAllById(categoryIds).stream()
+	            .filter(cat -> !Boolean.TRUE.equals(cat.getDeleted())
+	                    && cat.getMappedWithTable() != null
 	                    && cat.getMappedWithTable().equalsIgnoreCase(tableName))
-	            .findAny()
-	            .orElseThrow(() -> new ResourceNotFoundException("No category mapped."));
+	            .collect(Collectors.toList());
 
-	    return category.getFields().stream()
-	            .filter(field -> !field.getDeleted())
+	    if (categories.isEmpty()) {
+	        categories = categoryRepository.findAllByModuleIdAndMappedWithTableAndDeletedFalse(moduleId, tableName);
+	    }
+
+	    if (categories.isEmpty()) {
+	        throw new ResourceNotFoundException("No category mapped.");
+	    }
+
+	    return categories.stream()
+	            .flatMap(cat -> cat.getFields().stream())
+	            .filter(field -> !Boolean.TRUE.equals(field.getDeleted()))
 	            .map(CustomFieldResponse::new)
 	            .collect(Collectors.toList());
 	}

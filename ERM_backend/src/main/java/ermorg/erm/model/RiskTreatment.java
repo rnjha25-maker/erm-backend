@@ -2,7 +2,11 @@ package ermorg.erm.model;
 
 import java.util.Date;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -60,6 +64,11 @@ public class RiskTreatment extends BaseModel{
     private String approver;
     private String controlEvaluationBy;
     private String riskReporting;
+	@Column(name = "risk_appetite_status")
+	private String riskAppetiteStatus;
+	@Enumerated(EnumType.STRING)
+	@Column(name = "risk_acceptance_level", length = 100)
+	private RiskAcceptanceLevel riskAcceptanceLevel;
     private String controlByPeriod;
     private Date dateOfControlCreation;
     private String controlCreatedBy;

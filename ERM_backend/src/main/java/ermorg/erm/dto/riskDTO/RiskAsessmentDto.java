@@ -1,5 +1,6 @@
 package ermorg.erm.dto.riskDTO;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import lombok.Data;
 
 @Data
@@ -27,6 +28,8 @@ public class RiskAsessmentDto {
     private String riskAssessmentBy;
     private String riskReporting;
     private String stage;
+    private String riskAppetiteStatus;
+    private RiskAcceptanceLevel riskAcceptanceLevel;
     
   //new fields
     private long assetValue;

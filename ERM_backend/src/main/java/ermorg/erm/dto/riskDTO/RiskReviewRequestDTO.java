@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,6 +18,7 @@ public class RiskReviewRequestDTO {
     private long riskId;
     private List<Long> subRiskIds = new ArrayList<>();
     private String revisedLikelihood;
+    private String revisedVelocity;
     private String likelihoodProbability;
     private String revisedFinancialImpact;
     private String revisedOperationalImpact;
@@ -27,11 +29,18 @@ public class RiskReviewRequestDTO {
     private String residualRiskScoreRange;
     private String residualRiskRating;
     private String riskTreatmentStatus;
+    private String riskToleranceStatus;
+    private String riskAppetiteStatus;
+    private RiskAcceptanceLevel riskAcceptanceLevel;
     private String riskEvaluationBy;
     private long riskReporting;
     private String reviewType;
     private String status;
     private String riskEvaluationFrequency;
+    private Double assetsValue;
+    private Double perOfPotentialLoss;
+    private Integer yearlyFrequency;
+    private Double annualLossExpectancy;
     private LocalDate lastEvaluationDate;
     private LocalDate nextEvaluationDate;
 }

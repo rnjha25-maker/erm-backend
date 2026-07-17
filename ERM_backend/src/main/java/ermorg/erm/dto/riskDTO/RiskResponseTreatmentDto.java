@@ -3,6 +3,7 @@ package ermorg.erm.dto.riskDTO;
 import java.util.ArrayList;
 import java.util.List;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import lombok.Data;
 
 @Data
@@ -21,6 +22,8 @@ public class RiskResponseTreatmentDto {
     private String controlEffectivenessWeightage;
     private String controlEvaluationStatus;
     private String riskTreatmentStatus;
+    private String riskAppetiteStatus;
+    private RiskAcceptanceLevel riskAcceptanceLevel;
     private String evidenceRequire;
     private String supportingEvidence;
     private String controlEvaluationBy;

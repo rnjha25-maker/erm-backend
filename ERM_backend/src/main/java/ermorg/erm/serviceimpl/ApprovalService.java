@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import ermorg.erm.constant.ApprovalStatus;
+import ermorg.erm.constant.RoleTypeCode;
+import ermorg.erm.constant.WorkflowTriggerType;
 import ermorg.erm.dto.response.ApprovalLoginTargetResponse;
 import ermorg.erm.dto.response.ApprovalResponse;
 import ermorg.erm.dto.riskDTO.ApprovalDecisionRequest;
@@ -17,6 +19,7 @@ import ermorg.erm.exception.ResourceNotFoundException;
 import ermorg.erm.model.Approval;
 import ermorg.erm.model.Company;
 import ermorg.erm.model.Organization;
+import ermorg.erm.model.Role;
 import ermorg.erm.model.User;
 import ermorg.erm.repository.ApprovalRepository;
 import ermorg.erm.repository.UserRepository;
@@ -61,9 +64,15 @@ public class ApprovalService implements IApprovalService {
 		approval.setTaggedMembers(request.getTaggedMembers());
 		approval.setRecipientUserIds(request.getRecipientUserIds() == null ? null
 				: request.getRecipientUserIds().stream().map(String::valueOf).collect(Collectors.joining(",")));
+		approval.setSourceModule(request.getSourceModule());
+		approval.setSourceRecordId(request.getSourceRecordId());
+		approval.setDueAt(request.getDueAt());
+		approval.setTriggerType(request.getTriggerType() == null ? WorkflowTriggerType.AUTOMATIC : request.getTriggerType());
 		approval.setStatus(ApprovalStatus.PENDING);
 		Approval saved = approvalRepository.save(approval);
-		notificationService.sendApprovalAssigned(saved);
+		if (saved.getTriggerType() == WorkflowTriggerType.AUTOMATIC) {
+			notificationService.sendApprovalAssigned(saved);
+		}
 		return new ApprovalResponse(saved);
 	}
 
@@ -94,6 +103,53 @@ public class ApprovalService implements IApprovalService {
 		Approval saved = approvalRepository.save(approval);
 		notificationService.sendApprovalDecision(saved);
 		return new ApprovalResponse(saved);
+	}
+
+	@Override
+	@Transactional
+	public ApprovalResponse trigger(Long approvalId) throws ResourceNotFoundException {
+		Approval approval = getActiveApproval(approvalId);
+		assertPending(approval);
+		assertAuthorizedForWorkflowAction(approval);
+		if (approval.getTriggerType() != WorkflowTriggerType.MANUAL) {
+			throw new ResourceNotFoundException("Only MANUAL approvals can be manually triggered.");
+		}
+		if (approval.getTriggeredAt() != null) {
+			throw new ResourceNotFoundException("Manual workflow has already been triggered.");
+		}
+
+		approval.setTriggeredBy(UserContext.getUser());
+		approval.setTriggeredAt(new Date());
+		Approval saved = approvalRepository.save(approval);
+		notificationService.sendApprovalAssigned(saved);
+		return new ApprovalResponse(saved);
+	}
+
+	@Override
+	@Transactional
+	public ApprovalResponse escalate(Long approvalId) throws ResourceNotFoundException {
+		Approval approval = getActiveApproval(approvalId);
+		assertPending(approval);
+		assertAuthorizedForWorkflowAction(approval);
+
+		approval.setEscalationLevel((approval.getEscalationLevel() == null ? 0 : approval.getEscalationLevel()) + 1);
+		approval.setEscalatedAt(new Date());
+		approval.setEscalationSource(WorkflowTriggerType.MANUAL);
+		Approval saved = approvalRepository.save(approval);
+		notificationService.sendEscalation(saved);
+		log.info("Manually escalated approval {} to level {}", saved.getId(), saved.getEscalationLevel());
+		return new ApprovalResponse(saved);
+	}
+
+	@Override
+	@Transactional
+	public ApprovalResponse sendReminder(Long approvalId) throws ResourceNotFoundException {
+		Approval approval = getActiveApproval(approvalId);
+		assertPending(approval);
+		assertAuthorizedForWorkflowAction(approval);
+
+		notificationService.sendReminder(approval);
+		return new ApprovalResponse(approval);
 	}
 
 	@Override
@@ -131,5 +187,47 @@ public class ApprovalService implements IApprovalService {
 	private Organization resolveOrganization() {
 		Organization organization = OrganizationContext.getOrganization();
 		return organization != null ? organization : null;
+	}
+
+	private Approval getActiveApproval(Long approvalId) throws ResourceNotFoundException {
+		return approvalRepository.findById(approvalId)
+				.filter(item -> !Boolean.TRUE.equals(item.getDeleted()))
+				.orElseThrow(() -> new ResourceNotFoundException("Approval not found."));
+	}
+
+	private void assertPending(Approval approval) throws ResourceNotFoundException {
+		if (approval.getStatus() != ApprovalStatus.PENDING || approval.getClosedAt() != null) {
+			throw new ResourceNotFoundException("Closed approvals cannot be modified.");
+		}
+	}
+
+	private void assertAuthorizedForWorkflowAction(Approval approval) throws ResourceNotFoundException {
+		User currentUser = UserContext.getUser();
+		if (currentUser == null) {
+			throw new ResourceNotFoundException("User not found.");
+		}
+		if (isSameUser(currentUser, approval.getSubmitter()) || isSameUser(currentUser, approval.getApprover())
+				|| hasAdminRole(currentUser)) {
+			return;
+		}
+		throw new ResourceNotFoundException("User is not authorized for this approval workflow action.");
+	}
+
+	private boolean isSameUser(User left, User right) {
+		return left != null && right != null && Objects.equals(left.getId(), right.getId());
+	}
+
+	private boolean hasAdminRole(User user) {
+		if (user.getRoles() == null) {
+			return false;
+		}
+		return user.getRoles().stream()
+				.map(Role::getRoleType)
+				.filter(Objects::nonNull)
+				.map(roleType -> roleType.getCode())
+				.filter(Objects::nonNull)
+				.anyMatch(code -> RoleTypeCode.SUPER_ADMIN.getCode().equalsIgnoreCase(code)
+						|| RoleTypeCode.ORG_ADMIN.getCode().equalsIgnoreCase(code)
+						|| RoleTypeCode.COMPANY_ADMIN.getCode().equalsIgnoreCase(code));
 	}
 }

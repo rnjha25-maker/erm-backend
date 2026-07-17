@@ -4,11 +4,14 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
@@ -72,6 +75,13 @@ public class RiskControl extends BaseModel {
 
 	@Column(name = "control_assessment_frequency")
 	private String controlAssessmentFrequency;
+
+	@Column(name = "risk_appetite_status")
+	private String riskAppetiteStatus;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "risk_acceptance_level", length = 100)
+	private RiskAcceptanceLevel riskAcceptanceLevel;
 
 	@ManyToOne
 	@JoinColumn(name = "primary_responsible_id")

@@ -3,9 +3,12 @@ package ermorg.erm.model;
 import java.math.BigDecimal;
 import java.util.Date;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -159,6 +162,13 @@ public class KpaKpiReview extends BaseModel {
 
     @Column(name = "kra_rating", length = 30)
     private String kraRating;
+
+    @Column(name = "risk_appetite_status")
+    private String riskAppetiteStatus;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "risk_acceptance_level", length = 100)
+    private RiskAcceptanceLevel riskAcceptanceLevel;
 
     @ManyToOne
     @JoinColumn(name = "kpi_evaluation_by", nullable = false)

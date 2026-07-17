@@ -1,5 +1,6 @@
 package ermorg.erm.dto.response;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import ermorg.erm.model.Escalation;
 
 import lombok.Data;
@@ -22,6 +23,8 @@ public class EscalationResponse {
     private String action;
     private String alertReminder;
     private String remarks;
+    private String riskAppetiteStatus;
+    private RiskAcceptanceLevel riskAcceptanceLevel;
     
     
     public EscalationResponse(Escalation escalation) {
@@ -40,5 +43,7 @@ public class EscalationResponse {
 		this.action = escalation.getAction();
 		this.alertReminder = escalation.getAlertReminder();
 		this.remarks = escalation.getRemarks();
+		this.riskAppetiteStatus = escalation.getRiskAppetiteStatus();
+		this.riskAcceptanceLevel = escalation.getRiskAcceptanceLevel();
 	}
 }

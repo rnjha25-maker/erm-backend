@@ -1,6 +1,7 @@
 package ermorg.erm.dto.riskDTO;
 
 import java.util.List;
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import ermorg.erm.constant.RiskCategory;
 
 import lombok.Getter;
@@ -25,6 +26,8 @@ public class RiskDTO {
     private String evidanceRequired;
     private String riskRegisterType; 
     private String supportingEvidance; 
+    private String riskAppetiteStatus;
+    private RiskAcceptanceLevel riskAcceptanceLevel;
     private long branchId;
     private List<SubRiskDTO> subRisk;
     

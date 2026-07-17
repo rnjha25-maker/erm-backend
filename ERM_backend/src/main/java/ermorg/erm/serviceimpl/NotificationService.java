@@ -62,7 +62,10 @@ public class NotificationService {
         if (approval == null || !notificationsEnabled) {
             return;
         }
-        notificationForRecipients(approval, WorkflowEventType.APPROVED.equals(approval.getStatus()) ? WorkflowEventType.APPROVED : WorkflowEventType.REJECTED,
+        notificationForRecipients(approval,
+                approval.getStatus() == ermorg.erm.constant.ApprovalStatus.APPROVED
+                        ? WorkflowEventType.APPROVED
+                        : WorkflowEventType.REJECTED,
                 "Approval " + approval.getStatus() + ": " + safeRecordName(approval),
                 buildDecisionBody(approval), approval.getSubmitter());
         approval.setDecisionNotifiedAt(new Date());

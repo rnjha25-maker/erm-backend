@@ -66,7 +66,9 @@ public class EscalationService implements IEscalationService {
 		esclation.setReportingLevelEmailId(request.getReportingLevelEmailId());
 		esclation.setStatus(request.getStatus());
 		esclation.setAssignedToPrimaryResponsible(request.getAssignedToPrimaryResponsible());
-
+		esclation.setRiskAppetiteStatus(request.getRiskAppetiteStatus());
+		esclation.setRiskAcceptanceLevel(request.getRiskAcceptanceLevel());
+		
 		esclation.setOrganization(organization);
 		esclation.setCompany(company);
 

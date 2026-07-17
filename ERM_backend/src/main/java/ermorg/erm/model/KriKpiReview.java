@@ -4,8 +4,11 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
@@ -65,6 +68,9 @@ public class KriKpiReview extends BaseModel {
 	@Column(name = "types_of_key_risk_indicator_kri")
 	private String typesOfKeyRiskIndicatorKri;
 
+	@Column(name = "type_of_risk_indicator")
+	private String typeOfRiskIndicator;
+
 	@Column(name = "performance_indicators")
 	private String performanceIndicators;
 
@@ -86,6 +92,9 @@ public class KriKpiReview extends BaseModel {
 	@Column(name = "thresholds")
 	private String thresholds;
 
+	@Column(name = "risk_tolerance_status")
+	private String riskToleranceStatus;
+
 	@Column(name = "risk_appetite")
 	private String riskAppetite;
 
@@ -94,6 +103,13 @@ public class KriKpiReview extends BaseModel {
 
 	@Column(name = "level_of_measurement_level")
 	private String levelOfMeasurementLevel;
+
+	@ManyToOne
+	@JoinColumn(name = "reporting")
+	private User reporting;
+
+	@Column(name = "unit_of_measurement")
+	private String unitOfMeasurement;
 
 	@Column(name = "reporting_frequency")
 	private String reportingFrequency;
@@ -104,6 +120,8 @@ public class KriKpiReview extends BaseModel {
 	private String targetValue;
 
 	private String actualValue;
+
+	private String actuals;
 
 	private String january;
 
@@ -137,6 +155,13 @@ public class KriKpiReview extends BaseModel {
 	private String kriType;
 	@Column(name = "kri_appetite_status")
 	private String kriAppetiteStatus;
+
+	@Column(name = "risk_appetite_status")
+	private String riskAppetiteStatus;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "risk_acceptance_level", length = 100)
+	private RiskAcceptanceLevel riskAcceptanceLevel;
 
 	@ManyToOne
 	@JoinColumn(name = "kri_evaluation_by")

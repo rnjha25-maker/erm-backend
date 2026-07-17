@@ -3,6 +3,7 @@ package ermorg.erm.dto.response;
 import java.util.ArrayList;
 import java.util.List;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import ermorg.erm.model.RiskResponseTreatment;
 
 import lombok.Data;
@@ -24,6 +25,8 @@ public class RiskResponseTreatmentResponse {
     private String controlEffectivenessWeightage;
     private String controlEvaluationStatus;
     private String riskTreatmentStatus;
+    private String riskAppetiteStatus;
+    private RiskAcceptanceLevel riskAcceptanceLevel;
     private String evidenceRequire;
     private String supportingEvidence;
     private String controlEvaluationBy;
@@ -45,6 +48,8 @@ public class RiskResponseTreatmentResponse {
 		this.controlEffectivenessWeightage = riskResponseTreatment.getControlEffectivenessWeightage();
 		this.controlEvaluationStatus = riskResponseTreatment.getControlEvaluationStatus();
 		this.riskTreatmentStatus = riskResponseTreatment.getRiskTreatmentStatus();
+		this.riskAppetiteStatus = riskResponseTreatment.getRiskAppetiteStatus();
+		this.riskAcceptanceLevel = riskResponseTreatment.getRiskAcceptanceLevel();
 		this.evidenceRequire = riskResponseTreatment.getEvidenceRequire();
 		this.supportingEvidence = riskResponseTreatment.getSupportingEvidence();
 		this.controlEvaluationBy = riskResponseTreatment.getControlEvaluationBy();

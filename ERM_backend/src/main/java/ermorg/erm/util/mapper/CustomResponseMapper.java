@@ -31,6 +31,7 @@ public class CustomResponseMapper {
             "risktreatment", ModuleType.RISK_TREATMENT,
             "riskreview", ModuleType.RISK_REVIEW,
             "krikpireview", ModuleType.KRI_KPI_REVIEW,
+            "kpakpireview", ModuleType.KPA_KPI_REVIEW,
             "ermmaturity", ModuleType.ERM_MATURITY,
             "escalation", ModuleType.ESCALATION
     );
@@ -67,7 +68,7 @@ public class CustomResponseMapper {
         ModuleType moduleType = resolveModuleType(tableName);
 
         // ✅ strategy-based mapping
-        if (moduleType != null && genericFieldMapper.hasStrategy(moduleType)) {
+        if (genericFieldMapper != null) {
 
             List<CustomFieldConfig> configs = filteredFields.stream()
                     .map(CustomFieldConfig::new)
@@ -77,7 +78,20 @@ public class CustomResponseMapper {
                     genericFieldMapper.mapFields(object, configs, moduleType);
 
             return filteredFields.stream()
-                    .map(field -> buildResponse(field, fieldValues.get(field.getFieldName())))
+                    .map(field -> {
+                        CustomFieldConfig config = new CustomFieldConfig(field);
+                        Object value = resolveFieldValue(fieldValues, config, field);
+                        if (value != null) {
+                            return buildResponse(field, value);
+                        }
+
+                        CustomResponse fallback = mapFallback(object, field, tableName);
+                        if (fallback != null && fallback.getValue() != null) {
+                            return fallback;
+                        }
+
+                        return buildResponse(field, null);
+                    })
                     .collect(Collectors.toList());
         }
 
@@ -86,6 +100,33 @@ public class CustomResponseMapper {
                 .map(field -> mapFallback(object, field, tableName))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
+    }
+
+    private Object resolveFieldValue(Map<String, Object> fieldValues, CustomFieldConfig config, CustomFieldResponse field) {
+        if (fieldValues == null || config == null) {
+            return null;
+        }
+
+        String canonicalKey = config.normalizedKey();
+        if (canonicalKey != null && !canonicalKey.isBlank() && fieldValues.containsKey(canonicalKey)) {
+            return fieldValues.get(canonicalKey);
+        }
+
+        if (field != null && field.getFieldName() != null && fieldValues.containsKey(field.getFieldName())) {
+            return fieldValues.get(field.getFieldName());
+        }
+
+        if (field != null && field.getSystemFieldName() != null) {
+            String systemFieldKey = CustomFieldConfig.normalizeKey(field.getSystemFieldName());
+            if (!systemFieldKey.isBlank() && fieldValues.containsKey(systemFieldKey)) {
+                return fieldValues.get(systemFieldKey);
+            }
+            if (fieldValues.containsKey(field.getSystemFieldName())) {
+                return fieldValues.get(field.getSystemFieldName());
+            }
+        }
+
+        return null;
     }
 
     private CustomResponse buildResponse(CustomFieldResponse field, Object value) {

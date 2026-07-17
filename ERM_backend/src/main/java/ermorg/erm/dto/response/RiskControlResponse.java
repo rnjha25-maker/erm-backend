@@ -2,6 +2,7 @@ package ermorg.erm.dto.response;
 
 import java.util.*;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import ermorg.erm.dto.riskDTO.RiskSubControlDto;
 import ermorg.erm.model.Risk;
 import ermorg.erm.model.RiskControl;
@@ -25,6 +26,8 @@ public class RiskControlResponse {
     private String physicalControls;
     private String technicalControl;
     private String controlAssessmentFrequency;
+    private String riskAppetiteStatus;
+    private RiskAcceptanceLevel riskAcceptanceLevel;
     private long primaryResponsible;
     private long approver;
     private Date actualDate;
@@ -44,13 +47,14 @@ public class RiskControlResponse {
 		this.physicalControls = riskControl.getPhysicalControls();
 		this.technicalControl = riskControl.getTechnicalControl();
 		this.controlAssessmentFrequency = riskControl.getControlAssessmentFrequency();
+		this.riskAppetiteStatus = riskControl.getRiskAppetiteStatus();
+		this.riskAcceptanceLevel = riskControl.getRiskAcceptanceLevel();
 		this.primaryResponsible = riskControl.getPrimaryResponsible().getId();
 		this.approver = riskControl.getApprover().getId();
 		this.actualDate = riskControl.getActualDate();
 		this.lastControlAssessmentDate = riskControl.getLastControlAssessmentDate();
 		this.nextControlAssessmentDate = riskControl.getNextControlAssessmentDate();
-		this.riskSubs = Optional.ofNullable(riskControl.getRisk())
-				.map(Risk::getSubRisk)
+		this.riskSubs = Optional.ofNullable(riskControl.getSubRisk())
 				.orElse(Collections.emptyList())
 				.stream()
 				.map(SubRiskResponse::new)

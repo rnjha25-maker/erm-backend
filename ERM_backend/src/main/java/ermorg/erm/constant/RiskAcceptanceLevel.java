@@ -1,0 +1,9 @@
+package ermorg.erm.constant;
+
+public enum RiskAcceptanceLevel {
+    ACCEPTABLE_RISK,
+    ACCEPTABLE_WITH_MITIGATION,
+    ACCEPTABLE_WITH_MONITORING,
+    ACCEPTABLE_WITHOUT_MITIGATION_MONITORING,
+    UNACCEPTABLE_RISK
+}

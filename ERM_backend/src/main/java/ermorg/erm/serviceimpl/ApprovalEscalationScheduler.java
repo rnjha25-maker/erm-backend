@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import ermorg.erm.constant.ApprovalStatus;
+import ermorg.erm.constant.WorkflowTriggerType;
 import ermorg.erm.model.Approval;
 import ermorg.erm.repository.ApprovalRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -35,13 +36,16 @@ public class ApprovalEscalationScheduler {
             log.info("Approval escalation scheduler is disabled.");
             return;
         }
-        List<Approval> pending = approvalRepository.findByStatusAndDueAtBeforeAndDeletedFalse(ApprovalStatus.PENDING, new Date());
+        Date now = new Date();
+        List<Approval> pending = approvalRepository.findAutomaticOverdueApprovals(ApprovalStatus.PENDING,
+                WorkflowTriggerType.AUTOMATIC, now);
         for (Approval approval : pending) {
-            if (approval.getDueAt() == null || approval.getDueAt().after(new Date())) {
+            if (approval.getDueAt() == null || approval.getDueAt().after(now)) {
                 continue;
             }
             approval.setEscalationLevel((approval.getEscalationLevel() == null ? 0 : approval.getEscalationLevel()) + 1);
-            approval.setEscalatedAt(new Date());
+            approval.setEscalatedAt(now);
+            approval.setEscalationSource(WorkflowTriggerType.AUTOMATIC);
             approvalRepository.save(approval);
             notificationService.sendEscalation(approval);
             log.info("Escalated approval {} to level {}", approval.getId(), approval.getEscalationLevel());

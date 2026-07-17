@@ -82,6 +82,7 @@ public class RiskControlService implements IRiskControlService {
 		 .orElseThrow(()-> new ResourceNotFoundException("User not found for selected primary responsible."));
 		 
 		 List<SubRisk> subRisks = risk.getSubRisk().stream().filter(r-> request.getSubRiskIds().contains(r.getId()))
+		 .peek(sbRisk -> sbRisk.setRiskControl(riskControl))
 		 .collect(Collectors.toList());
 		 
 		 riskControl.setOrganization(organization);
@@ -97,6 +98,8 @@ public class RiskControlService implements IRiskControlService {
 		 riskControl.setPhysicalControls(request.getPhysicalControls());
 		 riskControl.setTechnicalControl(request.getTechnicalControl());
 		 riskControl.setControlAssessmentFrequency(request.getControlAssessmentFrequency());
+		 riskControl.setRiskAppetiteStatus(request.getRiskAppetiteStatus());
+		 riskControl.setRiskAcceptanceLevel(request.getRiskAcceptanceLevel());
 		 riskControl.setPrimaryResponsible(primaryResponsible);
 		 riskControl.setApprover(approver);
 		 riskControl.setActualDate(request.getActualDate());
@@ -113,12 +116,16 @@ public class RiskControlService implements IRiskControlService {
 				}
 
 				riskSubControl.setSubControlTitle(subControlDto.getControlSubTitle());
+				riskSubControl.setRiskAppetiteStatus(subControlDto.getRiskAppetiteStatus());
+				riskSubControl.setRiskAcceptanceLevel(subControlDto.getRiskAcceptanceLevel());
 				riskSubControl.setRiskControl(riskControl);
 				riskSubControlList.add(riskSubControl);
 
 			}
 		 
 		 RiskControl savedControl = riskControlRepository.save(riskControl);
+		 subRiskControlRepository.saveAll(riskSubControlList);
+		 savedControl.setSubControls(riskSubControlList);
 		
 		return new RiskControlResponse(savedControl);
 	}

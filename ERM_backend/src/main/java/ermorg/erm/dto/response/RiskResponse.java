@@ -2,6 +2,7 @@ package ermorg.erm.dto.response;
 
 import java.util.ArrayList;
 import java.util.List;
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import ermorg.erm.constant.RiskCategory;
 import ermorg.erm.model.Risk;
 import ermorg.erm.model.User;
@@ -35,6 +36,8 @@ public class RiskResponse {
 	private String evidanceRequired;
 	private String riskRegisterType;
 	private String supportingEvidance;
+	private String riskAppetiteStatus;
+	private RiskAcceptanceLevel riskAcceptanceLevel;
 	private Long branchId;
 	private String branchName;
 
@@ -63,6 +66,8 @@ public class RiskResponse {
 		this.evidanceRequired = risk.getEvidanceRequired();
 		this.riskRegisterType = risk.getRiskRegisterType();
 		this.supportingEvidance = risk.getSupportingEvidance();
+		this.riskAppetiteStatus = risk.getRiskAppetiteStatus();
+		this.riskAcceptanceLevel = risk.getRiskAcceptanceLevel();
 		this.branchId = risk.getBranchId();
 		if (risk.getRiskAssessments() != null) {
 			this.riskAssessments = risk.getRiskAssessments().stream()

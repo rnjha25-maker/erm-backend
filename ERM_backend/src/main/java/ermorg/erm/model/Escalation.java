@@ -1,7 +1,10 @@
 package ermorg.erm.model;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -55,6 +58,13 @@ public class Escalation extends BaseModel {
 
 	@Column(name = "remarks", columnDefinition = "TEXT")
 	private String remarks;
+
+	@Column(name = "risk_appetite_status")
+	private String riskAppetiteStatus;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "risk_acceptance_level", length = 100)
+	private RiskAcceptanceLevel riskAcceptanceLevel;
 
 	@ManyToOne
 	@JoinColumn(name = "primary_responsible_id")

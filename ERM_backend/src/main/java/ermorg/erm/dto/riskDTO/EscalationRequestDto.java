@@ -1,5 +1,6 @@
 package ermorg.erm.dto.riskDTO;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import lombok.Data;
 
 @Data
@@ -20,4 +21,6 @@ public class EscalationRequestDto {
     private String action;
     private String alertReminder;
     private String remarks;
+    private String riskAppetiteStatus;
+    private RiskAcceptanceLevel riskAcceptanceLevel;
 }

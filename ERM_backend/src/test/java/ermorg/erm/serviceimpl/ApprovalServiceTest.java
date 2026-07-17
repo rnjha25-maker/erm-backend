@@ -1,5 +1,6 @@
 package ermorg.erm.serviceimpl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -17,6 +18,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.mail.javamail.JavaMailSender;
 
 import ermorg.erm.constant.ApprovalStatus;
+import ermorg.erm.constant.WorkflowTriggerType;
 import ermorg.erm.dto.response.ApprovalResponse;
 import ermorg.erm.dto.riskDTO.ApprovalDecisionRequest;
 import ermorg.erm.dto.riskDTO.ApprovalRequest;
@@ -54,7 +56,7 @@ class ApprovalServiceTest {
     }
 
     @Test
-    void createApprovalShouldSendAssignmentNotification() {
+    void createApprovalShouldSendAssignmentNotification() throws Exception {
         User approver = new User();
         approver.setId(2L);
         approver.setEmail("approver@example.com");
@@ -84,7 +86,7 @@ class ApprovalServiceTest {
     }
 
     @Test
-    void decideShouldSendDecisionNotification() {
+    void decideShouldSendDecisionNotification() throws Exception {
         User approver = new User();
         approver.setId(3L);
         approver.setEmail("approver@example.com");
@@ -112,5 +114,62 @@ class ApprovalServiceTest {
 
         assertNotNull(response);
         verify(notificationService).sendApprovalDecision(any(Approval.class));
+    }
+
+    @Test
+    void createManualApprovalShouldNotSendAssignmentNotification() throws Exception {
+        User approver = new User();
+        approver.setId(2L);
+
+        User submitter = new User();
+        submitter.setId(1L);
+
+        Approval approval = new Approval();
+        approval.setId(12L);
+        approval.setApprover(approver);
+        approval.setSubmitter(submitter);
+        approval.setStatus(ApprovalStatus.PENDING);
+        approval.setTriggerType(WorkflowTriggerType.MANUAL);
+
+        ApprovalRequest request = new ApprovalRequest();
+        request.setApproverId(2L);
+        request.setSubmitterId(1L);
+        request.setTriggerType(WorkflowTriggerType.MANUAL);
+
+        when(userRepository.findById(2L)).thenReturn(Optional.of(approver));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(submitter));
+        when(approvalRepository.save(any(Approval.class))).thenReturn(approval);
+
+        ApprovalResponse response = approvalService.createApproval(request);
+
+        assertEquals(WorkflowTriggerType.MANUAL, response.getTriggerType());
+        verify(notificationService, org.mockito.Mockito.never()).sendApprovalAssigned(any(Approval.class));
+    }
+
+    @Test
+    void triggerManualApprovalShouldSetAuditAndNotify() throws Exception {
+        User approver = new User();
+        approver.setId(2L);
+
+        User submitter = new User();
+        submitter.setId(1L);
+
+        Approval approval = new Approval();
+        approval.setId(13L);
+        approval.setApprover(approver);
+        approval.setSubmitter(submitter);
+        approval.setStatus(ApprovalStatus.PENDING);
+        approval.setTriggerType(WorkflowTriggerType.MANUAL);
+
+        UserContext.seetUser(submitter);
+
+        when(approvalRepository.findById(13L)).thenReturn(Optional.of(approval));
+        when(approvalRepository.save(any(Approval.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ApprovalResponse response = approvalService.trigger(13L);
+
+        assertEquals(1L, response.getTriggeredById());
+        assertNotNull(response.getTriggeredAt());
+        verify(notificationService).sendApprovalAssigned(any(Approval.class));
     }
 }

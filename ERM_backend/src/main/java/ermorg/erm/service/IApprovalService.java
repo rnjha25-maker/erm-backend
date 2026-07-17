@@ -13,6 +13,12 @@ public interface IApprovalService {
 
 	ApprovalResponse decide(Long approvalId, ApprovalDecisionRequest request) throws ResourceNotFoundException;
 
+	ApprovalResponse trigger(Long approvalId) throws ResourceNotFoundException;
+
+	ApprovalResponse escalate(Long approvalId) throws ResourceNotFoundException;
+
+	ApprovalResponse sendReminder(Long approvalId) throws ResourceNotFoundException;
+
 	List<ApprovalResponse> getMyPendingApprovals() throws ResourceNotFoundException;
 
 	ApprovalLoginTargetResponse getLoginTarget() throws ResourceNotFoundException;

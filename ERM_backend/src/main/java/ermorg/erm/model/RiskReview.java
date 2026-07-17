@@ -5,8 +5,11 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
@@ -36,6 +39,9 @@ public class RiskReview extends BaseModel {
 	
 	@Column(name = "revised_likelihood")
 	private String revisedLikelihood;
+
+	@Column(name = "revised_velocity")
+	private String revisedVelocity;
 
 	@Column(name = "likelihood_probability")
 	private String likelihoodProbability;
@@ -67,6 +73,16 @@ public class RiskReview extends BaseModel {
 	@Column(name = "risk_treatment_status")
 	private String riskTreatmentStatus;
 
+	@Column(name = "risk_tolerance_status")
+	private String riskToleranceStatus;
+
+	@Column(name = "risk_appetite_status")
+	private String riskAppetiteStatus;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "risk_acceptance_level", length = 100)
+	private RiskAcceptanceLevel riskAcceptanceLevel;
+
 	@Column(name = "risk_evaluation_by")
 	private String riskEvaluationBy;
 
@@ -79,6 +95,18 @@ public class RiskReview extends BaseModel {
 
 	@Column(name = "risk_evaluation_frequency")
 	private String riskEvaluationFrequency;
+
+	@Column(name = "assets_value")
+	private Double assetsValue;
+
+	@Column(name = "per_of_potential_loss")
+	private Double perOfPotentialLoss;
+
+	@Column(name = "yearly_frequency")
+	private Integer yearlyFrequency;
+
+	@Column(name = "annual_loss_expectancy")
+	private Double annualLossExpectancy;
 
 	@Column(name = "last_evaluation_date")
 	private LocalDate lastEvaluationDate;
