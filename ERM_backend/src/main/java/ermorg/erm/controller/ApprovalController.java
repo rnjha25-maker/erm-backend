@@ -49,6 +49,33 @@ public class ApprovalController {
 		return response;
 	}
 
+	@PostMapping("/{id}/trigger")
+	public GeneralResponse<ApprovalResponse> trigger(@PathVariable Long id) throws ResourceNotFoundException {
+		GeneralResponse<ApprovalResponse> response = new GeneralResponse<>();
+		response.setData(approvalService.trigger(id));
+		response.setMessage("Approval workflow triggered.");
+		response.setStatus(ResponseStatus.SUCCESS);
+		return response;
+	}
+
+	@PostMapping("/{id}/escalate")
+	public GeneralResponse<ApprovalResponse> escalate(@PathVariable Long id) throws ResourceNotFoundException {
+		GeneralResponse<ApprovalResponse> response = new GeneralResponse<>();
+		response.setData(approvalService.escalate(id));
+		response.setMessage("Approval escalated.");
+		response.setStatus(ResponseStatus.SUCCESS);
+		return response;
+	}
+
+	@PostMapping("/{id}/reminder")
+	public GeneralResponse<ApprovalResponse> reminder(@PathVariable Long id) throws ResourceNotFoundException {
+		GeneralResponse<ApprovalResponse> response = new GeneralResponse<>();
+		response.setData(approvalService.sendReminder(id));
+		response.setMessage("Approval reminder sent.");
+		response.setStatus(ResponseStatus.SUCCESS);
+		return response;
+	}
+
 	@GetMapping("/pending")
 	public GeneralResponse<List<ApprovalResponse>> pending() throws ResourceNotFoundException {
 		GeneralResponse<List<ApprovalResponse>> response = new GeneralResponse<>();

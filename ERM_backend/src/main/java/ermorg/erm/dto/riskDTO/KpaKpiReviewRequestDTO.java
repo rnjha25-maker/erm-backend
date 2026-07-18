@@ -3,6 +3,7 @@ package ermorg.erm.dto.riskDTO;
 import java.math.BigDecimal;
 import java.util.Date;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.FutureOrPresent;
@@ -112,6 +113,9 @@ public class KpaKpiReviewRequestDTO {
     private String kpiType;
     @Size(max = 30)
     private String kraRating;
+    @Size(max = 255)
+    private String riskAppetiteStatus;
+    private RiskAcceptanceLevel riskAcceptanceLevel;
     @Positive
     private long kpiEvaluationBy;
     @Pattern(regexp = "DAILY|WEEKLY|MONTHLY|QUARTERLY|HALF_YEARLY|ANNUALLY|AD_HOC",

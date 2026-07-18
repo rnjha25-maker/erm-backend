@@ -14,7 +14,7 @@ import ermorg.erm.response.GeneralResponse;
 import ermorg.erm.service.IEscalationService;
 
 @RestController
-@RequestMapping("/esclation")
+@RequestMapping({"/escalations", "/esclation"})
 public class EscalationController {
 
 	@Autowired

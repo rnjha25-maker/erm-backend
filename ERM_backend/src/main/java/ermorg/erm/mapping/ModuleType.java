@@ -7,6 +7,7 @@ public enum ModuleType {
     RISK_TREATMENT,
     RISK_REVIEW,
     KRI_KPI_REVIEW,
+    KPA_KPI_REVIEW,
     ERM_MATURITY,
     ESCALATION
 }

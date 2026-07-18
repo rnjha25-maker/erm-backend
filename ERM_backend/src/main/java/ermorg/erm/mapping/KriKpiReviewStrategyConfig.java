@@ -48,9 +48,6 @@ public class KriKpiReviewStrategyConfig implements FieldStrategy {
         map.put(n("riskId"),
                 KriKpiReviewResponseDTO::getRiskTitle);
 
-        map.put(n("reporting"),
-                KriKpiReviewResponseDTO::getReporting);
-
         return map;
     }
 

@@ -44,6 +44,8 @@ public class RiskReviewStrategyConfig implements FieldStrategy {
                 r -> fieldMapperUtils.resolveUser(r.getRiskReporting()));
 
         map.put(n("riskId"), RiskReviewResponseDtoResponse::getRiskTitle);
+        map.put(n("risktolerancestatus"), RiskReviewResponseDtoResponse::getRiskToleranceStatus);
+        map.put(n("riskappetitestatus"), RiskReviewResponseDtoResponse::getRiskAppetiteStatus);
 
         return map;
     }

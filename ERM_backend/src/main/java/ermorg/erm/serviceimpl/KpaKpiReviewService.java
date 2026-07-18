@@ -181,6 +181,8 @@ public class KpaKpiReviewService {
         review.setQ4(request.getQ4());
         review.setKpiType(request.getKpiType());
         review.setKraRating(request.getKraRating());
+        review.setRiskAppetiteStatus(request.getRiskAppetiteStatus());
+        review.setRiskAcceptanceLevel(request.getRiskAcceptanceLevel());
         review.setKpiEvaluationFrequency(request.getKpiEvaluationFrequency());
         review.setPotentialLossPercentage(request.getPotentialLossPercentage());
         review.setYearlyFrequency(request.getYearlyFrequency());
@@ -203,16 +205,20 @@ public class KpaKpiReviewService {
         KpaKpiReviewResponseDTO response = new KpaKpiReviewResponseDTO();
         response.setKpaKpiReviewId(review.getId());
         response.setKpa(review.getKpa());
+        response.setKeyPerformanceArea(review.getKpa());
         response.setBusinessObjectives(review.getBusinessObjectives());
         response.setBusinessFunction(review.getBusinessFunction());
+        response.setDepartmentFunction(review.getBusinessFunction());
 
         if (review.getOwner() != null) {
             response.setOwnerId(review.getOwner().getId());
+            response.setBusinessFunctionalOwner(review.getOwner().getId());
         }
 
         response.setTarget(review.getTarget());
         response.setKeyPerformanceParameters(review.getKeyPerformanceParameters());
         response.setKeyPerformanceIndicator(review.getKeyPerformanceIndicator());
+        response.setKeyPerformanceIndicators(review.getKeyPerformanceIndicator());
         response.setTypesOfKpi(review.getTypesOfKpi());
         response.setPerformanceIndicators(review.getPerformanceIndicators());
         response.setStakeholderDepartments(review.getStakeholderDepartments());
@@ -227,10 +233,13 @@ public class KpaKpiReviewService {
         response.setRiskAppetite(review.getPerformanceAppetite());
         response.setEscalationMatrix(review.getEscalationMatrix());
         response.setMeasurableParameters(review.getLevelOfMeasurementLevel());
+        response.setReporting(review.getReportingFrequency());
         response.setReportingFrequency(review.getReportingFrequency());
+        response.setUnitOfMeasurement(review.getLevelOfMeasurementLevel());
         response.setCurrency(review.getCurrency());
         response.setTargetValue(review.getTargetValue());
         response.setActualValue(review.getActualValue());
+        response.setActuals(review.getActualValue());
         response.setJanuary(review.getJanuary());
         response.setFebruary(review.getFebruary());
         response.setMarch(review.getMarch());
@@ -247,11 +256,19 @@ public class KpaKpiReviewService {
         response.setQ2(review.getQ2());
         response.setQ3(review.getQ3());
         response.setQ4(review.getQ4());
+        response.setMonthlyValues(formatValues(
+                review.getJanuary(), review.getFebruary(), review.getMarch(), review.getApril(),
+                review.getMay(), review.getJune(), review.getJuly(), review.getAugust(),
+                review.getSeptember(), review.getOctober(), review.getNovember(), review.getDecember()));
+        response.setQuarterlyValues(formatValues(review.getQ1(), review.getQ2(), review.getQ3(), review.getQ4()));
         response.setKpiType(review.getKpiType());
         response.setKraRating(review.getKraRating());
+        response.setRiskAppetiteStatus(review.getRiskAppetiteStatus());
+        response.setRiskAcceptanceLevel(review.getRiskAcceptanceLevel());
 
         if (review.getKpiEvaluationBy() != null) {
             response.setKpiEvaluationBy(review.getKpiEvaluationBy().getId());
+            response.setEvaluationBy(review.getKpiEvaluationBy().getId());
         }
 
         response.setKpiEvaluationFrequency(review.getKpiEvaluationFrequency());
@@ -268,5 +285,12 @@ public class KpaKpiReviewService {
                 : null);
         response.setStatus(review.getStatus());
         return response;
+    }
+
+    private String formatValues(Object... values) {
+        return java.util.Arrays.stream(values)
+                .filter(java.util.Objects::nonNull)
+                .map(Object::toString)
+                .collect(java.util.stream.Collectors.joining(", "));
     }
 }

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -65,6 +66,8 @@ public class KriKpiReviewRequestDTO {
 	private String q4;
 	private String kriType;
     private String kriAppetiteStatus;
+    private String riskAppetiteStatus;
+    private RiskAcceptanceLevel riskAcceptanceLevel;
     private long kriEvaluationBy;
     private String kriEvaluationFrequency;
     private Date dueDate;

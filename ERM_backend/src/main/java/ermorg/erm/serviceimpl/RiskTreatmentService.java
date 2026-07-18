@@ -89,6 +89,8 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 		riskResponseTreatment.setControlEffectivenessWeightage(request.getControlEffectivenessWeightage());
 		riskResponseTreatment.setControlEvaluationStatus(request.getControlEvaluationStatus());
 		riskResponseTreatment.setRiskTreatmentStatus(request.getRiskTreatmentStatus());
+		riskResponseTreatment.setRiskAppetiteStatus(request.getRiskAppetiteStatus());
+		riskResponseTreatment.setRiskAcceptanceLevel(request.getRiskAcceptanceLevel());
 		riskResponseTreatment.setEvidenceRequire(request.getEvidenceRequire());
 		riskResponseTreatment.setSupportingEvidence(request.getSupportingEvidence());
 		riskResponseTreatment.setControlEvaluationBy(request.getControlEvaluationBy());
@@ -111,27 +113,7 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 	@Override
 	public List<CustomResponse> getRiskTreatmentView(Long id) throws ResourceNotFoundException{
 		RiskResponseTreatmentResponse riskTreatment = getRiskTreatment(id);
-		List<CustomResponse> response = new ArrayList<>();
-		List<CustomFieldResponse> customFieldResponse = fieldService.getCustomFieldResponse(1, "riskTreatment");
-		
-		customFieldResponse.stream()
-		.forEach(customField->{
-			CustomResponse customResponse;
-			try {
-				customResponse = CustomResponseMapperUtil.map(riskTreatment, customField, "riskTreatment");
-				if(customResponse != null) {
-					response.add(customResponse);
-				}
-			} catch (IllegalArgumentException | IllegalAccessException e) {
-				// TODO Auto-generated catch block
-				log.error("getRiskTreatmentView() {}", e.getMessage());
-			}
-
-			
-		});
-		
-		
-		return response;
+		return customResponseMapper.map("riskTreatment", 1L, riskTreatment, false);
 	}
 	@Override
 	public List<List<CustomResponse>> getAllRisks() throws ResourceNotFoundException {

@@ -3,8 +3,11 @@ package ermorg.erm.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
@@ -63,6 +66,13 @@ public class RiskResponseTreatment extends BaseModel {
 
 	@Column(name = "risk_treatment_status")
 	private String riskTreatmentStatus;
+
+	@Column(name = "risk_appetite_status")
+	private String riskAppetiteStatus;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "risk_acceptance_level", length = 100)
+	private RiskAcceptanceLevel riskAcceptanceLevel;
 
 	@Column(name = "evidence_require")
 	private String evidenceRequire;

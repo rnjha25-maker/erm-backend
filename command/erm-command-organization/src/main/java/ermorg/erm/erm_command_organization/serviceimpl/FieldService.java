@@ -1,5 +1,6 @@
 package ermorg.erm.erm_command_organization.serviceimpl;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -52,54 +53,91 @@ public class FieldService implements IFieldService {
 	@Override
 	@Transactional
 	public ModuleResponse saveField(FieldRequestDTO request) throws ResourceNotFoundException {
-		Modules module = moduleRepository.findById(request.getModuleId()).filter(module1 -> !module1.getDeleted())
-		        .orElseThrow(() -> new RuntimeException("Module not found."));
 
+	    // 1. Fetch Module
+	    Modules module = moduleRepository.findById(request.getModuleId())
+	            .filter(m -> !m.getDeleted())
+	            .orElseThrow(() -> new ResourceNotFoundException("Module not found"));
+
+	    // 2. Fetch Category (STRICT - no new Category creation)
 		List<Category> categories = module.getCategories();
-
 		Category category = categories.stream()
-		        .filter(category1 -> category1.getCategoryName().equals(request.getCategory()) || category1.getId().equals(request.getCategoryId())).findAny()
-		        .orElse(new Category());
+				.filter(category1 -> category1.getCategoryName().equals(request.getCategory())
+						|| category1.getId().equals(request.getCategoryId()))
+				.findAny().orElse(new Category());
 
-		SystemTable systemTable = systemTableRepository.findById(request.getTableId())
-				.filter(table -> !table.getDeleted())
-				.orElseThrow(()-> new ResourceNotFoundException("Table not found."));
-		// Delete existing fields
-		customFieldRepository.deleteAll(category.getFields());
-		category.getFields().clear();
-		
-		customFieldRepository.flush();
+	    // 3. Fetch System Table
+	    SystemTable systemTable = systemTableRepository.findById(request.getTableId())
+	            .filter(t -> !t.getDeleted())
+	            .orElseThrow(() -> new ResourceNotFoundException("System table not found"));
 
-		category.setDeleted(false);
-		// Update category fields
-		for (CustomFieldRequest customRequest : request.getFields()) {
-		    CustomField customField = new CustomField();
-		    customField.setFieldName(customRequest.getFieldName());
-		    customField.setFieldType(customRequest.getFieldType());
-		    customField.setDeleted(false);
-		    customField.setFieldOrder(customRequest.getFieldOrder());
-		    customField.setShowGridColumn(customRequest.isShowGridColumn());
-		    customField.setShowInView(customRequest.isShowInView());
-		    customField.setDisabled(customRequest.isDisabled());
-		    SystemField systemField = systemTable.getFields().stream()
-		            .filter(field -> !field.getDeleted())
-		            .filter(field -> field.getId().equals(customRequest.getMappedWithColumnId()))
-		            .findAny() 
-		            .orElseThrow(() -> new ResourceNotFoundException("System field not avaliable." + customRequest.getMappedWithColumnId()));
-		    customField.setSystemField(systemField);
-		    customField.setRequired(customRequest.isRequired());
-		    customField.setCategory(category);
+	    // 4. Duplicate validation sets
+	    Set<String> fieldNames = new HashSet<>();
+	    Set<Long> mappedColumnIds = new HashSet<>();
+	    Set<String> uniqueCombination = new HashSet<>();
 
-		   
-		    category.getFields().add(customField);
-		}
+	    // 5. Validate BEFORE delete (important)
+	    for (CustomFieldRequest customRequest : request.getFields()) {
+
+	        // Validate field name duplicate
+	        if (!fieldNames.add(customRequest.getFieldName())) {
+	            throw new RuntimeException("Duplicate field name: " + customRequest.getFieldName());
+	        }
+
+	        // Validate mapped column duplicate
+	        if (!mappedColumnIds.add(customRequest.getMappedWithColumnId())) {
+	            throw new RuntimeException("Duplicate mapped column id: " + customRequest.getMappedWithColumnId());
+	        }
+
+	        // Validate combined uniqueness
+	        String key = customRequest.getFieldName() + "_" + customRequest.getMappedWithColumnId();
+	        if (!uniqueCombination.add(key)) {
+	            throw new RuntimeException("Duplicate field + mapping combination: " + key);
+	        }
+	    }
+
+	    // 6. Delete existing fields safely
+	    if (category.getFields() != null && !category.getFields().isEmpty()) {
+	        customFieldRepository.deleteAll(category.getFields());
+	        customFieldRepository.flush();
+	        category.getFields().clear();
+	    }
+
+	    // 7. Create new fields
+	    for (CustomFieldRequest customRequest : request.getFields()) {
+
+	        CustomField customField = new CustomField();
+
+	        customField.setFieldName(customRequest.getFieldName());
+	        customField.setFieldType(customRequest.getFieldType());
+	        customField.setDeleted(false);
+	        customField.setFieldOrder(customRequest.getFieldOrder());
+	        customField.setShowGridColumn(customRequest.isShowGridColumn());
+	        customField.setShowInView(customRequest.isShowInView());
+	        customField.setDisabled(customRequest.isDisabled());
+	        customField.setRequired(customRequest.isRequired());
+
+	        // Fetch system field
+	        SystemField systemField = systemTable.getFields().stream()
+	                .filter(f -> !f.getDeleted())
+	                .filter(f -> f.getId().equals(customRequest.getMappedWithColumnId()))
+	                .findFirst()
+	                .orElseThrow(() -> new ResourceNotFoundException(
+	                        "System field not found for id: " + customRequest.getMappedWithColumnId()));
+
+	        customField.setSystemField(systemField);
+	        customField.setCategory(category);
+
+	        category.getFields().add(customField);
+	    }
 
 		// Update category
 		category.setCategoryName(request.getCategory());
 		category.setMappedWithTable(request.getTableName());
 		category.setModule(module);
 		categories.add(category);
-		category.setDisplayOrder(request.getDisplayOrder());
+        category.setDeleted(false);
+        category.setDisplayOrder(request.getDisplayOrder());
 		// Update module
 		module.setCategories(categories);
 		
@@ -107,9 +145,20 @@ public class FieldService implements IFieldService {
 
 		ModuleResponse moduleResponse = new ModuleResponse(savedModule);
 
-		return moduleResponse;
+	    // 9. Avoid duplicate category addition
+	    if (!module.getCategories().contains(category)) {
+	        module.getCategories().add(category);
+	    }
+
+	    // 10. Save module
+	    try {
+	         savedModule = moduleRepository.save(module);
+	    } catch (Exception e) {
+	        e.printStackTrace(); // logs full stacktrace
+	        throw new RuntimeException("Error while saving module: " + e.getMessage(), e);
+	    }
+	    return new ModuleResponse(savedModule);
 	}
-	
 	public ModuleResponse updateField(FieldRequestDTO request) throws ResourceNotFoundException {
 
 		Modules module = moduleRepository.findById(request.getModuleId()).filter(module1 -> !module1.getDeleted())

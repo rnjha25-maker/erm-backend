@@ -5,10 +5,13 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -67,7 +70,14 @@ public class ERMMaturityAssessment extends BaseModel {
 	@CollectionTable(name = "erm_maturity_department_ids", joinColumns = @JoinColumn(name = "maturity_assessment_id"))
 	@Column(name = "department_id")
 	private List<Long> departmentIds = new ArrayList<>();
-	
+
+	@Column(name = "risk_appetite_status")
+	private String riskAppetiteStatus;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "risk_acceptance_level", length = 100)
+	private RiskAcceptanceLevel riskAcceptanceLevel;
+
 	@ManyToOne
 	@JoinColumn(name = "organization_id")
 	private Organization organization;

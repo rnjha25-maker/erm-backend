@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import lombok.Data;
 
 @Data
@@ -22,6 +23,8 @@ public class RiskControlDto {
     private String physicalControls;
     private String technicalControl;
     private String controlAssessmentFrequency;
+    private String riskAppetiteStatus;
+    private RiskAcceptanceLevel riskAcceptanceLevel;
     private long primaryResponsible;
     private long approver;
     private Date actualDate;

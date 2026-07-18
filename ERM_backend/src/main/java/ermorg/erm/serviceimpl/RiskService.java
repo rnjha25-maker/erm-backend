@@ -157,6 +157,8 @@ public class RiskService implements IRiskService {
 
 		risk.setEvidanceRequired(request.getEvidanceRequired());
 		risk.setSupportingEvidance(request.getSupportingEvidance());
+		risk.setRiskAppetiteStatus(request.getRiskAppetiteStatus());
+		risk.setRiskAcceptanceLevel(request.getRiskAcceptanceLevel());
 
 		risk.setBranchId(branch.getId());
 		
@@ -190,7 +192,6 @@ public class RiskService implements IRiskService {
 
 			// ✅ Always update name (your requirement)
 			subRisk.setSubRisk(dto.getSubRiskName());
-
 			// ✅ Common fields
 			subRisk.setRisk(risk);
 			subRisk.setOrganizationId(org.getId());
@@ -247,6 +248,8 @@ public class RiskService implements IRiskService {
 		riskAsessment.setRiskAssessmentBy(request.getRiskAssessmentBy());
 		riskAsessment.setRiskReporting(request.getRiskReporting());
 		riskAsessment.setStage(request.getStage());
+		riskAsessment.setRiskAppetiteStatus(request.getRiskAppetiteStatus());
+		riskAsessment.setRiskAcceptanceLevel(request.getRiskAcceptanceLevel());
 		riskAsessment.setAssetValue(request.getAssetValue());
 		riskAsessment.setOffPotentialLoss(request.getOffPotentialLoss());
 		riskAsessment.setYearlyFrequency(request.getYearlyFrequency());

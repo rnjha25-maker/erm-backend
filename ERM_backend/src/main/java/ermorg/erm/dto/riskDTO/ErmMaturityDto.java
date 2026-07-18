@@ -3,6 +3,7 @@ package ermorg.erm.dto.riskDTO;
 import java.util.Date;
 import java.util.List;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import lombok.Data;
 
 @Data
@@ -34,4 +35,6 @@ public class ErmMaturityDto {
 
     private Date lastAssessmentDate;
     private Date nextAssessmentDate;
+    private String riskAppetiteStatus;
+    private RiskAcceptanceLevel riskAcceptanceLevel;
 }

@@ -4,11 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ermorg.erm.constant.RiskCategory;
+import ermorg.erm.constant.RiskAcceptanceLevel;
 
 import org.hibernate.annotations.BatchSize;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
@@ -71,6 +74,13 @@ public class Risk extends BaseModel {
 	private String riskRegisterType;
 	
 	private String supportingEvidance;
+
+	@Column(name = "risk_appetite_status")
+	private String riskAppetiteStatus;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "risk_acceptance_level", length = 100)
+	private RiskAcceptanceLevel riskAcceptanceLevel;
 
 	@Column(name = "branchId")
 	private Long branchId;

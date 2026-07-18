@@ -2,8 +2,12 @@ package ermorg.erm.dto.response;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import ermorg.erm.model.KriKpiReview;
+import ermorg.erm.model.Risk;
+import ermorg.erm.model.RiskAssessment;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -69,6 +73,8 @@ public class KriKpiReviewResponseDTO {
 
     private String kriType;
     private String kriAppetiteStatus;
+    private String riskAppetiteStatus;
+    private RiskAcceptanceLevel riskAcceptanceLevel;
 
     private long kriEvaluationBy;
     private String kriEvaluationFrequency;
@@ -116,6 +122,7 @@ public class KriKpiReviewResponseDTO {
         this.keyRiskParameters = kriKpiReview.getKeyRiskParameters();
         this.keyRiskIndicatorKri = kriKpiReview.getKeyRiskIndicatorKri();
         this.typesOfKeyRiskIndicatorKri = kriKpiReview.getTypesOfKeyRiskIndicatorKri();
+        this.typeOfRiskIndicator = kriKpiReview.getTypeOfRiskIndicator();
 
         this.performanceIndicators = kriKpiReview.getPerformanceIndicators();
         this.stakeholderDepartments = kriKpiReview.getStakeholderDepartments();
@@ -124,14 +131,20 @@ public class KriKpiReviewResponseDTO {
         this.targets = kriKpiReview.getTargets();
         this.activities = kriKpiReview.getActivities();
         this.thresholds = kriKpiReview.getThresholds();
+        this.riskToleranceStatus = kriKpiReview.getRiskToleranceStatus();
         this.riskAppetite = kriKpiReview.getRiskAppetite();
         this.escalationMatrix = kriKpiReview.getEscalationMatrix();
         this.measurableParameters = kriKpiReview.getLevelOfMeasurementLevel();
+        if (kriKpiReview.getReporting() != null) {
+            this.reporting = kriKpiReview.getReporting().getId();
+        }
+        this.unitOfMeasurement = kriKpiReview.getUnitOfMeasurement();
 
         this.reportingFrequency = kriKpiReview.getReportingFrequency();
         this.currency = kriKpiReview.getCurrency();
         this.targetValue = kriKpiReview.getTargetValue();
         this.actualValue = kriKpiReview.getActualValue();
+        this.actuals = kriKpiReview.getActuals();
 
         this.january = kriKpiReview.getJanuary();
         this.february = kriKpiReview.getFebruary();
@@ -153,6 +166,8 @@ public class KriKpiReviewResponseDTO {
 
         this.kriType = kriKpiReview.getKriType();
         this.kriAppetiteStatus = kriKpiReview.getKriAppetiteStatus();
+        this.riskAppetiteStatus = kriKpiReview.getRiskAppetiteStatus();
+        this.riskAcceptanceLevel = kriKpiReview.getRiskAcceptanceLevel();
 
         if (kriKpiReview.getKriEvaluationBy() != null) {
             this.kriEvaluationBy = kriKpiReview.getKriEvaluationBy().getId();
@@ -176,5 +191,15 @@ public class KriKpiReviewResponseDTO {
                 kriKpiReview.getRiskAssessment() != null
                         ? kriKpiReview.getRiskAssessment().getRiskToleranceStatus()
                         : "";
-    }
+
+    // ✅ SAFE derived field
+        if (this.riskToleranceStatus == null) {
+            this.riskToleranceStatus = Optional.ofNullable(kriKpiReview.getRisk())
+                    .map(Risk::getRiskAssessments)
+                    .filter(list -> !list.isEmpty())
+                    .map(list -> list.get(0))
+                    .map(RiskAssessment::getRiskToleranceStatus)
+                    .orElse("");
+        }
+}
 }

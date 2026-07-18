@@ -3,6 +3,7 @@ package ermorg.erm.dto.response;
 import java.util.Date;
 import java.util.List;
 
+import ermorg.erm.constant.RiskAcceptanceLevel;
 import ermorg.erm.model.ERMMaturityAssessment;
 
 import lombok.Data;
@@ -34,6 +35,8 @@ public class ErmMaturityResponse {
 
     private Date lastAssessmentDate;
     private Date nextAssessmentDate;
+    private String riskAppetiteStatus;
+    private RiskAcceptanceLevel riskAcceptanceLevel;
 
     private String ermMaturityId;
 
@@ -55,5 +58,8 @@ public class ErmMaturityResponse {
 	    this.nextAssessmentDate = assessment.getNextAssessmentDate();
 	    this.ermMaturityId = assessment.getErmMaturityId();
 	    this.departmentIds = assessment.getDepartmentIds();
+        this.riskAppetiteStatus = assessment.getRiskAppetiteStatus();
+        this.riskAcceptanceLevel = assessment.getRiskAcceptanceLevel();
+
     }
 }

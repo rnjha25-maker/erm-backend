@@ -1,39 +1,30 @@
 package ermorg.erm.serviceimpl;
 
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import ermorg.erm.constant.ApprovalStatus;
-import ermorg.erm.constant.NotificationChannel;
-import ermorg.erm.constant.NotificationStatus;
+import ermorg.erm.constant.RoleTypeCode;
+import ermorg.erm.constant.WorkflowTriggerType;
 import ermorg.erm.dto.response.ApprovalLoginTargetResponse;
 import ermorg.erm.dto.response.ApprovalResponse;
 import ermorg.erm.dto.riskDTO.ApprovalDecisionRequest;
 import ermorg.erm.dto.riskDTO.ApprovalRequest;
 import ermorg.erm.exception.ResourceNotFoundException;
 import ermorg.erm.model.Approval;
-import ermorg.erm.model.Notification;
+import ermorg.erm.model.Company;
 import ermorg.erm.model.Organization;
+import ermorg.erm.model.Role;
 import ermorg.erm.model.User;
-import ermorg.erm.model.UserDetail;
 import ermorg.erm.repository.ApprovalRepository;
-import ermorg.erm.repository.NotificationRepository;
 import ermorg.erm.repository.UserRepository;
 import ermorg.erm.service.IApprovalService;
+import ermorg.erm.util.CompanyContext;
 import ermorg.erm.util.OrganizationContext;
 import ermorg.erm.util.UserContext;
 import lombok.extern.slf4j.Slf4j;
@@ -42,19 +33,15 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ApprovalService implements IApprovalService {
 
-	private static final Pattern MENTION_PATTERN = Pattern.compile("@([\\p{L}\\p{N} ._-]+)");
-
 	private final ApprovalRepository approvalRepository;
-	private final NotificationRepository notificationRepository;
 	private final UserRepository userRepository;
-	private final ObjectProvider<JavaMailSender> mailSenderProvider;
+	private final NotificationService notificationService;
 
-	public ApprovalService(ApprovalRepository approvalRepository, NotificationRepository notificationRepository,
-			UserRepository userRepository, ObjectProvider<JavaMailSender> mailSenderProvider) {
+	public ApprovalService(ApprovalRepository approvalRepository, UserRepository userRepository,
+			NotificationService notificationService) {
 		this.approvalRepository = approvalRepository;
-		this.notificationRepository = notificationRepository;
 		this.userRepository = userRepository;
-		this.mailSenderProvider = mailSenderProvider;
+		this.notificationService = notificationService;
 	}
 
 	@Override
@@ -70,13 +57,23 @@ public class ApprovalService implements IApprovalService {
 		Approval approval = new Approval();
 		approval.setApprover(approver);
 		approval.setSubmitter(submitter);
+		approval.setOrganization(OrganizationContext.getOrganization());
+		approval.setCompany(CompanyContext.getCompany());
 		approval.setPageLink(request.getPageLink());
 		approval.setRecordName(request.getRecordName());
 		approval.setTaggedMembers(request.getTaggedMembers());
 		approval.setRecipientUserIds(request.getRecipientUserIds() == null ? null
 				: request.getRecipientUserIds().stream().map(String::valueOf).collect(Collectors.joining(",")));
+		approval.setSourceModule(request.getSourceModule());
+		approval.setSourceRecordId(request.getSourceRecordId());
+		approval.setDueAt(request.getDueAt());
+		approval.setTriggerType(request.getTriggerType() == null ? WorkflowTriggerType.AUTOMATIC : request.getTriggerType());
 		approval.setStatus(ApprovalStatus.PENDING);
-		return new ApprovalResponse(approvalRepository.save(approval));
+		Approval saved = approvalRepository.save(approval);
+		if (saved.getTriggerType() == WorkflowTriggerType.AUTOMATIC) {
+			notificationService.sendApprovalAssigned(saved);
+		}
+		return new ApprovalResponse(saved);
 	}
 
 	@Override
@@ -95,12 +92,64 @@ public class ApprovalService implements IApprovalService {
 			throw new ResourceNotFoundException("Decision must be APPROVED or REJECTED.");
 		}
 
+		if (approval.getStatus() != ApprovalStatus.PENDING) {
+			throw new ResourceNotFoundException("Approval already has a final decision.");
+		}
+
 		approval.setStatus(request.getStatus());
 		approval.setComment(request.getComment());
 		approval.setNotifiedAt(new Date());
+		approval.setClosedAt(new Date());
 		Approval saved = approvalRepository.save(approval);
-		notifyMembers(saved);
+		notificationService.sendApprovalDecision(saved);
 		return new ApprovalResponse(saved);
+	}
+
+	@Override
+	@Transactional
+	public ApprovalResponse trigger(Long approvalId) throws ResourceNotFoundException {
+		Approval approval = getActiveApproval(approvalId);
+		assertPending(approval);
+		assertAuthorizedForWorkflowAction(approval);
+		if (approval.getTriggerType() != WorkflowTriggerType.MANUAL) {
+			throw new ResourceNotFoundException("Only MANUAL approvals can be manually triggered.");
+		}
+		if (approval.getTriggeredAt() != null) {
+			throw new ResourceNotFoundException("Manual workflow has already been triggered.");
+		}
+
+		approval.setTriggeredBy(UserContext.getUser());
+		approval.setTriggeredAt(new Date());
+		Approval saved = approvalRepository.save(approval);
+		notificationService.sendApprovalAssigned(saved);
+		return new ApprovalResponse(saved);
+	}
+
+	@Override
+	@Transactional
+	public ApprovalResponse escalate(Long approvalId) throws ResourceNotFoundException {
+		Approval approval = getActiveApproval(approvalId);
+		assertPending(approval);
+		assertAuthorizedForWorkflowAction(approval);
+
+		approval.setEscalationLevel((approval.getEscalationLevel() == null ? 0 : approval.getEscalationLevel()) + 1);
+		approval.setEscalatedAt(new Date());
+		approval.setEscalationSource(WorkflowTriggerType.MANUAL);
+		Approval saved = approvalRepository.save(approval);
+		notificationService.sendEscalation(saved);
+		log.info("Manually escalated approval {} to level {}", saved.getId(), saved.getEscalationLevel());
+		return new ApprovalResponse(saved);
+	}
+
+	@Override
+	@Transactional
+	public ApprovalResponse sendReminder(Long approvalId) throws ResourceNotFoundException {
+		Approval approval = getActiveApproval(approvalId);
+		assertPending(approval);
+		assertAuthorizedForWorkflowAction(approval);
+
+		notificationService.sendReminder(approval);
+		return new ApprovalResponse(approval);
 	}
 
 	@Override
@@ -130,121 +179,55 @@ public class ApprovalService implements IApprovalService {
 		return new ApprovalLoginTargetResponse(redirectUrl, pending);
 	}
 
-	private void notifyMembers(Approval approval) {
-		Set<User> recipients = resolveRecipients(approval);
-		for (User recipient : recipients) {
-			Notification notification = new Notification();
-			notification.setApproval(approval);
-			notification.setRecipient(recipient);
-			notification.setChannel(NotificationChannel.EMAIL);
-			try {
-				sendEmail(approval, recipient);
-				notification.setStatus(NotificationStatus.SENT);
-				notification.setSentAt(new Date());
-			} catch (Exception ex) {
-				notification.setStatus(NotificationStatus.FAILED);
-				log.warn("Approval notification failed for user {}: {}", recipient.getId(), ex.getMessage());
-			}
-			notificationRepository.save(notification);
-		}
+	private Company resolveCompany() {
+		Company company = CompanyContext.getCompany();
+		return company != null ? company : null;
 	}
 
-	private Set<User> resolveRecipients(Approval approval) {
-		Set<User> recipients = new LinkedHashSet<>();
-		if (approval.getSubmitter() != null) {
-			recipients.add(approval.getSubmitter());
-		}
-		if (approval.getRecipientUserIds() != null && !approval.getRecipientUserIds().isBlank()) {
-			for (String id : approval.getRecipientUserIds().split(",")) {
-				try {
-					userRepository.findById(Long.parseLong(id.trim()))
-							.filter(user -> !Boolean.TRUE.equals(user.getDeleted()))
-							.ifPresent(recipients::add);
-				} catch (NumberFormatException ex) {
-					log.warn("Ignoring invalid approval recipient user id '{}'", id);
-				}
-			}
-		}
-
+	private Organization resolveOrganization() {
 		Organization organization = OrganizationContext.getOrganization();
-		if (organization == null || approval.getTaggedMembers() == null || approval.getTaggedMembers().isBlank()) {
-			return recipients;
-		}
-
-		List<User> users = userRepository.findActiveUsersByOrganizationId(organization.getId());
-		List<String> mentions = extractMentions(approval.getTaggedMembers());
-		for (String mention : mentions) {
-			String normalizedMention = normalize(mention);
-			users.stream()
-					.filter(user -> normalize(displayName(user)).equals(normalizedMention)
-							|| normalize(user.getEmail()).equals(normalizedMention)
-							|| normalize(phone(user)).equals(normalizedMention))
-					.findFirst()
-					.ifPresent(recipients::add);
-		}
-		return recipients;
+		return organization != null ? organization : null;
 	}
 
-	private List<String> extractMentions(String text) {
-		List<String> mentions = new ArrayList<>();
-		Matcher matcher = MENTION_PATTERN.matcher(text);
-		while (matcher.find()) {
-			mentions.add(matcher.group(1).trim());
-		}
-		return mentions;
+	private Approval getActiveApproval(Long approvalId) throws ResourceNotFoundException {
+		return approvalRepository.findById(approvalId)
+				.filter(item -> !Boolean.TRUE.equals(item.getDeleted()))
+				.orElseThrow(() -> new ResourceNotFoundException("Approval not found."));
 	}
 
-	private void sendEmail(Approval approval, User recipient) {
-		JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
-		if (mailSender == null || recipient.getEmail() == null || recipient.getEmail().isBlank()) {
+	private void assertPending(Approval approval) throws ResourceNotFoundException {
+		if (approval.getStatus() != ApprovalStatus.PENDING || approval.getClosedAt() != null) {
+			throw new ResourceNotFoundException("Closed approvals cannot be modified.");
+		}
+	}
+
+	private void assertAuthorizedForWorkflowAction(Approval approval) throws ResourceNotFoundException {
+		User currentUser = UserContext.getUser();
+		if (currentUser == null) {
+			throw new ResourceNotFoundException("User not found.");
+		}
+		if (isSameUser(currentUser, approval.getSubmitter()) || isSameUser(currentUser, approval.getApprover())
+				|| hasAdminRole(currentUser)) {
 			return;
 		}
-		SimpleMailMessage message = new SimpleMailMessage();
-		message.setTo(recipient.getEmail());
-		message.setSubject("Approval " + approval.getStatus() + ": " + safeRecordName(approval));
-		message.setText(buildEmailBody(approval));
-		mailSender.send(message);
+		throw new ResourceNotFoundException("User is not authorized for this approval workflow action.");
 	}
 
-	private String buildEmailBody(Approval approval) {
-		return "Approver: " + displayName(approval.getApprover()) + System.lineSeparator()
-				+ "Decision: " + approval.getStatus() + System.lineSeparator()
-				+ "Record: " + safeRecordName(approval) + System.lineSeparator()
-				+ "Comment: " + (approval.getComment() == null ? "" : approval.getComment()) + System.lineSeparator()
-				+ "Link: " + approval.getPageLink();
+	private boolean isSameUser(User left, User right) {
+		return left != null && right != null && Objects.equals(left.getId(), right.getId());
 	}
 
-	private String safeRecordName(Approval approval) {
-		return approval.getRecordName() == null || approval.getRecordName().isBlank()
-				? "ERM record"
-				: approval.getRecordName();
-	}
-
-	private String displayName(User user) {
-		if (user == null) {
-			return "";
+	private boolean hasAdminRole(User user) {
+		if (user.getRoles() == null) {
+			return false;
 		}
-		UserDetail detail = user.getUserDetail();
-		if (detail == null) {
-			return user.getEmail();
-		}
-		String name = String.join(" ",
-				nullToBlank(detail.getFirstName()),
-				nullToBlank(detail.getMiddleName()),
-				nullToBlank(detail.getLastName())).trim().replaceAll("\\s+", " ");
-		return name.isBlank() ? user.getEmail() : name;
-	}
-
-	private String phone(User user) {
-		UserDetail detail = user != null ? user.getUserDetail() : null;
-		return detail != null ? detail.getPhone() : "";
-	}
-
-	private String nullToBlank(String value) {
-		return value == null ? "" : value;
-	}
-
-	private String normalize(String value) {
-		return value == null ? "" : value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9+]", "");
+		return user.getRoles().stream()
+				.map(Role::getRoleType)
+				.filter(Objects::nonNull)
+				.map(roleType -> roleType.getCode())
+				.filter(Objects::nonNull)
+				.anyMatch(code -> RoleTypeCode.SUPER_ADMIN.getCode().equalsIgnoreCase(code)
+						|| RoleTypeCode.ORG_ADMIN.getCode().equalsIgnoreCase(code)
+						|| RoleTypeCode.COMPANY_ADMIN.getCode().equalsIgnoreCase(code));
 	}
 }
