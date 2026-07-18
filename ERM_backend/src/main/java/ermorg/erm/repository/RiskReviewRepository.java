@@ -1,6 +1,7 @@
 package ermorg.erm.repository;
 
 import java.time.LocalDate;
+import java.util.Date;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -44,4 +45,10 @@ public interface RiskReviewRepository extends JpaRepository<RiskReview, Long> {
 
     @Query("SELECT r FROM RiskReview r WHERE r.organization.id = :orgId AND r.deleted = false ORDER BY r.id DESC")
 	List<RiskReview> getByOrgId(@Param("orgId")Long id);
+
+    @Query("SELECT DISTINCT r FROM RiskReview r LEFT JOIN FETCH r.riskReporting LEFT JOIN FETCH r.risk "
+            + "WHERE r.organization.id = :orgId AND r.risk.id IN :riskIds AND r.deleted = false "
+            + "AND r.createdAt BETWEEN :startDate AND :endDate ORDER BY r.id DESC")
+    List<RiskReview> findForRiskRegister(@Param("orgId") Long orgId, @Param("riskIds") List<Long> riskIds,
+            @Param("startDate") Date startDate, @Param("endDate") Date endDate);
 }

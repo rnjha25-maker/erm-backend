@@ -1,8 +1,14 @@
 package ermorg.erm.controller;
 
+import java.nio.charset.StandardCharsets;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -63,21 +69,41 @@ public class DashboardController {
 	@GetMapping("/dashboard/erm-summary")
 	public GeneralResponse<ErmDashboardSummaryResponse> getErmDashboardSummary(@RequestParam int year,
 			@RequestParam String periodType, @RequestParam(required = false) Long companyId,
-			@RequestParam(required = false) Long branchId, @RequestParam(required = false) Long functionId)
+			@RequestParam(required = false) Long branchId, @RequestParam(required = false) Long functionId,
+			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size)
 			throws ResourceNotFoundException {
 
-		ErmDashboardPeriodType type;
-		try {
-			type = ErmDashboardPeriodType.valueOf(periodType.trim().toUpperCase());
-		} catch (IllegalArgumentException e) {
-			throw new IllegalArgumentException("Invalid periodType. Use one of: Q1, Q2, Q3, Q4, H1, H2, YEAR");
-		}
+		ErmDashboardPeriodType type = parsePeriodType(periodType);
 
 		GeneralResponse<ErmDashboardSummaryResponse> response = new GeneralResponse<>();
 		ErmDashboardSummaryResponse data = dashboardService.getErmDashboardSummary(year, type, companyId, branchId,
-				functionId);
+				functionId, page, size);
 		response.setData(data);
 		response.setStatus(ResponseStatus.SUCCESS);
 		return response;
+	}
+
+	@GetMapping(value = "/dashboard/erm-summary/risk-register.csv", produces = "text/csv")
+	public ResponseEntity<byte[]> downloadErmRiskRegisterCsv(@RequestParam int year, @RequestParam String periodType,
+			@RequestParam(required = false) Long companyId, @RequestParam(required = false) Long branchId,
+			@RequestParam(required = false) Long functionId) throws ResourceNotFoundException {
+
+		byte[] csv = dashboardService.exportErmRiskRegisterCsv(year, parsePeriodType(periodType), companyId, branchId,
+				functionId);
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(new MediaType("text", "csv", StandardCharsets.UTF_8));
+		headers.setContentDisposition(ContentDisposition.attachment()
+				.filename("erm-risk-register-" + year + "-" + periodType.trim().toUpperCase() + ".csv")
+				.build());
+		headers.setContentLength(csv.length);
+		return ResponseEntity.ok().headers(headers).body(csv);
+	}
+
+	private ErmDashboardPeriodType parsePeriodType(String periodType) {
+		try {
+			return ErmDashboardPeriodType.valueOf(periodType.trim().toUpperCase());
+		} catch (IllegalArgumentException | NullPointerException e) {
+			throw new IllegalArgumentException("Invalid periodType. Use one of: Q1, Q2, Q3, Q4, H1, H2, YEAR");
+		}
 	}
 }

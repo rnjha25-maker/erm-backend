@@ -1,6 +1,9 @@
 package ermorg.erm.serviceimpl;
 
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -105,11 +108,16 @@ public class FieldService implements IFieldService {
 	        throw new ResourceNotFoundException("No category mapped.");
 	    }
 
-	    return categories.stream()
+	    Map<Long, CustomFieldResponse> fieldsById = categories.stream()
 	            .flatMap(cat -> cat.getFields().stream())
 	            .filter(field -> !Boolean.TRUE.equals(field.getDeleted()))
 	            .map(CustomFieldResponse::new)
-	            .collect(Collectors.toList());
+	            .sorted(Comparator.comparing(CustomFieldResponse::getFieldOrder,
+	                            Comparator.nullsLast(Integer::compareTo))
+	                    .thenComparing(CustomFieldResponse::getId, Comparator.nullsLast(Long::compareTo)))
+	            .collect(Collectors.toMap(CustomFieldResponse::getId, field -> field, (first, duplicate) -> first,
+	                    LinkedHashMap::new));
+	    return List.copyOf(fieldsById.values());
 	}
 
 	@Override

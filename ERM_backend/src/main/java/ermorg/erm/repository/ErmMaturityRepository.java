@@ -44,4 +44,13 @@ public interface ErmMaturityRepository extends JpaRepository<ERMMaturityAssessme
 			@Param("endDate") Date endDate, @Param("scopeCompanyId") Long scopeCompanyId,
 			@Param("functionId") Long functionId);
 
+	@Query("SELECT DISTINCT m FROM ERMMaturityAssessment m LEFT JOIN FETCH m.company "
+			+ "WHERE m.organization.id = :orgId AND m.company.id IN :companyIds AND m.deleted = false "
+			+ "AND m.createdAt BETWEEN :startDate AND :endDate "
+			+ "AND (:functionId IS NULL OR :functionId = 0 OR :functionId MEMBER OF m.departmentIds) "
+			+ "ORDER BY m.id DESC")
+	List<ERMMaturityAssessment> findForRiskRegister(@Param("orgId") Long orgId,
+			@Param("companyIds") List<Long> companyIds, @Param("startDate") Date startDate,
+			@Param("endDate") Date endDate, @Param("functionId") Long functionId);
+
 }

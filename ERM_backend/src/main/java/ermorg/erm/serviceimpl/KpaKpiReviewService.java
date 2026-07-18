@@ -201,7 +201,7 @@ public class KpaKpiReviewService {
         return preferred != null ? preferred : deprecated;
     }
 
-    private KpaKpiReviewResponseDTO toResponse(KpaKpiReview review) {
+    public KpaKpiReviewResponseDTO toResponse(KpaKpiReview review) {
         KpaKpiReviewResponseDTO response = new KpaKpiReviewResponseDTO();
         response.setKpaKpiReviewId(review.getId());
         response.setKpa(review.getKpa());
