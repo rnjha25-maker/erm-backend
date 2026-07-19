@@ -9,6 +9,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
@@ -27,11 +28,11 @@ import lombok.Setter;
 public class KriKpiReview extends BaseModel {
 
 	
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "risk_id")
 	private Risk risk;
 
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "risk_assessment_id")
 	private RiskAssessment riskAssessment;
 
@@ -44,15 +45,15 @@ public class KriKpiReview extends BaseModel {
 	@Column(name = "business_function")
 	private String businessFunction;
 
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "risk_owner_id")
 	private User riskOwner;
 
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "organization_id")
 	private Organization organization;
 
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "company_id")
 	private Company company;
 
@@ -104,7 +105,7 @@ public class KriKpiReview extends BaseModel {
 	@Column(name = "level_of_measurement_level")
 	private String levelOfMeasurementLevel;
 
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "reporting")
 	private User reporting;
 
@@ -163,7 +164,7 @@ public class KriKpiReview extends BaseModel {
 	@Column(name = "risk_acceptance_level", length = 100)
 	private RiskAcceptanceLevel riskAcceptanceLevel;
 
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "kri_evaluation_by")
 	private User kriEvaluationBy;
 
