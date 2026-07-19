@@ -85,7 +85,7 @@ public interface RiskRepository extends JpaRepository<Risk, Long>{
 			+ "AND (:scopeCompanyId IS NULL OR r.companyId = :scopeCompanyId) "
 			+ "AND (:scopeCreatorUserId IS NULL OR (r.createdBy IS NOT NULL AND r.createdBy.id = :scopeCreatorUserId)) "
 			+ "AND (:branchId IS NULL OR r.branchId = :branchId) "
-			+ "AND (:functionId IS NULL OR r.function = :functionId) "
+			+ "AND (:functionId IS NULL OR :functionId = 0 OR r.function = :functionId) "
 			+ "AND (:applyBranchDepartmentScope = false OR ((:scopeByBranch = true AND r.branchId IN :scopeBranchIds) "
 			+ "OR (:scopeByDepartment = true AND r.function IN :scopeDepartmentIds))) "
 			+ "ORDER BY r.id DESC")
