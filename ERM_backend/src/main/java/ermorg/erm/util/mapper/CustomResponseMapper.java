@@ -58,7 +58,7 @@ public class CustomResponseMapper {
 
         // ✅ filter once (avoid multiple streams)
         List<CustomFieldResponse> filteredFields = isGrid
-                ? fields.stream().filter(CustomFieldResponse::getShowGridColumn).toList()
+                ? fields.stream().filter(field -> Boolean.TRUE.equals(field.getShowGridColumn())).toList()
                 : fields;
 
         if (filteredFields.isEmpty()) {

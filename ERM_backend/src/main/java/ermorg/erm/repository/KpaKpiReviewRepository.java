@@ -1,5 +1,8 @@
 package ermorg.erm.repository;
 
+import java.util.Date;
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -41,4 +44,20 @@ public interface KpaKpiReviewRepository extends JpaRepository<KpaKpiReview, Long
             @Param("status") String status,
             @Param("search") String search,
             Pageable pageable);
+
+    @Query("""
+            SELECT k FROM KpaKpiReview k
+            LEFT JOIN FETCH k.owner
+            LEFT JOIN FETCH k.kpiEvaluationBy
+            WHERE k.organization.id = :orgId
+              AND k.company.id IN :companyIds
+              AND k.deleted = false
+              AND k.createdAt BETWEEN :startDate AND :endDate
+            ORDER BY k.id DESC
+            """)
+    List<KpaKpiReview> findForRiskRegister(
+            @Param("orgId") Long orgId,
+            @Param("companyIds") List<Long> companyIds,
+            @Param("startDate") Date startDate,
+            @Param("endDate") Date endDate);
 }
