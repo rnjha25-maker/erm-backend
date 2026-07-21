@@ -93,6 +93,7 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 		riskResponseTreatment.setRiskAcceptanceLevel(request.getRiskAcceptanceLevel());
 		riskResponseTreatment.setEvidenceRequire(request.getEvidenceRequire());
 		riskResponseTreatment.setSupportingEvidence(request.getSupportingEvidence());
+		riskResponseTreatment.setSupportingEvidenceDocument(request.getSupportingEvidenceDocument());
 		riskResponseTreatment.setControlEvaluationBy(request.getControlEvaluationBy());
 		riskResponseTreatment.setRiskReporting(riskReporting);
 		riskResponseTreatment.setControlStatus(request.getControlStatus());
