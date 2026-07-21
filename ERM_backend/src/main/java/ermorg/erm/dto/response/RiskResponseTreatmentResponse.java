@@ -2,6 +2,7 @@ package ermorg.erm.dto.response;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import ermorg.erm.constant.RiskAcceptanceLevel;
 import ermorg.erm.model.RiskResponseTreatment;
@@ -29,6 +30,7 @@ public class RiskResponseTreatmentResponse {
     private RiskAcceptanceLevel riskAcceptanceLevel;
     private String evidenceRequire;
     private String supportingEvidence;
+    private UUID supportingEvidenceDocument;
     private String controlEvaluationBy;
     private long riskReporting;
     private String controlStatus;
@@ -52,6 +54,7 @@ public class RiskResponseTreatmentResponse {
 		this.riskAcceptanceLevel = riskResponseTreatment.getRiskAcceptanceLevel();
 		this.evidenceRequire = riskResponseTreatment.getEvidenceRequire();
 		this.supportingEvidence = riskResponseTreatment.getSupportingEvidence();
+		this.supportingEvidenceDocument = riskResponseTreatment.getSupportingEvidenceDocument();
 		this.controlEvaluationBy = riskResponseTreatment.getControlEvaluationBy();
 		this.riskReporting = riskResponseTreatment.getRiskReporting().getId();
 		this.controlStatus = riskResponseTreatment.getControlStatus();

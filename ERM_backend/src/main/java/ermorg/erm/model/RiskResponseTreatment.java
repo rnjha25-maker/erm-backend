@@ -2,6 +2,7 @@ package ermorg.erm.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import ermorg.erm.constant.RiskAcceptanceLevel;
 import jakarta.persistence.Column;
@@ -79,6 +80,9 @@ public class RiskResponseTreatment extends BaseModel {
 
 	@Column(name = "supporting_evidence_artifacts_description")
 	private String supportingEvidence;
+
+	@Column(name = "supporting_evidence_document", length = 36, columnDefinition = "CHAR(36)")
+	private UUID supportingEvidenceDocument;
 
 	@Column(name = "control_evaluation_by")
 	private String controlEvaluationBy;

@@ -2,6 +2,7 @@ package ermorg.erm.dto.riskDTO;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import ermorg.erm.constant.RiskAcceptanceLevel;
 import lombok.Data;
@@ -26,6 +27,7 @@ public class RiskResponseTreatmentDto {
     private RiskAcceptanceLevel riskAcceptanceLevel;
     private String evidenceRequire;
     private String supportingEvidence;
+    private UUID supportingEvidenceDocument;
     private String controlEvaluationBy;
     private long riskReporting;
     private String controlStatus;
