@@ -15,9 +15,29 @@ import ermorg.erm.model.Approval;
 public interface ApprovalRepository extends JpaRepository<Approval, Long> {
 	List<Approval> findByApproverIdAndStatusAndDeletedFalseOrderByCreatedAtAsc(Long approverId, ApprovalStatus status);
 
+	List<Approval> findByApproverIdAndStatusAndDueAtBetweenAndDeletedFalseOrderByDueAtAsc(Long approverId,
+			ApprovalStatus status, Date startAt, Date endAt);
+
+	List<Approval> findByApproverIdAndStatusAndDueAtBeforeAndDeletedFalseOrderByDueAtAsc(Long approverId,
+			ApprovalStatus status, Date dueAt);
+
+	List<Approval> findByApproverIdAndStatusNotAndDeletedFalseOrderByClosedAtDesc(Long approverId,
+			ApprovalStatus status);
+
 	List<Approval> findByStatusAndDeletedFalse(ApprovalStatus status);
 
 	List<Approval> findByStatusAndDueAtBeforeAndDeletedFalse(ApprovalStatus status, Date dueAt);
+
+	List<Approval> findByStatusAndDueAtBetweenAndDeletedFalse(ApprovalStatus status, Date startAt, Date endAt);
+
+	@Query("""
+			select approval
+			from Approval approval
+			where approval.status = :status
+			  and approval.deleted = false
+			  and (approval.reminderNotifiedAt is null or approval.reminderNotifiedAt < :reminderBefore)
+			""")
+	List<Approval> findPendingApprovalsDueForReminder(ApprovalStatus status, Date reminderBefore);
 
 	@Query("""
 			select approval

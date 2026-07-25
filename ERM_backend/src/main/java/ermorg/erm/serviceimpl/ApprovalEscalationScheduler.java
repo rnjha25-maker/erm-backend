@@ -21,8 +21,14 @@ public class ApprovalEscalationScheduler {
     private final ApprovalRepository approvalRepository;
     private final NotificationService notificationService;
 
-    @Value("${approval.escalation.enabled:false}")
+    @Value("${approval.escalation.enabled:true}")
     private boolean enabled;
+
+    @Value("${approval.reminder.interval-ms:86400000}")
+    private long reminderIntervalMs;
+
+    @Value("${approval.escalation.interval-ms:86400000}")
+    private long escalationIntervalMs;
 
     public ApprovalEscalationScheduler(ApprovalRepository approvalRepository, NotificationService notificationService) {
         this.approvalRepository = approvalRepository;
@@ -37,10 +43,34 @@ public class ApprovalEscalationScheduler {
             return;
         }
         Date now = new Date();
+        processReminders(now);
+        processEscalations(now);
+    }
+
+    private void processReminders(Date now) {
+        Date reminderBefore = new Date(now.getTime() - reminderIntervalMs);
+        List<Approval> pending = approvalRepository.findPendingApprovalsDueForReminder(ApprovalStatus.PENDING,
+                reminderBefore);
+        for (Approval approval : pending) {
+            if (approval.getTriggerType() == WorkflowTriggerType.MANUAL && approval.getTriggeredAt() == null) {
+                continue;
+            }
+            notificationService.sendReminder(approval);
+            approval.setReminderNotifiedAt(now);
+            approvalRepository.save(approval);
+            log.info("Sent automatic reminder for approval {}", approval.getId());
+        }
+    }
+
+    private void processEscalations(Date now) {
         List<Approval> pending = approvalRepository.findAutomaticOverdueApprovals(ApprovalStatus.PENDING,
                 WorkflowTriggerType.AUTOMATIC, now);
         for (Approval approval : pending) {
             if (approval.getDueAt() == null || approval.getDueAt().after(now)) {
+                continue;
+            }
+            if (approval.getEscalatedAt() != null
+                    && approval.getEscalatedAt().after(new Date(now.getTime() - escalationIntervalMs))) {
                 continue;
             }
             approval.setEscalationLevel((approval.getEscalationLevel() == null ? 0 : approval.getEscalationLevel()) + 1);

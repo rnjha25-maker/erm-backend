@@ -50,6 +50,8 @@ public class Approval extends BaseModel {
 	private Date assignedNotifiedAt;
 	@Column(name = "decision_notified_at")
 	private Date decisionNotifiedAt;
+	@Column(name = "reminder_notified_at")
+	private Date reminderNotifiedAt;
 	@Column(name = "due_at")
 	private Date dueAt;
 	@Column(name = "escalation_level")
