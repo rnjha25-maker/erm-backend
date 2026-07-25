@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import ermorg.erm.exception.ResourceNotFoundException;
 import ermorg.erm.model.ERMMaturityAssessment;
+import ermorg.erm.model.Escalation;
 import ermorg.erm.model.KpaKpiReview;
 import ermorg.erm.model.KriKpiReview;
 import ermorg.erm.model.Organization;
@@ -20,6 +21,7 @@ import ermorg.erm.model.RiskReview;
 import ermorg.erm.model.RiskTreatment;
 import ermorg.erm.model.SubRisk;
 import ermorg.erm.repository.ErmMaturityRepository;
+import ermorg.erm.repository.EscalationRepository;
 import ermorg.erm.repository.KpaKpiReviewRepository;
 import ermorg.erm.repository.KriKpiRiskRepository;
 import ermorg.erm.repository.RiskAsessmentRepository;
@@ -44,13 +46,14 @@ public class ApprovalSourceRecordValidator {
 	private final KriKpiRiskRepository kriKpiRiskRepository;
 	private final KpaKpiReviewRepository kpaKpiReviewRepository;
 	private final ErmMaturityRepository ermMaturityRepository;
+	private final EscalationRepository escalationRepository;
 
 	public ApprovalSourceRecordValidator(RiskRepository riskRepository, SubRiskRepository subRiskRepository,
 			RiskAsessmentRepository riskAsessmentRepository, RiskControlRepository riskControlRepository,
 			RiskTreatmentRepository riskTreatmentRepository,
 			RiskResponseTreatmentRepository riskResponseTreatmentRepository, RiskReviewRepository riskReviewRepository,
 			KriKpiRiskRepository kriKpiRiskRepository, KpaKpiReviewRepository kpaKpiReviewRepository,
-			ErmMaturityRepository ermMaturityRepository) {
+			ErmMaturityRepository ermMaturityRepository, EscalationRepository escalationRepository) {
 		this.riskRepository = riskRepository;
 		this.subRiskRepository = subRiskRepository;
 		this.riskAsessmentRepository = riskAsessmentRepository;
@@ -61,6 +64,7 @@ public class ApprovalSourceRecordValidator {
 		this.kriKpiRiskRepository = kriKpiRiskRepository;
 		this.kpaKpiReviewRepository = kpaKpiReviewRepository;
 		this.ermMaturityRepository = ermMaturityRepository;
+		this.escalationRepository = escalationRepository;
 	}
 
 	public void validate(String sourceModule, String sourceRecordId) throws ResourceNotFoundException {
@@ -102,6 +106,10 @@ public class ApprovalSourceRecordValidator {
 				Map.entry("kpakpireview", id -> kpaKpiReviewRepository.findById(id).filter(r -> active(r.getDeleted()))
 						.filter(this::sameOrganization).isPresent()),
 				Map.entry("ermmaturity", id -> ermMaturityRepository.findById(id).filter(r -> active(r.getDeleted()))
+						.filter(this::sameOrganization).isPresent()),
+				Map.entry("escalation", id -> escalationRepository.findById(id).filter(r -> active(r.getDeleted()))
+						.filter(this::sameOrganization).isPresent()),
+				Map.entry("escalations", id -> escalationRepository.findById(id).filter(r -> active(r.getDeleted()))
 						.filter(this::sameOrganization).isPresent()));
 	}
 
@@ -145,6 +153,10 @@ public class ApprovalSourceRecordValidator {
 	}
 
 	private boolean sameOrganization(ERMMaturityAssessment record) {
+		return sameOrganization(record.getOrganization());
+	}
+
+	private boolean sameOrganization(Escalation record) {
 		return sameOrganization(record.getOrganization());
 	}
 
