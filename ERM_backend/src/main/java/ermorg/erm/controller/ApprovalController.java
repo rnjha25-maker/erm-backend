@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import ermorg.erm.dto.ResponseStatus;
+import ermorg.erm.dto.response.ApprovalDashboardResponse;
 import ermorg.erm.dto.response.ApprovalLoginTargetResponse;
 import ermorg.erm.dto.response.ApprovalResponse;
 import ermorg.erm.dto.riskDTO.ApprovalDecisionRequest;
@@ -80,6 +81,38 @@ public class ApprovalController {
 	public GeneralResponse<List<ApprovalResponse>> pending() throws ResourceNotFoundException {
 		GeneralResponse<List<ApprovalResponse>> response = new GeneralResponse<>();
 		response.setData(approvalService.getMyPendingApprovals());
+		response.setStatus(ResponseStatus.SUCCESS);
+		return response;
+	}
+
+	@GetMapping("/dashboard")
+	public GeneralResponse<ApprovalDashboardResponse> dashboard() throws ResourceNotFoundException {
+		GeneralResponse<ApprovalDashboardResponse> response = new GeneralResponse<>();
+		response.setData(approvalService.getMyDashboard());
+		response.setStatus(ResponseStatus.SUCCESS);
+		return response;
+	}
+
+	@GetMapping("/dashboard/upcoming-due")
+	public GeneralResponse<List<ApprovalResponse>> upcomingDue() throws ResourceNotFoundException {
+		GeneralResponse<List<ApprovalResponse>> response = new GeneralResponse<>();
+		response.setData(approvalService.getMyUpcomingDueApprovals());
+		response.setStatus(ResponseStatus.SUCCESS);
+		return response;
+	}
+
+	@GetMapping("/dashboard/overdue")
+	public GeneralResponse<List<ApprovalResponse>> overdue() throws ResourceNotFoundException {
+		GeneralResponse<List<ApprovalResponse>> response = new GeneralResponse<>();
+		response.setData(approvalService.getMyOverdueApprovals());
+		response.setStatus(ResponseStatus.SUCCESS);
+		return response;
+	}
+
+	@GetMapping("/dashboard/history")
+	public GeneralResponse<List<ApprovalResponse>> history() throws ResourceNotFoundException {
+		GeneralResponse<List<ApprovalResponse>> response = new GeneralResponse<>();
+		response.setData(approvalService.getMyApprovalHistory());
 		response.setStatus(ResponseStatus.SUCCESS);
 		return response;
 	}

@@ -49,7 +49,7 @@ public class NotificationService {
     }
 
     public void sendApprovalAssigned(Approval approval) {
-        if (approval == null || !notificationsEnabled) {
+        if (approval == null) {
             return;
         }
         notificationForRecipients(approval, WorkflowEventType.ASSIGNED,
@@ -59,7 +59,7 @@ public class NotificationService {
     }
 
     public void sendApprovalDecision(Approval approval) {
-        if (approval == null || !notificationsEnabled) {
+        if (approval == null) {
             return;
         }
         notificationForRecipients(approval,
@@ -72,7 +72,7 @@ public class NotificationService {
     }
 
     public void sendEscalation(Approval approval) {
-        if (approval == null || !notificationsEnabled) {
+        if (approval == null) {
             return;
         }
         notificationForRecipients(approval, WorkflowEventType.ESCALATED,
@@ -81,7 +81,7 @@ public class NotificationService {
     }
 
     public void sendReminder(Approval approval) {
-        if (approval == null || !notificationsEnabled) {
+        if (approval == null) {
             return;
         }
         notificationForRecipients(approval, WorkflowEventType.REMINDER_SENT,
@@ -91,10 +91,7 @@ public class NotificationService {
 
     private void notificationForRecipients(Approval approval, WorkflowEventType eventType, String subject, String body,
             User primaryRecipient) {
-        Set<User> recipients = resolveRecipients(approval);
-        if (primaryRecipient != null) {
-            recipients.add(primaryRecipient);
-        }
+        Set<User> recipients = resolveRecipients(approval, eventType, primaryRecipient);
         for (User recipient : recipients) {
             Notification notification = new Notification();
             notification.setApproval(approval);
@@ -107,9 +104,11 @@ public class NotificationService {
             notification.setBody(body);
             notification.setStatus(NotificationStatus.PENDING);
             try {
-                sendEmail(recipient, subject, body);
-                notification.setStatus(NotificationStatus.SENT);
-                notification.setSentAt(new Date());
+                if (notificationsEnabled) {
+                    sendEmail(recipient, subject, body);
+                    notification.setStatus(NotificationStatus.SENT);
+                    notification.setSentAt(new Date());
+                }
             } catch (Exception ex) {
                 notification.setStatus(NotificationStatus.FAILED);
                 notification.setFailureReason(ex.getMessage());
@@ -119,10 +118,13 @@ public class NotificationService {
         }
     }
 
-    private Set<User> resolveRecipients(Approval approval) {
+    private Set<User> resolveRecipients(Approval approval, WorkflowEventType eventType, User primaryRecipient) {
         Set<User> recipients = new LinkedHashSet<>();
-        if (approval.getSubmitter() != null) {
-            recipients.add(approval.getSubmitter());
+        if (primaryRecipient != null) {
+            recipients.add(primaryRecipient);
+        }
+        if (eventType != WorkflowEventType.APPROVED && eventType != WorkflowEventType.REJECTED) {
+            return recipients;
         }
         if (approval.getRecipientUserIds() != null && !approval.getRecipientUserIds().isBlank()) {
             for (String id : approval.getRecipientUserIds().split(",")) {

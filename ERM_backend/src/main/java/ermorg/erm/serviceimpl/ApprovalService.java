@@ -1,5 +1,6 @@
 package ermorg.erm.serviceimpl;
 
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -11,14 +12,13 @@ import org.springframework.transaction.annotation.Transactional;
 import ermorg.erm.constant.ApprovalStatus;
 import ermorg.erm.constant.RoleTypeCode;
 import ermorg.erm.constant.WorkflowTriggerType;
+import ermorg.erm.dto.response.ApprovalDashboardResponse;
 import ermorg.erm.dto.response.ApprovalLoginTargetResponse;
 import ermorg.erm.dto.response.ApprovalResponse;
 import ermorg.erm.dto.riskDTO.ApprovalDecisionRequest;
 import ermorg.erm.dto.riskDTO.ApprovalRequest;
 import ermorg.erm.exception.ResourceNotFoundException;
 import ermorg.erm.model.Approval;
-import ermorg.erm.model.Company;
-import ermorg.erm.model.Organization;
 import ermorg.erm.model.Role;
 import ermorg.erm.model.User;
 import ermorg.erm.repository.ApprovalRepository;
@@ -36,23 +36,30 @@ public class ApprovalService implements IApprovalService {
 	private final ApprovalRepository approvalRepository;
 	private final UserRepository userRepository;
 	private final NotificationService notificationService;
+	private final ApprovalSourceRecordValidator sourceRecordValidator;
 
 	public ApprovalService(ApprovalRepository approvalRepository, UserRepository userRepository,
-			NotificationService notificationService) {
+			NotificationService notificationService, ApprovalSourceRecordValidator sourceRecordValidator) {
 		this.approvalRepository = approvalRepository;
 		this.userRepository = userRepository;
 		this.notificationService = notificationService;
+		this.sourceRecordValidator = sourceRecordValidator;
 	}
 
 	@Override
 	@Transactional
 	public ApprovalResponse createApproval(ApprovalRequest request) throws ResourceNotFoundException {
+		validateCreateRequest(request);
 		User approver = userRepository.findById(request.getApproverId())
 				.filter(user -> !Boolean.TRUE.equals(user.getDeleted()))
 				.orElseThrow(() -> new ResourceNotFoundException("Approver not found."));
 		User submitter = userRepository.findById(request.getSubmitterId())
 				.filter(user -> !Boolean.TRUE.equals(user.getDeleted()))
 				.orElseThrow(() -> new ResourceNotFoundException("Submitter not found."));
+		assertAuthorizedToCreate(submitter);
+		if (sourceRecordValidator != null) {
+			sourceRecordValidator.validate(request.getSourceModule(), request.getSourceRecordId());
+		}
 
 		Approval approval = new Approval();
 		approval.setApprover(approver);
@@ -73,6 +80,9 @@ public class ApprovalService implements IApprovalService {
 		if (saved.getTriggerType() == WorkflowTriggerType.AUTOMATIC) {
 			notificationService.sendApprovalAssigned(saved);
 		}
+		log.info("Approval created id={} sourceModule={} sourceRecordId={} submitterId={} approverId={} triggerType={}",
+				saved.getId(), saved.getSourceModule(), saved.getSourceRecordId(), submitter.getId(), approver.getId(),
+				saved.getTriggerType());
 		return new ApprovalResponse(saved);
 	}
 
@@ -91,6 +101,10 @@ public class ApprovalService implements IApprovalService {
 		if (request.getStatus() != ApprovalStatus.APPROVED && request.getStatus() != ApprovalStatus.REJECTED) {
 			throw new ResourceNotFoundException("Decision must be APPROVED or REJECTED.");
 		}
+		if (request.getStatus() == ApprovalStatus.REJECTED
+				&& (request.getComment() == null || request.getComment().isBlank())) {
+			throw new ResourceNotFoundException("Reject comment is required.");
+		}
 
 		if (approval.getStatus() != ApprovalStatus.PENDING) {
 			throw new ResourceNotFoundException("Approval already has a final decision.");
@@ -102,6 +116,8 @@ public class ApprovalService implements IApprovalService {
 		approval.setClosedAt(new Date());
 		Approval saved = approvalRepository.save(approval);
 		notificationService.sendApprovalDecision(saved);
+		log.info("Approval decision id={} status={} approverId={} closedAt={}", saved.getId(), saved.getStatus(),
+				currentUser != null ? currentUser.getId() : null, saved.getClosedAt());
 		return new ApprovalResponse(saved);
 	}
 
@@ -122,6 +138,8 @@ public class ApprovalService implements IApprovalService {
 		approval.setTriggeredAt(new Date());
 		Approval saved = approvalRepository.save(approval);
 		notificationService.sendApprovalAssigned(saved);
+		log.info("Manual approval triggered id={} triggeredById={}", saved.getId(),
+				saved.getTriggeredBy() != null ? saved.getTriggeredBy().getId() : null);
 		return new ApprovalResponse(saved);
 	}
 
@@ -149,6 +167,10 @@ public class ApprovalService implements IApprovalService {
 		assertAuthorizedForWorkflowAction(approval);
 
 		notificationService.sendReminder(approval);
+		approval.setReminderNotifiedAt(new Date());
+		approvalRepository.save(approval);
+		log.info("Approval reminder sent id={} approverId={}", approval.getId(),
+				approval.getApprover() != null ? approval.getApprover().getId() : null);
 		return new ApprovalResponse(approval);
 	}
 
@@ -168,6 +190,49 @@ public class ApprovalService implements IApprovalService {
 
 	@Override
 	@Transactional(readOnly = true)
+	public List<ApprovalResponse> getMyUpcomingDueApprovals() throws ResourceNotFoundException {
+		User user = requireCurrentUser();
+		Date now = new Date();
+		return approvalRepository
+				.findByApproverIdAndStatusAndDueAtBetweenAndDeletedFalseOrderByDueAtAsc(user.getId(),
+						ApprovalStatus.PENDING, now, daysFrom(now, 7))
+				.stream()
+				.map(ApprovalResponse::new)
+				.collect(Collectors.toList());
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<ApprovalResponse> getMyOverdueApprovals() throws ResourceNotFoundException {
+		User user = requireCurrentUser();
+		return approvalRepository
+				.findByApproverIdAndStatusAndDueAtBeforeAndDeletedFalseOrderByDueAtAsc(user.getId(),
+						ApprovalStatus.PENDING, new Date())
+				.stream()
+				.map(ApprovalResponse::new)
+				.collect(Collectors.toList());
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<ApprovalResponse> getMyApprovalHistory() throws ResourceNotFoundException {
+		User user = requireCurrentUser();
+		return approvalRepository
+				.findByApproverIdAndStatusNotAndDeletedFalseOrderByClosedAtDesc(user.getId(), ApprovalStatus.PENDING)
+				.stream()
+				.map(ApprovalResponse::new)
+				.collect(Collectors.toList());
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public ApprovalDashboardResponse getMyDashboard() throws ResourceNotFoundException {
+		return new ApprovalDashboardResponse(getMyPendingApprovals(), getMyUpcomingDueApprovals(),
+				getMyOverdueApprovals(), getMyApprovalHistory());
+	}
+
+	@Override
+	@Transactional(readOnly = true)
 	public ApprovalLoginTargetResponse getLoginTarget() throws ResourceNotFoundException {
 		List<ApprovalResponse> pending = getMyPendingApprovals();
 		String redirectUrl = null;
@@ -177,16 +242,6 @@ public class ApprovalService implements IApprovalService {
 			redirectUrl = "/approvals/pending";
 		}
 		return new ApprovalLoginTargetResponse(redirectUrl, pending);
-	}
-
-	private Company resolveCompany() {
-		Company company = CompanyContext.getCompany();
-		return company != null ? company : null;
-	}
-
-	private Organization resolveOrganization() {
-		Organization organization = OrganizationContext.getOrganization();
-		return organization != null ? organization : null;
 	}
 
 	private Approval getActiveApproval(Long approvalId) throws ResourceNotFoundException {
@@ -202,15 +257,54 @@ public class ApprovalService implements IApprovalService {
 	}
 
 	private void assertAuthorizedForWorkflowAction(Approval approval) throws ResourceNotFoundException {
-		User currentUser = UserContext.getUser();
-		if (currentUser == null) {
-			throw new ResourceNotFoundException("User not found.");
-		}
+		User currentUser = requireCurrentUser();
 		if (isSameUser(currentUser, approval.getSubmitter()) || isSameUser(currentUser, approval.getApprover())
 				|| hasAdminRole(currentUser)) {
 			return;
 		}
 		throw new ResourceNotFoundException("User is not authorized for this approval workflow action.");
+	}
+
+	private void assertAuthorizedToCreate(User submitter) throws ResourceNotFoundException {
+		User currentUser = UserContext.getUser();
+		if (currentUser == null) {
+			log.warn("Creating approval without UserContext; request headers should provide X-user-Id in API usage.");
+			return;
+		}
+		if (isSameUser(currentUser, submitter) || hasAdminRole(currentUser)) {
+			return;
+		}
+		throw new ResourceNotFoundException("User is not authorized to create approval for this submitter.");
+	}
+
+	private User requireCurrentUser() throws ResourceNotFoundException {
+		User user = UserContext.getUser();
+		if (user == null) {
+			throw new ResourceNotFoundException("User not found.");
+		}
+		return user;
+	}
+
+	private void validateCreateRequest(ApprovalRequest request) throws ResourceNotFoundException {
+		if (request == null) {
+			throw new ResourceNotFoundException("Approval request is required.");
+		}
+		if (request.getApproverId() == null) {
+			throw new ResourceNotFoundException("Approver is required.");
+		}
+		if (request.getSubmitterId() == null) {
+			throw new ResourceNotFoundException("Submitter is required.");
+		}
+		if (Objects.equals(request.getApproverId(), request.getSubmitterId())) {
+			throw new ResourceNotFoundException("Approver and submitter must be different users.");
+		}
+	}
+
+	private Date daysFrom(Date start, int days) {
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTime(start);
+		calendar.add(Calendar.DATE, days);
+		return calendar.getTime();
 	}
 
 	private boolean isSameUser(User left, User right) {

@@ -26,6 +26,7 @@ public class ApprovalResponse {
 	private Long companyId;
 	private Date assignedNotifiedAt;
 	private Date decisionNotifiedAt;
+	private Date reminderNotifiedAt;
 	private Date dueAt;
 	private Integer escalationLevel;
 	private Date escalatedAt;
@@ -53,6 +54,7 @@ public class ApprovalResponse {
 		this.companyId = approval.getCompany() != null ? approval.getCompany().getId() : null;
 		this.assignedNotifiedAt = approval.getAssignedNotifiedAt();
 		this.decisionNotifiedAt = approval.getDecisionNotifiedAt();
+		this.reminderNotifiedAt = approval.getReminderNotifiedAt();
 		this.dueAt = approval.getDueAt();
 		this.escalationLevel = approval.getEscalationLevel();
 		this.escalatedAt = approval.getEscalatedAt();

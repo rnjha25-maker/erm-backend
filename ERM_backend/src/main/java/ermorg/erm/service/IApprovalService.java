@@ -2,6 +2,7 @@ package ermorg.erm.service;
 
 import java.util.List;
 
+import ermorg.erm.dto.response.ApprovalDashboardResponse;
 import ermorg.erm.dto.response.ApprovalLoginTargetResponse;
 import ermorg.erm.dto.response.ApprovalResponse;
 import ermorg.erm.dto.riskDTO.ApprovalDecisionRequest;
@@ -20,6 +21,14 @@ public interface IApprovalService {
 	ApprovalResponse sendReminder(Long approvalId) throws ResourceNotFoundException;
 
 	List<ApprovalResponse> getMyPendingApprovals() throws ResourceNotFoundException;
+
+	List<ApprovalResponse> getMyUpcomingDueApprovals() throws ResourceNotFoundException;
+
+	List<ApprovalResponse> getMyOverdueApprovals() throws ResourceNotFoundException;
+
+	List<ApprovalResponse> getMyApprovalHistory() throws ResourceNotFoundException;
+
+	ApprovalDashboardResponse getMyDashboard() throws ResourceNotFoundException;
 
 	ApprovalLoginTargetResponse getLoginTarget() throws ResourceNotFoundException;
 }
