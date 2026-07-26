@@ -36,6 +36,12 @@ public interface ErmMaturityRepository extends JpaRepository<ERMMaturityAssessme
 	@Query("SELECT DISTINCT m FROM ERMMaturityAssessment m LEFT JOIN FETCH m.company "
 			+ "WHERE m.organization.id = :orgId AND m.deleted = false "
 			+ "AND m.ermMaturityId IS NOT NULL "
+			+ "ORDER BY m.ermMaturityId")
+	List<ERMMaturityAssessment> findAllGroupedByOrg(@Param("orgId") Long orgId);
+
+	@Query("SELECT DISTINCT m FROM ERMMaturityAssessment m LEFT JOIN FETCH m.company "
+			+ "WHERE m.organization.id = :orgId AND m.deleted = false "
+			+ "AND m.ermMaturityId IS NOT NULL "
 			+ "AND COALESCE(m.lastAssessmentDate, m.createdAt) BETWEEN :startDate AND :endDate "
 			+ "AND (:scopeCompanyId IS NULL OR m.company.id = :scopeCompanyId) "
 			+ "AND (:functionId IS NULL OR :functionId = 0 OR (:functionId <> 0 AND :functionId MEMBER OF m.departmentIds)) "

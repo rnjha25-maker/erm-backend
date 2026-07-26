@@ -2,12 +2,18 @@ package ermorg.erm.serviceimpl;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -18,12 +24,15 @@ import ermorg.erm.dto.riskDTO.ErmMaturityRequest;
 import ermorg.erm.exception.LimitExceedException;
 import ermorg.erm.exception.ResourceNotFoundException;
 import ermorg.erm.model.Company;
+import ermorg.erm.model.Department;
 import ermorg.erm.model.ERMMaturityAssessment;
 import ermorg.erm.model.Organization;
 import ermorg.erm.repository.CompanyRepository;
 import ermorg.erm.repository.ErmMaturityRepository;
+import ermorg.erm.service.DepartmentRepository;
 import ermorg.erm.service.IErmMaturityService;
 import ermorg.erm.util.CompanyContext;
+import ermorg.erm.util.ErmMaturityGroupingUtil;
 import ermorg.erm.util.MaturityLevelResolver;
 import ermorg.erm.util.OrganizationContext;
 import ermorg.erm.util.mapper.CustomResponseMapper;
@@ -36,6 +45,9 @@ public class MaturityService implements IErmMaturityService {
 
 	@Autowired
 	private CompanyRepository companyRepository;
+
+	@Autowired
+	private DepartmentRepository departmentRepository;
 
 	@Autowired
 	private CustomResponseMapper customResponseMapper;
@@ -117,11 +129,7 @@ public class MaturityService implements IErmMaturityService {
 	}
 
 	private String resolveErmMaturityId(long companyId, List<Long> departmentIds) {
-		List<Long> activeDeptIds = departmentIds.stream()
-				.filter(id -> id != null && id != 0)
-				.distinct()
-				.sorted()
-				.toList();
+		List<Long> activeDeptIds = ErmMaturityGroupingUtil.activeDepartmentIds(departmentIds);
 
 		if (activeDeptIds.isEmpty()) {
 			return String.valueOf(companyId);
@@ -184,18 +192,86 @@ public class MaturityService implements IErmMaturityService {
 
 		Organization organization = OrganizationContext.getOrganization();
 
-		Page<ERMMaturityAssessment> page = ermMaturityRepository.getAllByOrg(organization.getId(), pageable);
+		List<ERMMaturityAssessment> assessments = ErmMaturityGroupingUtil
+				.dedupeById(ermMaturityRepository.findAllGroupedByOrg(organization.getId()));
 
-		if (page.isEmpty()) {
+		LinkedHashMap<String, List<ERMMaturityAssessment>> byGroup = ErmMaturityGroupingUtil
+				.groupByErmMaturityId(assessments);
+
+		if (byGroup.isEmpty()) {
 			throw new ResourceNotFoundException("No record found.");
 		}
 
-		return page.map(this::mapToCustomResponse);
+		Map<String, String> departmentLabels = resolveDepartmentLabels(byGroup);
+
+		List<Map.Entry<String, List<ERMMaturityAssessment>>> groups = new ArrayList<>(byGroup.entrySet());
+		int totalGroups = groups.size();
+		int fromIndex = (int) Math.min(pageable.getOffset(), totalGroups);
+		int toIndex = Math.min(fromIndex + pageable.getPageSize(), totalGroups);
+		List<Map.Entry<String, List<ERMMaturityAssessment>>> pageGroups = groups.subList(fromIndex, toIndex);
+
+		List<List<CustomResponse>> rows = pageGroups.stream()
+				.map(entry -> mapGroupToCustomResponse(entry.getKey(), entry.getValue(), departmentLabels))
+				.toList();
+
+		return new PageImpl<>(rows, pageable, totalGroups);
 	}
 
-	private List<CustomResponse> mapToCustomResponse(ERMMaturityAssessment ermMaturity) {
+	private Map<String, String> resolveDepartmentLabels(Map<String, List<ERMMaturityAssessment>> byGroup) {
+		Set<Long> functionDeptIds = new HashSet<>();
+		for (List<ERMMaturityAssessment> group : byGroup.values()) {
+			List<Long> activeDeptIds = ErmMaturityGroupingUtil
+					.activeDepartmentIds(ErmMaturityGroupingUtil.firstRowDepartmentIds(group));
+			if (!ErmMaturityGroupingUtil.isCompanyWiseMaturity(activeDeptIds)) {
+				functionDeptIds.addAll(activeDeptIds);
+			}
+		}
 
-		return customResponseMapper.map("ermMaturity", 1L, new ErmMaturityResponse(ermMaturity), true);
+		Map<String, String> labels = new HashMap<>();
+		if (!functionDeptIds.isEmpty()) {
+			for (Department d : departmentRepository.findAllById(functionDeptIds)) {
+				labels.put(String.valueOf(d.getId()), d.getName());
+			}
+		}
+		return labels;
+	}
+
+	private List<CustomResponse> mapGroupToCustomResponse(String ermMaturityId, List<ERMMaturityAssessment> group,
+			Map<String, String> departmentLabels) {
+		return customResponseMapper.map("ermMaturity", 1L,
+				buildGroupedResponse(ermMaturityId, group, departmentLabels), true);
+	}
+
+	private ErmMaturityResponse buildGroupedResponse(String ermMaturityId, List<ERMMaturityAssessment> group,
+			Map<String, String> departmentLabels) {
+		ERMMaturityAssessment first = group.get(0);
+		List<Long> activeDeptIds = ErmMaturityGroupingUtil
+				.activeDepartmentIds(ErmMaturityGroupingUtil.firstRowDepartmentIds(group));
+		BigDecimal totalWeightageScore = ErmMaturityGroupingUtil.totalScore(group);
+		Company company = first.getCompany();
+
+		ErmMaturityResponse response = new ErmMaturityResponse();
+		response.setMaturityId(first.getId());
+		response.setErmMaturityId(ermMaturityId);
+		response.setDepartmentIds(new ArrayList<>(activeDeptIds));
+		response.setTotalWeightageScore(totalWeightageScore);
+		response.setMarksAchieved(totalWeightageScore != null ? totalWeightageScore.toPlainString() : "0");
+		response.setWeightageScore(totalWeightageScore != null ? totalWeightageScore.toPlainString() : "0");
+		response.setOverallMaturityLevel(ErmMaturityGroupingUtil.maturityLabel(totalWeightageScore));
+		response.setDisplayLabel(
+				ErmMaturityGroupingUtil.resolveDisplayLabel(ermMaturityId, activeDeptIds, company, departmentLabels));
+		if (company != null) {
+			response.setCompanyId(company.getId());
+		}
+		response.setStatus(first.getStatus());
+		response.setAssessedBy(first.getAssessedBy());
+		response.setDueDate(first.getDueDate());
+		response.setActualDate(first.getActualDate());
+		response.setLastAssessmentDate(first.getLastAssessmentDate());
+		response.setNextAssessmentDate(first.getNextAssessmentDate());
+		response.setRiskAppetiteStatus(first.getRiskAppetiteStatus());
+		response.setRiskAcceptanceLevel(first.getRiskAcceptanceLevel());
+		return response;
 	}
 
 	@Override

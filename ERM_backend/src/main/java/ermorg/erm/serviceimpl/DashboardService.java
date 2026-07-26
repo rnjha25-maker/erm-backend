@@ -58,7 +58,7 @@ import ermorg.erm.service.DepartmentRepository;
 import ermorg.erm.service.IDashboardService;
 import ermorg.erm.util.ErmDashboardPeriodBounds;
 import ermorg.erm.util.ErmDashboardRoleResolver;
-import ermorg.erm.util.MaturityLevelResolver;
+import ermorg.erm.util.ErmMaturityGroupingUtil;
 import ermorg.erm.util.CompanyContext;
 import ermorg.erm.util.OrganizationContext;
 import ermorg.erm.util.UserContext;
@@ -406,20 +406,17 @@ public class DashboardService implements IDashboardService {
 			ErmDashboardPeriodBounds bounds, Long scopeCompanyId, Long functionId,
 			boolean applyBranchDepartmentScope, boolean scopeByDepartment, List<Long> scopeDepartmentIds) {
 
-		List<ERMMaturityAssessment> assessments = ermMaturityRepository.findForErmDashboard(organization.getId(),
-				bounds.getStartInclusive(), bounds.getEndInclusive(), scopeCompanyId, functionId);
+		List<ERMMaturityAssessment> assessments = ErmMaturityGroupingUtil
+				.dedupeById(ermMaturityRepository.findForErmDashboard(organization.getId(), bounds.getStartInclusive(),
+						bounds.getEndInclusive(), scopeCompanyId, functionId));
 
-		assessments = new ArrayList<>(assessments.stream()
-				.collect(Collectors.toMap(ERMMaturityAssessment::getId, a -> a, (a, b) -> a))
-				.values());
-
-		Map<String, List<ERMMaturityAssessment>> byGroup = assessments.stream()
-				.collect(Collectors.groupingBy(ERMMaturityAssessment::getErmMaturityId));
+		Map<String, List<ERMMaturityAssessment>> byGroup = ErmMaturityGroupingUtil.groupByErmMaturityId(assessments);
 
 		Set<Long> functionDeptIds = new HashSet<>();
 		for (List<ERMMaturityAssessment> group : byGroup.values()) {
-			List<Long> activeDeptIds = activeDepartmentIds(firstRowDepartmentIds(group));
-			if (!isCompanyWiseMaturity(activeDeptIds)) {
+			List<Long> activeDeptIds = ErmMaturityGroupingUtil
+					.activeDepartmentIds(ErmMaturityGroupingUtil.firstRowDepartmentIds(group));
+			if (!ErmMaturityGroupingUtil.isCompanyWiseMaturity(activeDeptIds)) {
 				functionDeptIds.addAll(activeDeptIds);
 			}
 		}
@@ -429,9 +426,9 @@ public class DashboardService implements IDashboardService {
 		List<ErmMaturitySummaryGroup> functionWise = new ArrayList<>();
 		boolean functionIdIsSpecific = functionId != null && functionId != 0;
 
-		byGroup.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
-			List<ERMMaturityAssessment> group = entry.getValue();
-			List<Long> activeDeptIds = activeDepartmentIds(firstRowDepartmentIds(group));
+		byGroup.forEach((ermMaturityId, group) -> {
+			List<Long> activeDeptIds = ErmMaturityGroupingUtil
+					.activeDepartmentIds(ErmMaturityGroupingUtil.firstRowDepartmentIds(group));
 
 			if (!passesMaturityDepartmentScope(activeDeptIds, applyBranchDepartmentScope, scopeByDepartment,
 					scopeDepartmentIds)) {
@@ -442,9 +439,9 @@ public class DashboardService implements IDashboardService {
 				return;
 			}
 
-			ErmMaturitySummaryGroup summary = buildMaturitySummaryGroup(entry.getKey(), group, activeDeptIds,
+			ErmMaturitySummaryGroup summary = buildMaturitySummaryGroup(ermMaturityId, group, activeDeptIds,
 					departmentLabels);
-			if (isCompanyWiseMaturity(activeDeptIds)) {
+			if (ErmMaturityGroupingUtil.isCompanyWiseMaturity(activeDeptIds)) {
 				companyWise.add(summary);
 			} else {
 				functionWise.add(summary);
@@ -459,10 +456,8 @@ public class DashboardService implements IDashboardService {
 			List<ERMMaturityAssessment> group, List<Long> activeDeptIds, Map<String, String> departmentLabels) {
 
 		ERMMaturityAssessment first = group.get(0);
-		BigDecimal totalWeightageScore = MaturityLevelResolver.sumMarksAchieved(
-				group.stream().map(ERMMaturityAssessment::getMarksAchieved).toList());
-
-		String overallMaturityLevel = MaturityLevelResolver.resolveMaturityLabel(totalWeightageScore.doubleValue());
+		BigDecimal totalWeightageScore = ErmMaturityGroupingUtil.totalScore(group);
+		String overallMaturityLevel = ErmMaturityGroupingUtil.maturityLabel(totalWeightageScore);
 
 		ErmMaturitySummaryGroup summary = new ErmMaturitySummaryGroup();
 		summary.setErmMaturityId(ermMaturityId);
@@ -475,31 +470,9 @@ public class DashboardService implements IDashboardService {
 			summary.setCompanyId(company.getId());
 		}
 
-		if (isCompanyWiseMaturity(activeDeptIds)) {
-			summary.setDisplayLabel(company != null && company.getName() != null ? company.getName() : ermMaturityId);
-		} else {
-			summary.setDisplayLabel(resolveMaturityFunctionDisplayLabel(activeDeptIds, departmentLabels));
-		}
+		summary.setDisplayLabel(
+				ErmMaturityGroupingUtil.resolveDisplayLabel(ermMaturityId, activeDeptIds, company, departmentLabels));
 		return summary;
-	}
-
-	private static List<Long> firstRowDepartmentIds(List<ERMMaturityAssessment> group) {
-		if (group.isEmpty()) {
-			return List.of();
-		}
-		List<Long> ids = group.get(0).getDepartmentIds();
-		return ids != null ? ids : List.of();
-	}
-
-	private static List<Long> activeDepartmentIds(List<Long> departmentIds) {
-		if (departmentIds == null) {
-			return List.of();
-		}
-		return departmentIds.stream().filter(id -> id != null && id != 0).distinct().sorted().toList();
-	}
-
-	private static boolean isCompanyWiseMaturity(List<Long> activeDeptIds) {
-		return activeDeptIds.isEmpty();
 	}
 
 	private static boolean passesMaturityDepartmentScope(List<Long> activeDeptIds, boolean applyBranchDepartmentScope,
@@ -507,16 +480,10 @@ public class DashboardService implements IDashboardService {
 		if (!applyBranchDepartmentScope || !scopeByDepartment) {
 			return true;
 		}
-		if (isCompanyWiseMaturity(activeDeptIds)) {
+		if (ErmMaturityGroupingUtil.isCompanyWiseMaturity(activeDeptIds)) {
 			return true;
 		}
 		return activeDeptIds.stream().anyMatch(scopeDepartmentIds::contains);
-	}
-
-	private static String resolveMaturityFunctionDisplayLabel(List<Long> activeDeptIds,
-			Map<String, String> departmentLabels) {
-		return activeDeptIds.stream().map(id -> departmentLabels.getOrDefault(String.valueOf(id), String.valueOf(id)))
-				.collect(Collectors.joining(", "));
 	}
 
 	private Map<String, String> resolveDepartmentLabelsByIds(Set<Long> ids) {

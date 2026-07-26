@@ -1,5 +1,6 @@
 package ermorg.erm.dto.response;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 
@@ -42,6 +43,15 @@ public class ErmMaturityResponse {
 
     private List<Long> departmentIds;
 
+    private String displayLabel;
+
+    private Long companyId;
+
+    private BigDecimal totalWeightageScore;
+
+    public ErmMaturityResponse() {
+    }
+
     public ErmMaturityResponse(ERMMaturityAssessment assessment) {
 	    this.maturityId = assessment.getId();
 	    this.assessmentAreaName = assessment.getAssessmentAreaName();
@@ -60,6 +70,8 @@ public class ErmMaturityResponse {
 	    this.departmentIds = assessment.getDepartmentIds();
         this.riskAppetiteStatus = assessment.getRiskAppetiteStatus();
         this.riskAcceptanceLevel = assessment.getRiskAcceptanceLevel();
-
+        if (assessment.getCompany() != null) {
+        	this.companyId = assessment.getCompany().getId();
+        }
     }
 }
