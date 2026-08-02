@@ -7,4 +7,6 @@ import lombok.Data;
 public class ApprovalDecisionRequest {
 	private ApprovalStatus status;
 	private String comment;
+	private String rootCause;
+	private String actionTaken;
 }

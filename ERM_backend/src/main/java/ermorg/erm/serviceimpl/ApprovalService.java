@@ -77,12 +77,14 @@ public class ApprovalService implements IApprovalService {
 		approval.setTriggerType(request.getTriggerType() == null ? WorkflowTriggerType.AUTOMATIC : request.getTriggerType());
 		approval.setStatus(ApprovalStatus.PENDING);
 		Approval saved = approvalRepository.save(approval);
+		notificationService.sendApprovalSubmitted(saved);
 		if (saved.getTriggerType() == WorkflowTriggerType.AUTOMATIC) {
 			notificationService.sendApprovalAssigned(saved);
 		}
-		log.info("Approval created id={} sourceModule={} sourceRecordId={} submitterId={} approverId={} triggerType={}",
+		log.info(
+				"Audit: Approval Created approvalId={} module={} recordId={} requesterId={} approverId={} decision={} timestamp={} triggerType={}",
 				saved.getId(), saved.getSourceModule(), saved.getSourceRecordId(), submitter.getId(), approver.getId(),
-				saved.getTriggerType());
+				saved.getStatus(), saved.getCreatedAt(), saved.getTriggerType());
 		return new ApprovalResponse(saved);
 	}
 
@@ -93,17 +95,11 @@ public class ApprovalService implements IApprovalService {
 				.filter(item -> !Boolean.TRUE.equals(item.getDeleted()))
 				.orElseThrow(() -> new ResourceNotFoundException("Approval not found."));
 
+		validateDecisionRequest(request);
 		User currentUser = UserContext.getUser();
 		if (currentUser != null && approval.getApprover() != null
 				&& !Objects.equals(currentUser.getId(), approval.getApprover().getId())) {
 			throw new ResourceNotFoundException("Approval is not assigned to the logged-in user.");
-		}
-		if (request.getStatus() != ApprovalStatus.APPROVED && request.getStatus() != ApprovalStatus.REJECTED) {
-			throw new ResourceNotFoundException("Decision must be APPROVED or REJECTED.");
-		}
-		if (request.getStatus() == ApprovalStatus.REJECTED
-				&& (request.getComment() == null || request.getComment().isBlank())) {
-			throw new ResourceNotFoundException("Reject comment is required.");
 		}
 
 		if (approval.getStatus() != ApprovalStatus.PENDING) {
@@ -112,12 +108,20 @@ public class ApprovalService implements IApprovalService {
 
 		approval.setStatus(request.getStatus());
 		approval.setComment(request.getComment());
-		approval.setNotifiedAt(new Date());
-		approval.setClosedAt(new Date());
+		approval.setRootCause(request.getRootCause());
+		approval.setActionTaken(request.getActionTaken());
+		Date decisionAt = new Date();
+		approval.setNotifiedAt(decisionAt);
+		approval.setClosedAt(decisionAt);
 		Approval saved = approvalRepository.save(approval);
 		notificationService.sendApprovalDecision(saved);
-		log.info("Approval decision id={} status={} approverId={} closedAt={}", saved.getId(), saved.getStatus(),
-				currentUser != null ? currentUser.getId() : null, saved.getClosedAt());
+		log.info(
+				"Audit: Approval {} approvalId={} module={} recordId={} requesterId={} approverId={} decision={} timestamp={}",
+				saved.getStatus() == ApprovalStatus.APPROVED ? "Approved" : "Rejected", saved.getId(),
+				saved.getSourceModule(), saved.getSourceRecordId(),
+				saved.getSubmitter() != null ? saved.getSubmitter().getId() : null,
+				saved.getApprover() != null ? saved.getApprover().getId() : null, saved.getStatus(),
+				saved.getClosedAt());
 		return new ApprovalResponse(saved);
 	}
 
@@ -297,6 +301,29 @@ public class ApprovalService implements IApprovalService {
 		}
 		if (Objects.equals(request.getApproverId(), request.getSubmitterId())) {
 			throw new ResourceNotFoundException("Approver and submitter must be different users.");
+		}
+	}
+
+	private void validateDecisionRequest(ApprovalDecisionRequest request) throws ResourceNotFoundException {
+		if (request == null) {
+			throw new ResourceNotFoundException("Approval decision request is required.");
+		}
+		if (request.getStatus() == null) {
+			throw new ResourceNotFoundException("Decision status is required.");
+		}
+		if (request.getStatus() != ApprovalStatus.APPROVED && request.getStatus() != ApprovalStatus.REJECTED) {
+			throw new ResourceNotFoundException("Decision must be APPROVED or REJECTED.");
+		}
+		if (request.getStatus() == ApprovalStatus.REJECTED) {
+			requireDecisionText(request.getComment(), "Comment is required when rejecting an approval.");
+			requireDecisionText(request.getRootCause(), "Root cause is required when rejecting an approval.");
+			requireDecisionText(request.getActionTaken(), "Action taken is required when rejecting an approval.");
+		}
+	}
+
+	private void requireDecisionText(String value, String message) throws ResourceNotFoundException {
+		if (value == null || value.isBlank()) {
+			throw new ResourceNotFoundException(message);
 		}
 	}
 

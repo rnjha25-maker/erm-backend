@@ -187,12 +187,12 @@ public class RiskService implements IRiskService {
 
 		return dtos.stream().map(dto -> {
 
-			// ✅ Reuse if exists, else create new
+			// ? Reuse if exists, else create new
 			SubRisk subRisk = Optional.ofNullable(dto.getSubRiskId()).map(existing::get).orElseGet(SubRisk::new);
 
-			// ✅ Always update name (your requirement)
+			// ? Always update name (your requirement)
 			subRisk.setSubRisk(dto.getSubRiskName());
-			// ✅ Common fields
+			// ? Common fields
 			subRisk.setRisk(risk);
 			subRisk.setOrganizationId(org.getId());
 			subRisk.setCompanyId(company.getId());
@@ -250,12 +250,16 @@ public class RiskService implements IRiskService {
 		riskAsessment.setStage(request.getStage());
 		riskAsessment.setRiskAppetiteStatus(request.getRiskAppetiteStatus());
 		riskAsessment.setRiskAcceptanceLevel(request.getRiskAcceptanceLevel());
+		riskAsessment.setValueUnit(request.getValueUnit());
+		riskAsessment.setCurrency(request.getCurrency());
 		riskAsessment.setAssetValue(request.getAssetValue());
 		riskAsessment.setOffPotentialLoss(request.getOffPotentialLoss());
 		riskAsessment.setYearlyFrequency(request.getYearlyFrequency());
 		riskAsessment.setYearlyLossExpectancy(request.getYearlyLossExpectancy());
 		riskAsessment.setRiskRatingScore(request.getRiskRatingScore());
 		riskAsessment.setResidualRiskRatingCriteria(request.getResidualRiskRatingCriteria());
+		riskAsessment.setLastEvaluationDate(request.getLastEvaluationDate());
+		riskAsessment.setNextEvaluationDate(request.getNextEvaluationDate());
 		RiskAssessment saveAssessment = riskAsessmentRepository.save(riskAsessment);
 
 		return toRiskResponse(riskRepository.getRiskWithAssessments(saveAssessment.getRisk().getId()));

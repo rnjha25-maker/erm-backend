@@ -1,13 +1,14 @@
 package ermorg.erm.mapping;
 
+import ermorg.erm.dto.response.RiskAssessmentResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.springframework.stereotype.Component;
-
-import ermorg.erm.dto.response.RiskAssessmentResponse;
-import lombok.RequiredArgsConstructor;
+import static ermorg.erm.mapping.CustomFieldConfig.normalizeKey;
 
 @Component
 @RequiredArgsConstructor
@@ -32,25 +33,17 @@ public class RiskAssessmentStrategyConfig implements FieldStrategy {
     private Map<String, Function<RiskAssessmentResponse, Object>> buildCustomStrategies() {
         Map<String, Function<RiskAssessmentResponse, Object>> map = new HashMap<>();
 
-        map.put(n("riskAssessmentBy"),
+        map.put(normalizeKey("riskAssessmentBy"),
                 r -> fieldMapperUtils.resolveUserFromObject(r.getRiskAssessmentBy()));
-
-        map.put(n("riskReporting"),
+        map.put(normalizeKey("riskReporting"),
                 r -> fieldMapperUtils.resolveUserFromObject(r.getRiskReporting()));
-        map.put(n("riskTitle"),RiskAssessmentResponse::getRiskTitle);
-        map.put(n("subRiskIds"),RiskAssessmentResponse::getSubRiskName);
-        map.put(n("riskId"), RiskAssessmentResponse::getRiskTitle);
-        return map;
-    }
+        map.put(normalizeKey("riskTitle"),  RiskAssessmentResponse::getRiskTitle);
+        map.put(normalizeKey("subRiskIds"), RiskAssessmentResponse::getSubRiskName);
+        map.put(normalizeKey("riskId"),     RiskAssessmentResponse::getRiskTitle);
+        map.put(normalizeKey("valueUnit"),
+                r -> r.getValueUnit() != null ? r.getValueUnit().getLabel() : null);
+        map.put(normalizeKey("currency"),   RiskAssessmentResponse::getCurrency);
 
-    private static String n(String value) {
-        if (value == null) return "";
-        StringBuilder sb = new StringBuilder(value.length());
-        for (char c : value.toCharArray()) {
-            if (Character.isLetterOrDigit(c)) {
-                sb.append(Character.toLowerCase(c));
-            }
-        }
-        return sb.toString();
+        return map;
     }
 }

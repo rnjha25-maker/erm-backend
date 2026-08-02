@@ -83,6 +83,7 @@ public class RiskReviewService implements IRiskReviewService {
 				riskReview.setSubRisks(subRisks);
 				riskReview.setRisk(risk);
 				riskReview.setRiskReporting(riskReporting);
+				riskReview.setCurrency(request.getCurrency());
 				riskReview.setOrganization(organization);
 				riskReview.setCompany(company);
 				RiskReview saved = riskReviewRepository.save(riskReview);

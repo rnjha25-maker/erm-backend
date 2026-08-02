@@ -1,9 +1,12 @@
 package ermorg.erm.dto.response;
 
 import ermorg.erm.constant.RiskAcceptanceLevel;
+import ermorg.erm.constant.RiskValueUnit;
 import ermorg.erm.model.RiskAssessment;
 
 import lombok.Data;
+
+import java.time.LocalDate;
 
 @Data
 public class RiskAssessmentResponse {
@@ -35,11 +38,15 @@ public class RiskAssessmentResponse {
     private String stage;
     private String riskAppetiteStatus;
     private RiskAcceptanceLevel riskAcceptanceLevel;
-    private long assetValue;
-	private long yearlyFrequency;
-	private double offPotentialLoss;
-	private long residualRiskRatingCriteria;
-	private double yearlyLossExpectancy;
+    private RiskValueUnit valueUnit;
+    private String currency;
+    private Long assetValue;
+    private Long yearlyFrequency;
+    private Double offPotentialLoss;
+    private Long residualRiskRatingCriteria;
+    private Double yearlyLossExpectancy;
+    private LocalDate lastEvaluationDate;
+    private LocalDate nextEvaluationDate;
 
     public RiskAssessmentResponse(RiskAssessment riskAssessment) {
     	this.assessmentId = riskAssessment.getId();
@@ -71,11 +78,14 @@ public class RiskAssessmentResponse {
 		this.stage = riskAssessment.getStage();
 		this.riskAppetiteStatus = riskAssessment.getRiskAppetiteStatus();
 		this.riskAcceptanceLevel = riskAssessment.getRiskAcceptanceLevel();
+		this.valueUnit = riskAssessment.getValueUnit();
+		this.currency = riskAssessment.getCurrency();
 		this.assetValue = riskAssessment.getAssetValue();
 		this.yearlyFrequency = riskAssessment.getYearlyFrequency();
 		this.offPotentialLoss = riskAssessment.getOffPotentialLoss();
 		this.residualRiskRatingCriteria = riskAssessment.getResidualRiskRatingCriteria();
 		this.yearlyLossExpectancy = riskAssessment.getYearlyLossExpectancy();
+		this.lastEvaluationDate = riskAssessment.getLastEvaluationDate();
+		this.nextEvaluationDate = riskAssessment.getNextEvaluationDate();
     }
-	
 }

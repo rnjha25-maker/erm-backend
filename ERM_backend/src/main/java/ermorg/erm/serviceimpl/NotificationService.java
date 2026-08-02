@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 import ermorg.erm.constant.NotificationChannel;
 import ermorg.erm.constant.NotificationStatus;
 import ermorg.erm.constant.WorkflowEventType;
+import ermorg.erm.dto.response.NotificationResponse;
+import ermorg.erm.exception.ResourceNotFoundException;
 import ermorg.erm.model.Approval;
 import ermorg.erm.model.Notification;
 import ermorg.erm.model.Organization;
@@ -25,6 +27,7 @@ import ermorg.erm.model.UserDetail;
 import ermorg.erm.repository.NotificationRepository;
 import ermorg.erm.repository.UserRepository;
 import ermorg.erm.util.OrganizationContext;
+import ermorg.erm.util.UserContext;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -47,12 +50,32 @@ public class NotificationService {
         this.mailSenderProvider = mailSenderProvider;
     }
 
+    public List<NotificationResponse> getMyNotifications() throws ResourceNotFoundException {
+        User user = UserContext.getUser();
+        if (user == null) {
+            throw new ResourceNotFoundException("User not found.");
+        }
+        return notificationRepository.findByRecipientIdAndDeletedFalseOrderByCreatedAtDesc(user.getId())
+                .stream()
+                .map(NotificationResponse::new)
+                .toList();
+    }
+
+    public void sendApprovalSubmitted(Approval approval) {
+        if (approval == null) {
+            return;
+        }
+        notificationForRecipients(approval, WorkflowEventType.SUBMITTED,
+                "Approval request submitted successfully.",
+                buildSubmittedBody(approval), approval.getSubmitter());
+    }
+
     public void sendApprovalAssigned(Approval approval) {
         if (approval == null) {
             return;
         }
         notificationForRecipients(approval, WorkflowEventType.ASSIGNED,
-                "Approval assigned: " + safeRecordName(approval),
+                "You have a new approval request.",
                 buildAssignmentBody(approval), approval.getApprover());
         approval.setAssignedNotifiedAt(new Date());
     }
@@ -156,6 +179,14 @@ public class NotificationService {
         return recipients;
     }
 
+    private String buildSubmittedBody(Approval approval) {
+        return "Approval request submitted successfully." + System.lineSeparator()
+                + "Module: " + nullToBlank(approval.getSourceModule()) + System.lineSeparator()
+                + "Record: " + safeRecordName(approval) + System.lineSeparator()
+                + "Approver: " + displayName(approval.getApprover()) + System.lineSeparator()
+                + "Date: " + new Date();
+    }
+
     private List<String> extractMentions(String text) {
         List<String> mentions = new java.util.ArrayList<>();
         Matcher matcher = MENTION_PATTERN.matcher(text);
@@ -178,16 +209,34 @@ public class NotificationService {
     }
 
     private String buildAssignmentBody(Approval approval) {
-        return "Approval assigned to you" + System.lineSeparator()
+        return "You have a new approval request." + System.lineSeparator()
+                + "Module: " + nullToBlank(approval.getSourceModule()) + System.lineSeparator()
                 + "Record: " + safeRecordName(approval) + System.lineSeparator()
+                + "Requester: " + displayName(approval.getSubmitter()) + System.lineSeparator()
                 + "Link: " + approval.getPageLink();
     }
 
     private String buildDecisionBody(Approval approval) {
-        return "Approval: " + approval.getStatus() + System.lineSeparator()
-                + "Record: " + safeRecordName(approval) + System.lineSeparator()
-                + "Comment: " + (approval.getComment() == null ? "" : approval.getComment()) + System.lineSeparator()
-                + "Link: " + approval.getPageLink();
+        boolean approved = approval.getStatus() == ermorg.erm.constant.ApprovalStatus.APPROVED;
+        StringBuilder body = new StringBuilder();
+        body.append(approved
+                ? "Your approval request has been approved."
+                : "Your approval request has been rejected.")
+                .append(System.lineSeparator())
+                .append("Module: ").append(nullToBlank(approval.getSourceModule())).append(System.lineSeparator())
+                .append("Record: ").append(safeRecordName(approval)).append(System.lineSeparator())
+                .append("Approver: ").append(displayName(approval.getApprover())).append(System.lineSeparator())
+                .append("Date: ").append(approval.getClosedAt() == null ? new Date() : approval.getClosedAt())
+                .append(System.lineSeparator())
+                .append("Comment: ").append(nullToBlank(approval.getComment()));
+        if (!approved) {
+            body.append(System.lineSeparator())
+                    .append("Reason: ").append(nullToBlank(approval.getComment())).append(System.lineSeparator())
+                    .append("Root Cause: ").append(nullToBlank(approval.getRootCause())).append(System.lineSeparator())
+                    .append("Action Taken: ").append(nullToBlank(approval.getActionTaken()));
+        }
+        body.append(System.lineSeparator()).append("Link: ").append(approval.getPageLink());
+        return body.toString();
     }
 
     private String buildEscalationBody(Approval approval) {

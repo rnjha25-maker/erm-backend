@@ -1,13 +1,14 @@
 package ermorg.erm.mapping;
 
+import ermorg.erm.dto.response.KpaKpiReviewResponseDTO;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.springframework.stereotype.Component;
-
-import ermorg.erm.dto.response.KpaKpiReviewResponseDTO;
-import lombok.RequiredArgsConstructor;
+import static ermorg.erm.mapping.CustomFieldConfig.normalizeKey;
 
 @Component
 @RequiredArgsConstructor
@@ -32,21 +33,15 @@ public class KpaKpiReviewStrategyConfig implements FieldStrategy {
     private Map<String, Function<KpaKpiReviewResponseDTO, Object>> buildCustomStrategies() {
         Map<String, Function<KpaKpiReviewResponseDTO, Object>> map = new HashMap<>();
 
-        map.put(n("businessFunctionalOwner"), r -> fieldMapperUtils.resolveUser(r.getBusinessFunctionalOwner()));
-        map.put(n("evaluationBy"), r -> fieldMapperUtils.resolveUser(r.getEvaluationBy()));
-        map.put(n("targets"), KpaKpiReviewResponseDTO::getTargetValue);
+        map.put(normalizeKey("businessFunctionalOwner"),
+                r -> fieldMapperUtils.resolveUser(r.getBusinessFunctionalOwner()));
+        map.put(normalizeKey("evaluationBy"),
+                r -> fieldMapperUtils.resolveUser(r.getEvaluationBy()));
+        map.put(normalizeKey("targets"),  KpaKpiReviewResponseDTO::getTargetValue);
+        map.put(normalizeKey("valueUnit"),
+                r -> r.getValueUnit() != null ? r.getValueUnit().getLabel() : null);
+        map.put(normalizeKey("currency"), KpaKpiReviewResponseDTO::getCurrency);
 
         return map;
-    }
-
-    private static String n(String value) {
-        if (value == null) return "";
-        StringBuilder sb = new StringBuilder(value.length());
-        for (char c : value.toCharArray()) {
-            if (Character.isLetterOrDigit(c)) {
-                sb.append(Character.toLowerCase(c));
-            }
-        }
-        return sb.toString();
     }
 }

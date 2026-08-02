@@ -3,6 +3,7 @@ package ermorg.erm.dto.response;
 import java.math.BigDecimal;
 
 import ermorg.erm.constant.RiskAcceptanceLevel;
+import ermorg.erm.constant.RiskValueUnit;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -45,6 +46,7 @@ public class KpaKpiReviewResponseDTO {
     private String reportingFrequency;
     private String unitOfMeasurement;
     private String currency;
+    private RiskValueUnit valueUnit;
     private BigDecimal targetValue;
     private BigDecimal actualValue;
     private BigDecimal actuals;
