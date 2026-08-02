@@ -18,8 +18,6 @@ import ermorg.erm.exception.ResourceNotFoundException;
 import ermorg.erm.model.Category;
 import ermorg.erm.model.FieldOption;
 import ermorg.erm.model.ModuleOrganization;
-import ermorg.erm.model.Organization;
-import ermorg.erm.model.SystemField;
 import ermorg.erm.repository.CategoryRepository;
 import ermorg.erm.repository.CustomFieldRepository;
 import ermorg.erm.repository.FieldOptionRepository;
