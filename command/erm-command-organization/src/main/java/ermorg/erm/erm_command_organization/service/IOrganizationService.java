@@ -26,6 +26,8 @@ public interface IOrganizationService {
 
 	public UpdateModuleRequest updateModule(UpdateModuleRequest request);
 
+	UpdateModuleRequest getModules(Long organizationId);
+
 	UpdateModuleRequest updateModuleView(UpdateModuleRequest request) throws ResourceNotFoundException;
 
 	ModuleRightRequest updateRight(ModuleRightRequest request) throws ResourceNotFoundException;

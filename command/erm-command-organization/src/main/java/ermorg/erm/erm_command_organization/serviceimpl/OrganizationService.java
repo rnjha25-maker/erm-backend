@@ -1,7 +1,9 @@
 package ermorg.erm.erm_command_organization.serviceimpl;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +12,8 @@ import org.springframework.stereotype.Service;
 
 import ermorg.erm.erm_command_organization.dto.request.UpdateModuleRequest;
 import ermorg.erm.erm_command_organization.dto.requestDTO.ModuleRightRequest;
+import ermorg.erm.erm_command_organization.dto.requestDTO.OrgCategoryRequest;
+import ermorg.erm.erm_command_organization.dto.requestDTO.OrgModuleRequest;
 import ermorg.erm.erm_command_organization.dto.requestDTO.OrganizationDTO;
 import ermorg.erm.erm_command_organization.dto.responseDTO.OrganizationResponse;
 import ermorg.erm.erm_command_organization.exception.DataNotFoundException;
@@ -256,6 +260,48 @@ public class OrganizationService implements IOrganizationService {
             saveOrganizationHistory(organization, "U", true, "category");
 
         return request;
+    }
+
+    @Override
+    public UpdateModuleRequest getModules(Long organizationId) {
+        Organization organization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new DataNotFoundException("No organization found"));
+
+        List<ModuleOrganization> moduleRows = moduleOrganizationRepository.getByOrganizationId(organizationId)
+                .stream()
+                .filter(m -> m.getFieldId() != null)
+                .collect(Collectors.toList());
+
+        Map<Long, Map<Long, List<Long>>> grouped = new LinkedHashMap<>();
+        for (ModuleOrganization row : moduleRows) {
+            grouped
+                    .computeIfAbsent(row.getModuleId(), k -> new LinkedHashMap<>())
+                    .computeIfAbsent(row.getCategoryId(), k -> new ArrayList<>())
+                    .add(row.getFieldId());
+        }
+
+        List<OrgModuleRequest> orgModules = grouped.entrySet().stream()
+                .map(moduleEntry -> {
+                    OrgModuleRequest orgModule = new OrgModuleRequest();
+                    orgModule.setModuleId(moduleEntry.getKey());
+                    List<OrgCategoryRequest> categories = moduleEntry.getValue().entrySet().stream()
+                            .map(categoryEntry -> {
+                                OrgCategoryRequest category = new OrgCategoryRequest();
+                                category.setCategoryId(categoryEntry.getKey());
+                                category.setOrgId(organizationId);
+                                category.setFieldIds(categoryEntry.getValue());
+                                return category;
+                            })
+                            .collect(Collectors.toList());
+                    orgModule.setCategories(categories);
+                    return orgModule;
+                })
+                .collect(Collectors.toList());
+
+        UpdateModuleRequest response = new UpdateModuleRequest();
+        response.setOrgId(organization.getId());
+        response.setOrgModules(orgModules);
+        return response;
     }
 
     @Override
