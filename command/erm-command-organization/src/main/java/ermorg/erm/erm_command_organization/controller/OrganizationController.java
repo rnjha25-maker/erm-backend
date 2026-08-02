@@ -121,6 +121,16 @@ public class OrganizationController {
         response.setMessage("Organization created!");
         return response;
     }
+
+    @GetMapping("/get-modules/{organizationId:[\\d]+}")
+    public GeneralResponse<UpdateModuleRequest> getModules(@PathVariable Long organizationId) {
+        GeneralResponse<UpdateModuleRequest> response = new GeneralResponse<>();
+        UpdateModuleRequest modules = organizationService.getModules(organizationId);
+        response.setData(modules);
+        response.setStatus(ResponseStatus.SUCCESS);
+        response.setMessage("Modules fetched successfully!");
+        return response;
+    }
     
     @PostMapping("/update-module-view")
     public GeneralResponse<UpdateModuleRequest> updateModuleView(@Valid @RequestBody UpdateModuleRequest request) throws ResourceNotFoundException {
