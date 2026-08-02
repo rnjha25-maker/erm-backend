@@ -24,6 +24,8 @@ public class CategoryListResponse {
 		this.categoryName = category.getCategoryName();
 		this.fieldCount = category.getFields().size();
 		this.mappedWithTable = category.getMappedWithTable();
-		category.getFields().forEach(field -> this.fields.add(new CustomFieldResponse(field)));
+		category.getFields()
+		.stream().filter(field -> !field.getDeleted())
+		.forEach(field -> this.fields.add(new CustomFieldResponse(field)));
 	}
 }
