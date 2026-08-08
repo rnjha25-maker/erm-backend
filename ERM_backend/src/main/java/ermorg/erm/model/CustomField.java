@@ -7,7 +7,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -31,7 +30,7 @@ public class CustomField extends BaseModel{
 	private Boolean disabled;
 	
 	private Integer fieldOrder;
-	@OneToOne
+	@ManyToOne
 	@JoinColumn(name="system-field-id")
 	private SystemField systemField;
 	@ManyToOne

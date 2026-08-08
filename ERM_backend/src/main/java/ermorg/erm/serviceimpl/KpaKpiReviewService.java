@@ -161,6 +161,7 @@ public class KpaKpiReviewService {
         review.setLevelOfMeasurementLevel(request.getMeasurableParameters());
         review.setReportingFrequency(request.getReportingFrequency());
         review.setCurrency(request.getCurrency());
+        review.setValueUnit(request.getValueUnit());
         review.setTargetValue(request.getTargetValue());
         review.setActualValue(request.getActualValue());
         review.setJanuary(request.getJanuary());
@@ -237,6 +238,7 @@ public class KpaKpiReviewService {
         response.setReportingFrequency(review.getReportingFrequency());
         response.setUnitOfMeasurement(review.getLevelOfMeasurementLevel());
         response.setCurrency(review.getCurrency());
+        response.setValueUnit(review.getValueUnit());
         response.setTargetValue(review.getTargetValue());
         response.setActualValue(review.getActualValue());
         response.setActuals(review.getActualValue());

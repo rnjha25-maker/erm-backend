@@ -1,6 +1,7 @@
 package ermorg.erm.model;
 
 import ermorg.erm.constant.RiskAcceptanceLevel;
+import ermorg.erm.constant.RiskValueUnit;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -12,22 +13,24 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDate;
+
 @Getter
 @Setter
 @Table(name="risk_assessment", indexes = {
 	@jakarta.persistence.Index(name = "idx_riskassessment_org_deleted", columnList  = "organization_id,deleted")
 })
 @Entity
-public class RiskAssessment  extends BaseModel{
+public class RiskAssessment extends BaseModel {
 
 	@ManyToOne
 	@JoinColumn(name = "risk_id")
 	private Risk risk;
-    
+
 	@OneToOne
 	@JoinColumn(name = "subrisk_id")
 	private SubRisk subRisk;
-	
+
 	@ManyToOne
 	@JoinColumn(name = "organization_id")
 	private Organization organization;
@@ -35,7 +38,7 @@ public class RiskAssessment  extends BaseModel{
 	@ManyToOne
 	@JoinColumn(name = "company_id")
 	private Company company;
-	
+
     private String riskAnalysisType;
     private String likelihood;
     private String likelihoodProbability;
@@ -62,19 +65,35 @@ public class RiskAssessment  extends BaseModel{
 	@Enumerated(EnumType.STRING)
 	@Column(name = "risk_acceptance_level", length = 100)
 	private RiskAcceptanceLevel riskAcceptanceLevel;
-    
-  //newly added
-	
-  	@Column(name="asset_value")
-  	private long assetValue;
-  	@Column(name="off_potential_loss")
-  	private double offPotentialLoss;
-  	@Column(name="yearly_frequency")
-  	private long yearlyFrequency;
-  	@Column(name="yearly_loss_expectancy")
-  	private double yearlyLossExpectancy;
-  	@Column(name="risk_rating_score")
-  	private double riskRatingScore;
-  	@Column(name="residual_risk_rating_criteria")
-  	private long residualRiskRatingCriteria;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "value_unit", length = 30)
+	private RiskValueUnit valueUnit;
+
+	@Column(name = "currency", length = 10)
+	private String currency;
+
+	@Column(name = "asset_value")
+	private Long assetValue;
+
+	@Column(name = "off_potential_loss")
+	private Double offPotentialLoss;
+
+	@Column(name = "yearly_frequency")
+	private Long yearlyFrequency;
+
+	@Column(name = "yearly_loss_expectancy")
+	private Double yearlyLossExpectancy;
+
+	@Column(name = "risk_rating_score")
+	private Double riskRatingScore;
+
+	@Column(name = "residual_risk_rating_criteria")
+	private Long residualRiskRatingCriteria;
+
+	@Column(name = "last_evaluation_date")
+	private LocalDate lastEvaluationDate;
+
+	@Column(name = "next_evaluation_date")
+	private LocalDate nextEvaluationDate;
 }

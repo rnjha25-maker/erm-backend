@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 import ermorg.erm.constant.RiskAcceptanceLevel;
+import ermorg.erm.constant.RiskValueUnit;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.FutureOrPresent;
@@ -73,6 +74,7 @@ public class KpaKpiReviewRequestDTO {
     private String reportingFrequency;
     @Pattern(regexp = "^[A-Z]{3}$", message = "currency must be a 3-letter ISO code")
     private String currency;
+    private RiskValueUnit valueUnit;
     @DecimalMin("0.0000")
     private BigDecimal targetValue;
     @DecimalMin("0.0000")

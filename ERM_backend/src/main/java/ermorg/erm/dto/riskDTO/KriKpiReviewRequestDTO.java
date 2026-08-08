@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 
 import ermorg.erm.constant.RiskAcceptanceLevel;
+import ermorg.erm.constant.RiskValueUnit;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -45,6 +46,7 @@ public class KriKpiReviewRequestDTO {
     private String unitOfMeasurement; //new
     private String reportingFrequency;
     private String currency;
+    private RiskValueUnit valueUnit;
     private String targetValue;
     private String actualValue; // new
     private String actuals;

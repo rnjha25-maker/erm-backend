@@ -1,13 +1,14 @@
 package ermorg.erm.mapping;
 
+import ermorg.erm.dto.response.RiskReviewResponseDtoResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.springframework.stereotype.Component;
-
-import ermorg.erm.dto.response.RiskReviewResponseDtoResponse;
-import lombok.RequiredArgsConstructor;
+import static ermorg.erm.mapping.CustomFieldConfig.normalizeKey;
 
 @Component
 @RequiredArgsConstructor
@@ -32,32 +33,21 @@ public class RiskReviewStrategyConfig implements FieldStrategy {
     private Map<String, Function<RiskReviewResponseDtoResponse, Object>> buildCustomStrategies() {
         Map<String, Function<RiskReviewResponseDtoResponse, Object>> map = new HashMap<>();
 
-        map.put(n("subRiskName"),
+        map.put(normalizeKey("subRiskName"),
                 r -> fieldMapperUtils.stringify(fieldMapperUtils.resolveSubList(r.getSubRiskResponses())));
-        map.put(n("subRiskIds"),
+        map.put(normalizeKey("subRiskIds"),
                 r -> fieldMapperUtils.stringify(fieldMapperUtils.resolveSubList(r.getSubRiskResponses())));
-
-        map.put(n("riskEvaluationBy"),
+        map.put(normalizeKey("riskEvaluationBy"),
                 r -> fieldMapperUtils.resolveUserFromObject(r.getRiskEvaluationBy()));
-
-        map.put(n("riskReporting"),
+        map.put(normalizeKey("riskReporting"),
                 r -> fieldMapperUtils.resolveUser(r.getRiskReporting()));
-
-        map.put(n("riskId"), RiskReviewResponseDtoResponse::getRiskTitle);
-        map.put(n("risktolerancestatus"), RiskReviewResponseDtoResponse::getRiskToleranceStatus);
-        map.put(n("riskappetitestatus"), RiskReviewResponseDtoResponse::getRiskAppetiteStatus);
+        map.put(normalizeKey("riskId"),              RiskReviewResponseDtoResponse::getRiskTitle);
+        map.put(normalizeKey("riskToleranceStatus"), RiskReviewResponseDtoResponse::getRiskToleranceStatus);
+        map.put(normalizeKey("riskAppetiteStatus"),  RiskReviewResponseDtoResponse::getRiskAppetiteStatus);
+        map.put(normalizeKey("valueUnit"),
+                r -> r.getValueUnit() != null ? r.getValueUnit().getLabel() : null);
+        map.put(normalizeKey("currency"), RiskReviewResponseDtoResponse::getCurrency);
 
         return map;
-    }
-
-    private static String n(String value) {
-        if (value == null) return "";
-        StringBuilder sb = new StringBuilder(value.length());
-        for (char c : value.toCharArray()) {
-            if (Character.isLetterOrDigit(c)) {
-                sb.append(Character.toLowerCase(c));
-            }
-        }
-        return sb.toString();
     }
 }

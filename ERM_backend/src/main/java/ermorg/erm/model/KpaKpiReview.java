@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 import ermorg.erm.constant.RiskAcceptanceLevel;
+import ermorg.erm.constant.RiskValueUnit;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -102,6 +103,10 @@ public class KpaKpiReview extends BaseModel {
 
     @Column(name = "currency", length = 3)
     private String currency;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "value_unit", length = 30)
+    private RiskValueUnit valueUnit;
 
     @Column(name = "target_value", precision = 19, scale = 4)
     private BigDecimal targetValue;

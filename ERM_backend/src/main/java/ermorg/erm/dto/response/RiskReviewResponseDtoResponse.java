@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ermorg.erm.constant.RiskAcceptanceLevel;
+import ermorg.erm.constant.RiskValueUnit;
 import ermorg.erm.model.RiskReview;
 
 import lombok.AllArgsConstructor;
@@ -35,6 +36,8 @@ public class RiskReviewResponseDtoResponse {
     private String riskToleranceStatus;
     private String riskAppetiteStatus;
     private RiskAcceptanceLevel riskAcceptanceLevel;
+    private RiskValueUnit valueUnit;
+    private String currency;
     private String riskEvaluationBy;
     private long riskReporting;
     private String reviewType;
@@ -71,6 +74,8 @@ public class RiskReviewResponseDtoResponse {
 		this.riskToleranceStatus = riskReview.getRiskToleranceStatus();
 		this.riskAppetiteStatus = riskReview.getRiskAppetiteStatus();
 		this.riskAcceptanceLevel = riskReview.getRiskAcceptanceLevel();
+		this.valueUnit = riskReview.getValueUnit();
+		this.currency = riskReview.getCurrency();
 		this.riskEvaluationBy = riskReview.getRiskEvaluationBy();
 		this.riskReporting = riskReview.getRiskReporting().getId();
 		this.reviewType = riskReview.getReviewType();

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import ermorg.erm.constant.RiskAcceptanceLevel;
+import ermorg.erm.constant.RiskValueUnit;
 import ermorg.erm.model.KriKpiReview;
 import ermorg.erm.model.Risk;
 import ermorg.erm.model.RiskAssessment;
@@ -49,6 +50,7 @@ public class KriKpiReviewResponseDTO {
     private String unitOfMeasurement;
     private String reportingFrequency;
     private String currency;
+    private RiskValueUnit valueUnit;
     private String targetValue;
     private String actualValue;
     private String actuals;
@@ -142,6 +144,7 @@ public class KriKpiReviewResponseDTO {
 
         this.reportingFrequency = kriKpiReview.getReportingFrequency();
         this.currency = kriKpiReview.getCurrency();
+        this.valueUnit = kriKpiReview.getValueUnit();
         this.targetValue = kriKpiReview.getTargetValue();
         this.actualValue = kriKpiReview.getActualValue();
         this.actuals = kriKpiReview.getActuals();

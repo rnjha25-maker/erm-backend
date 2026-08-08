@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ermorg.erm.constant.RiskAcceptanceLevel;
+import ermorg.erm.constant.RiskValueUnit;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -82,6 +83,13 @@ public class RiskReview extends BaseModel {
 	@Enumerated(EnumType.STRING)
 	@Column(name = "risk_acceptance_level", length = 100)
 	private RiskAcceptanceLevel riskAcceptanceLevel;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "value_unit", length = 30)
+	private RiskValueUnit valueUnit;
+
+	@Column(name = "currency", length = 10)
+	private String currency;
 
 	@Column(name = "risk_evaluation_by")
 	private String riskEvaluationBy;

@@ -45,6 +45,12 @@ public class Approval extends BaseModel {
 	@Column(length = 2000)
 	private String comment;
 
+	@Column(name = "root_cause", columnDefinition = "TEXT")
+	private String rootCause;
+
+	@Column(name = "action_taken", columnDefinition = "TEXT")
+	private String actionTaken;
+
 	private Date notifiedAt;
 	@Column(name = "assigned_notified_at")
 	private Date assignedNotifiedAt;

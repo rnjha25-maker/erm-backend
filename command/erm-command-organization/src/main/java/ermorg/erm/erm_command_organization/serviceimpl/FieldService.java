@@ -59,55 +59,54 @@ public class FieldService implements IFieldService {
 	            .filter(m -> !m.getDeleted())
 	            .orElseThrow(() -> new ResourceNotFoundException("Module not found"));
 
-	    // 2. Fetch Category (STRICT - no new Category creation)
-		List<Category> categories = module.getCategories();
-		Category category = categories.stream()
-				.filter(category1 -> category1.getCategoryName().equals(request.getCategory())
-						|| category1.getId().equals(request.getCategoryId()))
-				.findAny().orElse(new Category());
+	    // 2. Fetch or create Category
+	    Category category = module.getCategories().stream()
+	            .filter(c -> c.getCategoryName().equals(request.getCategory())
+	                    || c.getId().equals(request.getCategoryId()))
+	            .findAny().orElse(new Category());
 
 	    // 3. Fetch System Table
 	    SystemTable systemTable = systemTableRepository.findById(request.getTableId())
 	            .filter(t -> !t.getDeleted())
 	            .orElseThrow(() -> new ResourceNotFoundException("System table not found"));
 
-	    // 4. Duplicate validation sets
+	    // 4. Soft-delete existing fields via a direct bulk UPDATE query, then flush.
+	    //    This avoids Hibernate cascade re-inserting them when the category is saved.
+	    if (category.getId() != null) {
+	        customFieldRepository.softDeleteByCategoryId(category.getId());
+	        customFieldRepository.flush();
+	    }
+
+	    // 5. Validate duplicates within the incoming request
 	    Set<String> fieldNames = new HashSet<>();
 	    Set<Long> mappedColumnIds = new HashSet<>();
-	    Set<String> uniqueCombination = new HashSet<>();
-
-	    // 5. Validate BEFORE delete (important)
 	    for (CustomFieldRequest customRequest : request.getFields()) {
-
-	        // Validate field name duplicate
-	        if (!fieldNames.add(customRequest.getFieldName())) {
-	            throw new RuntimeException("Duplicate field name: " + customRequest.getFieldName());
-	        }
-
-	        // Validate mapped column duplicate
-	        if (!mappedColumnIds.add(customRequest.getMappedWithColumnId())) {
-	            throw new RuntimeException("Duplicate mapped column id: " + customRequest.getMappedWithColumnId());
-	        }
-
-	        // Validate combined uniqueness
-	        String key = customRequest.getFieldName() + "_" + customRequest.getMappedWithColumnId();
-	        if (!uniqueCombination.add(key)) {
-	            throw new RuntimeException("Duplicate field + mapping combination: " + key);
-	        }
+	        if (!fieldNames.add(customRequest.getFieldName()))
+	            throw new RuntimeException("Duplicate field name in request: " + customRequest.getFieldName());
+	        if (!mappedColumnIds.add(customRequest.getMappedWithColumnId()))
+	            throw new RuntimeException("Duplicate mapped column id in request: " + customRequest.getMappedWithColumnId());
 	    }
 
-	    // 6. Delete existing fields safely
-	    if (category.getFields() != null && !category.getFields().isEmpty()) {
-	        customFieldRepository.deleteAll(category.getFields());
-	        customFieldRepository.flush();
-	        category.getFields().clear();
-	    }
+	    // 6. Update category metadata and save it first to get an ID if new
+	    category.setCategoryName(request.getCategory());
+	    category.setMappedWithTable(request.getTableName());
+	    category.setModule(module);
+	    category.setDeleted(false);
+	    category.setDisplayOrder(request.getDisplayOrder());
+	    Category savedCategory = categoryRepository.save(category);
+	    categoryRepository.flush();
 
-	    // 7. Create new fields
+	    // 7. Build and save new fields directly — bypasses cascade entirely
+	    List<CustomField> newFields = new java.util.ArrayList<>();
 	    for (CustomFieldRequest customRequest : request.getFields()) {
+	        SystemField systemField = systemTable.getFields().stream()
+	                .filter(f -> !f.getDeleted())
+	                .filter(f -> f.getId().equals(customRequest.getMappedWithColumnId()))
+	                .findFirst()
+	                .orElseThrow(() -> new ResourceNotFoundException(
+	                        "System field not found for id: " + customRequest.getMappedWithColumnId()));
 
 	        CustomField customField = new CustomField();
-
 	        customField.setFieldName(customRequest.getFieldName());
 	        customField.setFieldType(customRequest.getFieldType());
 	        customField.setDeleted(false);
@@ -116,48 +115,25 @@ public class FieldService implements IFieldService {
 	        customField.setShowInView(customRequest.isShowInView());
 	        customField.setDisabled(customRequest.isDisabled());
 	        customField.setRequired(customRequest.isRequired());
-
-	        // Fetch system field
-	        SystemField systemField = systemTable.getFields().stream()
-	                .filter(f -> !f.getDeleted())
-	                .filter(f -> f.getId().equals(customRequest.getMappedWithColumnId()))
-	                .findFirst()
-	                .orElseThrow(() -> new ResourceNotFoundException(
-	                        "System field not found for id: " + customRequest.getMappedWithColumnId()));
-
 	        customField.setSystemField(systemField);
-	        customField.setCategory(category);
-
-	        category.getFields().add(customField);
+	        customField.setCategory(savedCategory);
+	        newFields.add(customField);
 	    }
+	    customFieldRepository.saveAll(newFields);
 
-		// Update category
-		category.setCategoryName(request.getCategory());
-		category.setMappedWithTable(request.getTableName());
-		category.setModule(module);
-		categories.add(category);
-        category.setDeleted(false);
-        category.setDisplayOrder(request.getDisplayOrder());
-		// Update module
-		module.setCategories(categories);
-		
-		Modules savedModule = moduleRepository.save(module);
+	    // 8. Build response from saved data directly — avoids stale Hibernate cache
+	    CategoryResponse categoryResponse = new CategoryResponse(savedCategory);
+	    categoryResponse.setCustomFields(newFields);
 
-		ModuleResponse moduleResponse = new ModuleResponse(savedModule);
-
-	    // 9. Avoid duplicate category addition
-	    if (!module.getCategories().contains(category)) {
-	        module.getCategories().add(category);
-	    }
-
-	    // 10. Save module
-	    try {
-	         savedModule = moduleRepository.save(module);
-	    } catch (Exception e) {
-	        e.printStackTrace(); // logs full stacktrace
-	        throw new RuntimeException("Error while saving module: " + e.getMessage(), e);
-	    }
-	    return new ModuleResponse(savedModule);
+	    ModuleResponse moduleResponse = new ModuleResponse(module);
+	    moduleResponse.getCategories().stream()
+	            .filter(c -> c.getCategoryId() == savedCategory.getId())
+	            .findFirst()
+	            .ifPresentOrElse(
+	                c -> c.setCustomFields(newFields),
+	                () -> moduleResponse.getCategories().add(categoryResponse)
+	            );
+	    return moduleResponse;
 	}
 	public ModuleResponse updateField(FieldRequestDTO request) throws ResourceNotFoundException {
 

@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 
 import ermorg.erm.constant.RiskAcceptanceLevel;
+import ermorg.erm.constant.RiskValueUnit;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -117,6 +118,10 @@ public class KriKpiReview extends BaseModel {
 
 	@Column(name = "currency")
 	private String currency;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "value_unit", length = 30)
+	private RiskValueUnit valueUnit;
 
 	private String targetValue;
 

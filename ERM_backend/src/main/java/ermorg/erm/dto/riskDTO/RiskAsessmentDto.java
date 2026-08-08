@@ -1,11 +1,14 @@
 package ermorg.erm.dto.riskDTO;
 
 import ermorg.erm.constant.RiskAcceptanceLevel;
+import ermorg.erm.constant.RiskValueUnit;
 import lombok.Data;
+
+import java.time.LocalDate;
 
 @Data
 public class RiskAsessmentDto {
-	
+
 	private long assessmentId;
 	private long riskId;
     private Long subRiskId;
@@ -30,14 +33,14 @@ public class RiskAsessmentDto {
     private String stage;
     private String riskAppetiteStatus;
     private RiskAcceptanceLevel riskAcceptanceLevel;
-    
-  //new fields
-    private long assetValue;
-    private double offPotentialLoss;
-    private long yearlyFrequency;
-    private double yearlyLossExpectancy;
-    private double riskRatingScore;
-    private long residualRiskRatingCriteria;
-//    private String riskRating;
-
+    private RiskValueUnit valueUnit;
+    private String currency;
+    private Long assetValue;
+    private Double offPotentialLoss;
+    private Long yearlyFrequency;
+    private Double yearlyLossExpectancy;
+    private Double riskRatingScore;
+    private Long residualRiskRatingCriteria;
+    private LocalDate lastEvaluationDate;
+    private LocalDate nextEvaluationDate;
 }

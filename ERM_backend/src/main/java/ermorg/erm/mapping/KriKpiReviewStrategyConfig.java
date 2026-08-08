@@ -1,13 +1,14 @@
 package ermorg.erm.mapping;
 
+import ermorg.erm.dto.response.KriKpiReviewResponseDTO;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.springframework.stereotype.Component;
-
-import ermorg.erm.dto.response.KriKpiReviewResponseDTO;
-import lombok.RequiredArgsConstructor;
+import static ermorg.erm.mapping.CustomFieldConfig.normalizeKey;
 
 @Component
 @RequiredArgsConstructor
@@ -32,33 +33,21 @@ public class KriKpiReviewStrategyConfig implements FieldStrategy {
     private Map<String, Function<KriKpiReviewResponseDTO, Object>> buildCustomStrategies() {
         Map<String, Function<KriKpiReviewResponseDTO, Object>> map = new HashMap<>();
 
-        map.put(n("subRiskName"),
+        map.put(normalizeKey("subRiskName"),
                 r -> fieldMapperUtils.stringify(fieldMapperUtils.resolveSubList(r.getSubRiskIds())));
-
-        map.put(n("riskOwner"),
+        map.put(normalizeKey("subRiskIds"),
+                r -> fieldMapperUtils.stringify(fieldMapperUtils.resolveSubList(r.getSubRiskIds())));
+        map.put(normalizeKey("riskOwner"),
                 r -> fieldMapperUtils.resolveUser(r.getRiskOwner()));
-
-        map.put(n("reporting"),
+        map.put(normalizeKey("reporting"),
                 r -> fieldMapperUtils.resolveUser(r.getReporting()));
-
-        map.put(n("kriEvaluationBy"),
+        map.put(normalizeKey("kriEvaluationBy"),
                 r -> fieldMapperUtils.resolveUser(r.getKriEvaluationBy()));
-        map.put(n("subRiskIds"),
-                r -> fieldMapperUtils.stringify(fieldMapperUtils.resolveSubList(r.getSubRiskIds())));
-        map.put(n("riskId"),
-                KriKpiReviewResponseDTO::getRiskTitle);
+        map.put(normalizeKey("riskId"),    KriKpiReviewResponseDTO::getRiskTitle);
+        map.put(normalizeKey("valueUnit"),
+                r -> r.getValueUnit() != null ? r.getValueUnit().getLabel() : null);
+        map.put(normalizeKey("currency"),  KriKpiReviewResponseDTO::getCurrency);
 
         return map;
-    }
-
-    private static String n(String value) {
-        if (value == null) return "";
-        StringBuilder sb = new StringBuilder(value.length());
-        for (char c : value.toCharArray()) {
-            if (Character.isLetterOrDigit(c)) {
-                sb.append(Character.toLowerCase(c));
-            }
-        }
-        return sb.toString();
     }
 }

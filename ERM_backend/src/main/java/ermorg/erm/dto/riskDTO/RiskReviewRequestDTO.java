@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ermorg.erm.constant.RiskAcceptanceLevel;
+import ermorg.erm.constant.RiskValueUnit;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -32,6 +33,8 @@ public class RiskReviewRequestDTO {
     private String riskToleranceStatus;
     private String riskAppetiteStatus;
     private RiskAcceptanceLevel riskAcceptanceLevel;
+    private RiskValueUnit valueUnit;
+    private String currency;
     private String riskEvaluationBy;
     private long riskReporting;
     private String reviewType;
