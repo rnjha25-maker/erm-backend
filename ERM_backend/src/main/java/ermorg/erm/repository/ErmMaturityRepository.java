@@ -15,7 +15,7 @@ import ermorg.erm.model.ERMMaturityAssessment;
 @Repository
 public interface ErmMaturityRepository extends JpaRepository<ERMMaturityAssessment, Long> {
 
-	@Query("Select m from ERMMaturityAssessment m where m.organization.id = :orgId AND m.id = :maturityId AND m.deleted = false")
+	@Query("Select m from ERMMaturityAssessment m LEFT JOIN FETCH m.scores where m.organization.id = :orgId AND m.id = :maturityId AND m.deleted = false")
 	public ERMMaturityAssessment getByOrg(@Param("orgId")Long orgId,@Param("maturityId") Long maturityId);
 
 	@Query("Select m from ERMMaturityAssessment m where m.organization.id = :orgId AND m.deleted = false")
@@ -30,16 +30,17 @@ public interface ErmMaturityRepository extends JpaRepository<ERMMaturityAssessme
 	@Query("Select m from ERMMaturityAssessment m where m.organization.id = :orgId AND m.id in (:maturityIds) AND m.deleted = false")
 	public Page<ERMMaturityAssessment> getAllByOrgAndMaturityIdsPageable(@Param("orgId")Long orgId, @Param("maturityIds") List<Long> maturityIds, Pageable pageable);
 
-	@Query("SELECT COUNT(m) FROM ERMMaturityAssessment m WHERE m.organization.id = :orgId AND m.ermMaturityId = :ermMaturityId AND m.deleted = false")
-	long countByOrganizationIdAndErmMaturityId(@Param("orgId") Long orgId, @Param("ermMaturityId") String ermMaturityId);
+	@Query("SELECT m FROM ERMMaturityAssessment m LEFT JOIN FETCH m.scores WHERE m.organization.id = :orgId AND m.ermMaturityId = :ermMaturityId AND m.deleted = false ORDER BY m.id ASC")
+	List<ERMMaturityAssessment> findAllByOrganizationIdAndErmMaturityId(@Param("orgId") Long orgId,
+			@Param("ermMaturityId") String ermMaturityId);
 
-	@Query("SELECT DISTINCT m FROM ERMMaturityAssessment m LEFT JOIN FETCH m.company "
+	@Query("SELECT DISTINCT m FROM ERMMaturityAssessment m LEFT JOIN FETCH m.company LEFT JOIN FETCH m.scores "
 			+ "WHERE m.organization.id = :orgId AND m.deleted = false "
 			+ "AND m.ermMaturityId IS NOT NULL "
 			+ "ORDER BY m.ermMaturityId")
 	List<ERMMaturityAssessment> findAllGroupedByOrg(@Param("orgId") Long orgId);
 
-	@Query("SELECT DISTINCT m FROM ERMMaturityAssessment m LEFT JOIN FETCH m.company "
+	@Query("SELECT DISTINCT m FROM ERMMaturityAssessment m LEFT JOIN FETCH m.company LEFT JOIN FETCH m.scores "
 			+ "WHERE m.organization.id = :orgId AND m.deleted = false "
 			+ "AND m.ermMaturityId IS NOT NULL "
 			+ "AND COALESCE(m.lastAssessmentDate, m.createdAt) BETWEEN :startDate AND :endDate "
@@ -50,7 +51,7 @@ public interface ErmMaturityRepository extends JpaRepository<ERMMaturityAssessme
 			@Param("endDate") Date endDate, @Param("scopeCompanyId") Long scopeCompanyId,
 			@Param("functionId") Long functionId);
 
-	@Query("SELECT DISTINCT m FROM ERMMaturityAssessment m LEFT JOIN FETCH m.company "
+	@Query("SELECT DISTINCT m FROM ERMMaturityAssessment m LEFT JOIN FETCH m.company LEFT JOIN FETCH m.scores "
 			+ "WHERE m.organization.id = :orgId AND m.company.id IN :companyIds AND m.deleted = false "
 			+ "AND m.createdAt BETWEEN :startDate AND :endDate "
 			+ "AND (:functionId IS NULL OR :functionId = 0 OR :functionId MEMBER OF m.departmentIds) "

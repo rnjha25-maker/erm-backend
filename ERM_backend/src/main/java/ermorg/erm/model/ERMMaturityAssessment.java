@@ -1,11 +1,13 @@
 package ermorg.erm.model;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.hibernate.annotations.BatchSize;
+
 import ermorg.erm.constant.RiskAcceptanceLevel;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -14,6 +16,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -27,23 +30,8 @@ import lombok.Setter;
 @Entity
 public class ERMMaturityAssessment extends BaseModel {
 
-	@Column(name = "assessment_area_name")
-	private String assessmentAreaName;
-
-	@Column(name = "assessment_area_id")
-	private Long assessmentAreaId;
-
-	@Column(name = "key_assessment_parameters")
-	private String keyAssessmentParameters;
-
 	@Column(name = "status")
 	private String status;
-
-	@Column(name = "weightage_score")
-	private BigDecimal weightageScore;
-
-	@Column(name = "marks_achieved")
-	private String marksAchieved;
 
 	@Column(name = "overall_maturity_level")
 	private String overallMaturityLevel;
@@ -86,4 +74,7 @@ public class ERMMaturityAssessment extends BaseModel {
 	@JoinColumn(name = "company_id")
 	private Company company;
 
+	@BatchSize(size = 50)
+	@OneToMany(mappedBy = "maturityAssessment", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<ERMMaturityScore> scores = new ArrayList<>();
 }
