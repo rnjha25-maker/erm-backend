@@ -1,11 +1,14 @@
 package ermorg.erm.dto.response;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import ermorg.erm.constant.RiskAcceptanceLevel;
 import ermorg.erm.model.ERMMaturityAssessment;
+import ermorg.erm.model.ERMMaturityScore;
+import ermorg.erm.util.ErmMaturityGroupingUtil;
 
 import lombok.Data;
 
@@ -49,17 +52,15 @@ public class ErmMaturityResponse {
 
     private BigDecimal totalWeightageScore;
 
+    /** Present on save/get detail; not used by list/dashboard aggregation. */
+    private List<ErmMaturityScoreResponse> scores;
+
     public ErmMaturityResponse() {
     }
 
     public ErmMaturityResponse(ERMMaturityAssessment assessment) {
 	    this.maturityId = assessment.getId();
-	    this.assessmentAreaName = assessment.getAssessmentAreaName();
-	    this.assessmentAreaId = assessment.getAssessmentAreaId();
-	    this.keyAssessmentParameters = assessment.getKeyAssessmentParameters();
 	    this.status = assessment.getStatus();
-	    this.weightageScore = assessment.getWeightageScore() != null ? assessment.getWeightageScore().toString() : null;
-	    this.marksAchieved = assessment.getMarksAchieved();
 	    this.overallMaturityLevel = assessment.getOverallMaturityLevel();
 	    this.assessedBy = assessment.getAssessedBy();
 	    this.dueDate = assessment.getDueDate();
@@ -72,6 +73,24 @@ public class ErmMaturityResponse {
         this.riskAcceptanceLevel = assessment.getRiskAcceptanceLevel();
         if (assessment.getCompany() != null) {
         	this.companyId = assessment.getCompany().getId();
+        }
+
+        List<ERMMaturityScore> activeScores = ErmMaturityGroupingUtil.activeScores(assessment);
+        BigDecimal totalMarks = ErmMaturityGroupingUtil.totalScoreFromScores(activeScores);
+        this.totalWeightageScore = totalMarks;
+        this.marksAchieved = totalMarks != null ? totalMarks.toPlainString() : "0";
+        this.weightageScore = totalMarks != null ? totalMarks.toPlainString() : "0";
+
+        if (!activeScores.isEmpty()) {
+        	ERMMaturityScore first = activeScores.get(0);
+        	this.assessmentAreaName = first.getAssessmentAreaName();
+        	this.assessmentAreaId = first.getAssessmentAreaId();
+        	this.keyAssessmentParameters = first.getKeyAssessmentParameters();
+        }
+
+        this.scores = new ArrayList<>();
+        for (ERMMaturityScore score : activeScores) {
+        	this.scores.add(new ErmMaturityScoreResponse(score));
         }
     }
 }

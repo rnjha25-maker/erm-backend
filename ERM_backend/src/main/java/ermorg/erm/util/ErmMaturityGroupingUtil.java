@@ -5,10 +5,12 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import ermorg.erm.model.Company;
 import ermorg.erm.model.ERMMaturityAssessment;
+import ermorg.erm.model.ERMMaturityScore;
 
 public final class ErmMaturityGroupingUtil {
 
@@ -79,12 +81,38 @@ public final class ErmMaturityGroupingUtil {
 		return resolveFunctionDisplayLabel(activeDeptIds, departmentLabels);
 	}
 
-	public static BigDecimal totalScore(List<ERMMaturityAssessment> group) {
+	public static List<ERMMaturityScore> activeScores(ERMMaturityAssessment assessment) {
+		if (assessment == null || assessment.getScores() == null) {
+			return List.of();
+		}
+		return assessment.getScores().stream().filter(Objects::nonNull)
+				.filter(s -> !Boolean.TRUE.equals(s.getDeleted())).toList();
+	}
+
+	public static List<ERMMaturityScore> activeScores(List<ERMMaturityAssessment> group) {
 		if (group == null || group.isEmpty()) {
+			return List.of();
+		}
+		List<ERMMaturityScore> scores = new ArrayList<>();
+		for (ERMMaturityAssessment assessment : group) {
+			scores.addAll(activeScores(assessment));
+		}
+		return scores;
+	}
+
+	/**
+	 * Sums marksAchieved across all child scores in the group. Does not use weightageScore.
+	 */
+	public static BigDecimal totalScore(List<ERMMaturityAssessment> group) {
+		return totalScoreFromScores(activeScores(group));
+	}
+
+	public static BigDecimal totalScoreFromScores(List<ERMMaturityScore> scores) {
+		if (scores == null || scores.isEmpty()) {
 			return BigDecimal.ZERO;
 		}
 		return MaturityLevelResolver
-				.sumMarksAchieved(group.stream().map(ERMMaturityAssessment::getMarksAchieved).toList());
+				.sumMarksAchieved(scores.stream().map(ERMMaturityScore::getMarksAchieved).toList());
 	}
 
 	public static String maturityLabel(BigDecimal totalScore) {

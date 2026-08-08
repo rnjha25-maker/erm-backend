@@ -16,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import ermorg.erm.dto.response.CustomResponse;
 import ermorg.erm.dto.response.ErmMaturityResponse;
@@ -26,6 +27,7 @@ import ermorg.erm.exception.ResourceNotFoundException;
 import ermorg.erm.model.Company;
 import ermorg.erm.model.Department;
 import ermorg.erm.model.ERMMaturityAssessment;
+import ermorg.erm.model.ERMMaturityScore;
 import ermorg.erm.model.Organization;
 import ermorg.erm.repository.CompanyRepository;
 import ermorg.erm.repository.ErmMaturityRepository;
@@ -53,6 +55,7 @@ public class MaturityService implements IErmMaturityService {
 	private CustomResponseMapper customResponseMapper;
 
 	@Override
+	@Transactional
 	public ErmMaturityResponse save(ErmMaturityRequest request) throws ResourceNotFoundException, LimitExceedException {
 
 		if (request == null || request.getMaturityRequest() == null || request.getMaturityRequest().isEmpty()) {
@@ -66,36 +69,122 @@ public class MaturityService implements IErmMaturityService {
 		List<Long> departmentIds = resolveCommonDepartmentIds(maturityItems);
 		String ermMaturityId = resolveErmMaturityId(company.getId(), departmentIds);
 
-		long existingCount = ermMaturityRepository.countByOrganizationIdAndErmMaturityId(organization.getId(),
-				ermMaturityId);
-		if (existingCount >= 9) {
-			throw new LimitExceedException(
-					"Maximum 9 maturity assessments already exist for group: " + ermMaturityId);
-		}
-
 		double totalMarks = maturityItems.stream()
 				.mapToDouble(dto -> MaturityLevelResolver.parseMarksAchieved(dto.getMarksAchieved())).sum();
 		String maturityLabel = MaturityLevelResolver.resolveMaturityLabel(totalMarks);
 
-		List<Long> maturityIds = maturityItems.stream().map(ErmMaturityDto::getMaturityId).collect(Collectors.toList());
-		List<ERMMaturityAssessment> ermMaturityList = ermMaturityRepository
-				.getAllByOrgAndMaturityIds(organization.getId(), maturityIds);
+		ERMMaturityAssessment parent = resolveParent(organization.getId(), ermMaturityId, maturityItems);
+		fillParentFields(parent, maturityItems.get(0), organization, company, departmentIds, ermMaturityId,
+				maturityLabel);
+		syncScores(parent, maturityItems);
 
-		for (ErmMaturityDto req : maturityItems) {
-			ermMaturityList.stream()
-					.filter(m -> Objects.equals(m.getId(), req.getMaturityId()) && req.getMaturityId() != 0)
-					.findFirst()
-					.ifPresentOrElse(
-							m -> fillFields(m, req, organization, company, departmentIds, ermMaturityId, maturityLabel),
-							() -> {
-								ERMMaturityAssessment m = new ERMMaturityAssessment();
-								fillFields(m, req, organization, company, departmentIds, ermMaturityId, maturityLabel);
-								ermMaturityList.add(m);
-							});
+		ERMMaturityAssessment saved = ermMaturityRepository.save(parent);
+		return new ErmMaturityResponse(saved);
+	}
+
+	private ERMMaturityAssessment resolveParent(Long orgId, String ermMaturityId, List<ErmMaturityDto> maturityItems) {
+		Long parentId = maturityItems.stream().map(ErmMaturityDto::getMaturityId).filter(id -> id != 0).findFirst()
+				.orElse(0L);
+
+		List<ERMMaturityAssessment> groupParents = ermMaturityRepository
+				.findAllByOrganizationIdAndErmMaturityId(orgId, ermMaturityId);
+
+		ERMMaturityAssessment parent = null;
+		if (parentId != 0) {
+			parent = groupParents.stream().filter(p -> Objects.equals(p.getId(), parentId)).findFirst().orElse(null);
+			if (parent == null) {
+				parent = ermMaturityRepository.getByOrg(orgId, parentId);
+			}
+		}
+		if (parent == null && !groupParents.isEmpty()) {
+			parent = groupParents.get(0);
+		}
+		if (parent == null) {
+			return new ERMMaturityAssessment();
 		}
 
-		List<ERMMaturityAssessment> saved = ermMaturityRepository.saveAll(ermMaturityList);
-		return saved.isEmpty() ? null : new ErmMaturityResponse(saved.get(0));
+		consolidateSiblingParents(parent, groupParents);
+		return parent;
+	}
+
+	/**
+	 * Approach 1 expects one header per ermMaturityId. Soft-delete duplicate parents in the same group.
+	 * Score rows for the saved request are synced onto the keeper; run the SQL migration to re-point any
+	 * historical child rows from duplicates before soft-delete if needed.
+	 */
+	private void consolidateSiblingParents(ERMMaturityAssessment keeper, List<ERMMaturityAssessment> groupParents) {
+		for (ERMMaturityAssessment sibling : groupParents) {
+			if (Objects.equals(sibling.getId(), keeper.getId())) {
+				continue;
+			}
+			sibling.setDeleted(true);
+			ermMaturityRepository.save(sibling);
+		}
+	}
+
+	private void fillParentFields(ERMMaturityAssessment parent, ErmMaturityDto req, Organization organization,
+			Company company, List<Long> departmentIds, String ermMaturityId, String maturityLabel) {
+		parent.setDeleted(false);
+		parent.setAssessedBy(req.getAssessedBy());
+		parent.setDueDate(req.getDueDate());
+		parent.setActualDate(req.getActualDate());
+		parent.setLastAssessmentDate(req.getLastAssessmentDate());
+		parent.setNextAssessmentDate(req.getNextAssessmentDate());
+		parent.setOverallMaturityLevel(maturityLabel);
+		parent.setStatus(req.getStatus());
+		parent.setRiskAppetiteStatus(req.getRiskAppetiteStatus());
+		parent.setRiskAcceptanceLevel(req.getRiskAcceptanceLevel());
+		parent.setOrganization(organization);
+		parent.setCompany(company);
+		parent.setErmMaturityId(ermMaturityId);
+		parent.setDepartmentIds(departmentIds != null ? new ArrayList<>(departmentIds) : new ArrayList<>());
+	}
+
+	private void syncScores(ERMMaturityAssessment parent, List<ErmMaturityDto> maturityItems) {
+		if (parent.getScores() == null) {
+			parent.setScores(new ArrayList<>());
+		}
+
+		Map<Long, ERMMaturityScore> existingById = parent.getScores().stream()
+				.filter(s -> s.getId() != null)
+				.collect(Collectors.toMap(ERMMaturityScore::getId, s -> s, (a, b) -> a));
+
+		Set<Long> retainedIds = new HashSet<>();
+		List<ERMMaturityScore> nextScores = new ArrayList<>();
+
+		for (ErmMaturityDto dto : maturityItems) {
+			ERMMaturityScore score;
+			if (dto.getScoreId() != 0 && existingById.containsKey(dto.getScoreId())) {
+				score = existingById.get(dto.getScoreId());
+				retainedIds.add(dto.getScoreId());
+			} else {
+				score = new ERMMaturityScore();
+			}
+			fillScoreFields(score, dto);
+			score.setMaturityAssessment(parent);
+			nextScores.add(score);
+		}
+
+		parent.getScores().removeIf(existing -> existing.getId() != null && !retainedIds.contains(existing.getId()));
+
+		for (ERMMaturityScore score : nextScores) {
+			if (score.getId() == null) {
+				parent.getScores().add(score);
+			}
+		}
+	}
+
+	private void fillScoreFields(ERMMaturityScore score, ErmMaturityDto req) {
+		score.setDeleted(false);
+		score.setAssessmentAreaName(req.getAssessmentAreaName());
+		score.setAssessmentAreaId(req.getAssessmentArea());
+		score.setKeyAssessmentParameters(req.getKeyAssessmentParameters());
+		score.setMarksAchieved(req.getMarksAchieved());
+		if (req.getWeightageScore() != null && !req.getWeightageScore().isBlank()) {
+			score.setWeightageScore(BigDecimal.valueOf(Double.parseDouble(req.getWeightageScore())));
+		} else {
+			score.setWeightageScore(null);
+		}
 	}
 
 	private Company resolveCompany(ErmMaturityRequest request) throws ResourceNotFoundException {
@@ -137,30 +226,8 @@ public class MaturityService implements IErmMaturityService {
 		return companyId + "_" + activeDeptIds.stream().map(String::valueOf).collect(Collectors.joining("_"));
 	}
 
-	private void fillFields(ERMMaturityAssessment m, ErmMaturityDto req, Organization organization, Company company,
-			List<Long> departmentIds, String ermMaturityId, String maturityLabel) {
-		m.setDeleted(false);
-		m.setKeyAssessmentParameters(req.getKeyAssessmentParameters());
-		m.setAssessedBy(req.getAssessedBy());
-		m.setAssessmentAreaId(req.getAssessmentArea());
-		m.setDueDate(req.getDueDate());
-		m.setActualDate(req.getActualDate());
-		m.setLastAssessmentDate(req.getLastAssessmentDate());
-		m.setMarksAchieved(req.getMarksAchieved());
-		m.setNextAssessmentDate(req.getNextAssessmentDate());
-		m.setOverallMaturityLevel(maturityLabel);
-		m.setStatus(req.getStatus());
-		if (req.getWeightageScore() != null && !req.getWeightageScore().isBlank()) {
-			m.setWeightageScore(BigDecimal.valueOf(Double.parseDouble(req.getWeightageScore())));
-		}
-		m.setOrganization(organization);
-		m.setAssessmentAreaName(req.getAssessmentAreaName());
-		m.setCompany(company);
-		m.setErmMaturityId(ermMaturityId);
-		m.setDepartmentIds(departmentIds != null ? new ArrayList<>(departmentIds) : new ArrayList<>());
-	}
-
 	@Override
+	@Transactional(readOnly = true)
 	public ErmMaturityResponse get(Long maturityId) throws ResourceNotFoundException {
 		Organization organization = OrganizationContext.getOrganization();
 		ERMMaturityAssessment ermMaturity = ermMaturityRepository.getByOrg(organization.getId(), maturityId);
@@ -173,6 +240,7 @@ public class MaturityService implements IErmMaturityService {
 	}
 
 	@Override
+	@Transactional(readOnly = true)
 	public List<CustomResponse> getView(Long maturityId) throws ResourceNotFoundException {
 		Organization organization = OrganizationContext.getOrganization();
 		ERMMaturityAssessment ermMaturity = ermMaturityRepository.getByOrg(organization.getId(), maturityId);
@@ -188,6 +256,7 @@ public class MaturityService implements IErmMaturityService {
 	}
 
 	@Override
+	@Transactional(readOnly = true)
 	public Page<List<CustomResponse>> getAll(Pageable pageable) throws ResourceNotFoundException {
 
 		Organization organization = OrganizationContext.getOrganization();
@@ -275,6 +344,7 @@ public class MaturityService implements IErmMaturityService {
 	}
 
 	@Override
+	@Transactional
 	public void delete(Long maturityId) throws ResourceNotFoundException {
 		Organization organization = OrganizationContext.getOrganization();
 		ERMMaturityAssessment ermMaturity = ermMaturityRepository.getByOrg(organization.getId(), maturityId);
@@ -284,6 +354,11 @@ public class MaturityService implements IErmMaturityService {
 		}
 
 		ermMaturity.setDeleted(true);
+		if (ermMaturity.getScores() != null) {
+			for (ERMMaturityScore score : ermMaturity.getScores()) {
+				score.setDeleted(true);
+			}
+		}
 		ermMaturityRepository.save(ermMaturity);
 	}
 
