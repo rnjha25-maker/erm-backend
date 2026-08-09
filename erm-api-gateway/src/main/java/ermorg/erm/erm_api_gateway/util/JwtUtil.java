@@ -42,7 +42,7 @@ public class JwtUtil {
 	}
 
 	public boolean validateToken(String token, String username) {
-		return (username.equals(extractUsername(token)) && !isTokenExpired(token));
+		return (username.equalsIgnoreCase(extractUsername(token)) && !isTokenExpired(token));
 	}
 
 	public String extractToken(org.springframework.http.server.reactive.ServerHttpRequest serverHttpRequest) {

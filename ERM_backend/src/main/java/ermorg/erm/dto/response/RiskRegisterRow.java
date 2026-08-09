@@ -13,7 +13,4 @@ public class RiskRegisterRow {
 	private List<CustomResponse> riskControl = new ArrayList<>();
 	private List<CustomResponse> riskResponse = new ArrayList<>();
 	private List<CustomResponse> riskReview = new ArrayList<>();
-	private List<CustomResponse> kri = new ArrayList<>();
-	private List<CustomResponse> ermMaturity = new ArrayList<>();
-	private List<CustomResponse> kpaKpiReview = new ArrayList<>();
 }

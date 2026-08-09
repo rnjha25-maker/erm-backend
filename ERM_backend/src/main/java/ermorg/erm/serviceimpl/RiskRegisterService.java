@@ -7,7 +7,6 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -16,8 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import ermorg.erm.dto.response.CustomResponse;
 import ermorg.erm.dto.response.CustomFieldResponse;
-import ermorg.erm.dto.response.ErmMaturityResponse;
-import ermorg.erm.dto.response.KriKpiReviewResponseDTO;
 import ermorg.erm.dto.response.RiskAssessmentResponse;
 import ermorg.erm.dto.response.RiskControlResponse;
 import ermorg.erm.dto.response.RiskRegisterPage;
@@ -25,17 +22,11 @@ import ermorg.erm.dto.response.RiskRegisterRow;
 import ermorg.erm.dto.response.RiskResponse;
 import ermorg.erm.dto.response.RiskResponseTreatmentResponse;
 import ermorg.erm.dto.response.RiskReviewResponseDtoResponse;
-import ermorg.erm.model.ERMMaturityAssessment;
-import ermorg.erm.model.KpaKpiReview;
-import ermorg.erm.model.KriKpiReview;
 import ermorg.erm.model.Risk;
 import ermorg.erm.model.RiskAssessment;
 import ermorg.erm.model.RiskControl;
 import ermorg.erm.model.RiskResponseTreatment;
 import ermorg.erm.model.RiskReview;
-import ermorg.erm.repository.ErmMaturityRepository;
-import ermorg.erm.repository.KpaKpiReviewRepository;
-import ermorg.erm.repository.KriKpiRiskRepository;
 import ermorg.erm.repository.RiskAsessmentRepository;
 import ermorg.erm.repository.RiskControlRepository;
 import ermorg.erm.repository.RiskResponseTreatmentRepository;
@@ -52,10 +43,6 @@ public class RiskRegisterService {
 	private final RiskControlRepository riskControlRepository;
 	private final RiskResponseTreatmentRepository riskResponseTreatmentRepository;
 	private final RiskReviewRepository riskReviewRepository;
-	private final KriKpiRiskRepository kriKpiRiskRepository;
-	private final ErmMaturityRepository ermMaturityRepository;
-	private final KpaKpiReviewRepository kpaKpiReviewRepository;
-	private final KpaKpiReviewService kpaKpiReviewService;
 	private final CustomResponseMapper customResponseMapper;
 	private final IFieldService fieldService;
 
@@ -65,8 +52,7 @@ public class RiskRegisterService {
 
 		int safePage = Math.max(page, 0);
 		int safeSize = Math.min(Math.max(size, 1), 500);
-		RegisterData data = loadData(organizationId, risks, startDate, endDate, functionId, scopeByDepartment,
-				scopeDepartmentIds);
+		RegisterData data = loadData(organizationId, risks, startDate, endDate);
 		long total = countRows(data);
 		long from = Math.min((long) safePage * safeSize, total);
 		long to = Math.min(from + safeSize, total);
@@ -79,8 +65,7 @@ public class RiskRegisterService {
 	public byte[] exportCsv(Long organizationId, List<Risk> risks, Date startDate, Date endDate, Long functionId,
 			boolean scopeByDepartment, List<Long> scopeDepartmentIds) {
 
-		RegisterData data = loadData(organizationId, risks, startDate, endDate, functionId, scopeByDepartment,
-				scopeDepartmentIds);
+		RegisterData data = loadData(organizationId, risks, startDate, endDate);
 		List<String> headers = csvHeaders();
 		StringBuilder csv = new StringBuilder();
 		appendCsvLine(csv, headers);
@@ -98,9 +83,6 @@ public class RiskRegisterService {
 		addConfiguredHeaders(headers, "riskControl", "riskControl");
 		addConfiguredHeaders(headers, "riskResponse", "riskTreatment");
 		addConfiguredHeaders(headers, "riskReview", "riskReview");
-		addConfiguredHeaders(headers, "kri", "kriKpiReview");
-		addConfiguredHeaders(headers, "ermMaturity", "ermMaturity");
-		addConfiguredHeaders(headers, "kpaKpiReview", "kpaKpiReview");
 		return headers;
 	}
 
@@ -116,15 +98,12 @@ public class RiskRegisterService {
 		}
 	}
 
-	private RegisterData loadData(Long organizationId, List<Risk> risks, Date startDate, Date endDate,
-			Long functionId, boolean scopeByDepartment, List<Long> scopeDepartmentIds) {
+	private RegisterData loadData(Long organizationId, List<Risk> risks, Date startDate, Date endDate) {
 
 		if (risks.isEmpty()) {
 			return RegisterData.empty();
 		}
 		List<Long> riskIds = risks.stream().map(Risk::getId).toList();
-		List<Long> companyIds = risks.stream().map(Risk::getCompanyId).filter(id -> id != null)
-				.distinct().toList();
 
 		List<RiskAssessment> assessments = riskAssessmentRepository.findForRiskRegister(organizationId, riskIds,
 				startDate, endDate);
@@ -134,22 +113,9 @@ public class RiskRegisterService {
 				riskIds, startDate, endDate);
 		List<RiskReview> reviews = riskReviewRepository.findForRiskRegister(organizationId, riskIds, startDate,
 				endDate);
-		List<KriKpiReview> kris = kriKpiRiskRepository.findForRiskRegister(organizationId, riskIds, startDate, endDate);
-
-		List<ERMMaturityAssessment> maturity = companyIds.isEmpty() ? Collections.emptyList()
-				: ermMaturityRepository.findForRiskRegister(organizationId, companyIds, startDate, endDate, functionId);
-		if (scopeByDepartment) {
-			Set<Long> allowed = Set.copyOf(scopeDepartmentIds);
-			maturity = maturity.stream().filter(item -> item.getDepartmentIds() == null
-					|| item.getDepartmentIds().isEmpty()
-					|| item.getDepartmentIds().stream().anyMatch(allowed::contains)).toList();
-		}
-		List<KpaKpiReview> kpaKpi = companyIds.isEmpty() ? Collections.emptyList()
-				: kpaKpiReviewRepository.findForRiskRegister(organizationId, companyIds, startDate, endDate);
 
 		return new RegisterData(risks, groupByRisk(assessments), groupByRisk(controls), groupByRisk(responses),
-				groupByRisk(reviews), groupByRisk(kris), groupMaturityByCompany(maturity),
-				groupKpaKpiByCompany(kpaKpi));
+				groupByRisk(reviews));
 	}
 
 	private long countRows(RegisterData data) {
@@ -160,9 +126,6 @@ public class RiskRegisterService {
 			count = safeMultiply(count, dimensionSize(data.controls().get(risk.getId())));
 			count = safeMultiply(count, dimensionSize(data.responses().get(risk.getId())));
 			count = safeMultiply(count, dimensionSize(data.reviews().get(risk.getId())));
-			count = safeMultiply(count, dimensionSize(data.kris().get(risk.getId())));
-			count = safeMultiply(count, dimensionSize(data.maturity().get(risk.getCompanyId())));
-			count = safeMultiply(count, dimensionSize(data.kpaKpi().get(risk.getCompanyId())));
 			total = safeAdd(total, count);
 		}
 		return total;
@@ -175,19 +138,12 @@ public class RiskRegisterService {
 				for (RiskControl control : orNull(data.controls().get(risk.getId()))) {
 					for (RiskResponseTreatment response : orNull(data.responses().get(risk.getId()))) {
 						for (RiskReview review : orNull(data.reviews().get(risk.getId()))) {
-							for (KriKpiReview kri : orNull(data.kris().get(risk.getId()))) {
-								for (ERMMaturityAssessment maturity : orNull(data.maturity().get(risk.getCompanyId()))) {
-									for (KpaKpiReview kpaKpi : orNull(data.kpaKpi().get(risk.getCompanyId()))) {
-										if (index >= from && index < to) {
-											consumer.accept(mapRow(risk, assessment, control, response, review, kri,
-													maturity, kpaKpi));
-										}
-										index++;
-										if (index >= to) {
-											return;
-										}
-									}
-								}
+							if (index >= from && index < to) {
+								consumer.accept(mapRow(risk, assessment, control, response, review));
+							}
+							index++;
+							if (index >= to) {
+								return;
 							}
 						}
 					}
@@ -197,8 +153,7 @@ public class RiskRegisterService {
 	}
 
 	private RiskRegisterRow mapRow(Risk risk, RiskAssessment assessment, RiskControl control,
-			RiskResponseTreatment response, RiskReview review, KriKpiReview kri, ERMMaturityAssessment maturity,
-			KpaKpiReview kpaKpi) {
+			RiskResponseTreatment response, RiskReview review) {
 
 		RiskRegisterRow row = new RiskRegisterRow();
 		row.setRisk(map("risk", new RiskResponse(risk)));
@@ -214,15 +169,6 @@ public class RiskRegisterService {
 		if (review != null) {
 			row.setRiskReview(map("riskReview", new RiskReviewResponseDtoResponse(review)));
 		}
-		if (kri != null) {
-			row.setKri(map("kriKpiReview", new KriKpiReviewResponseDTO(kri)));
-		}
-		if (maturity != null) {
-			row.setErmMaturity(map("ermMaturity", new ErmMaturityResponse(maturity)));
-		}
-		if (kpaKpi != null) {
-			row.setKpaKpiReview(map("kpaKpiReview", kpaKpiReviewService.toResponse(kpaKpi)));
-		}
 		return row;
 	}
 
@@ -237,9 +183,6 @@ public class RiskRegisterService {
 		addFields(values, "riskControl", row.getRiskControl());
 		addFields(values, "riskResponse", row.getRiskResponse());
 		addFields(values, "riskReview", row.getRiskReview());
-		addFields(values, "kri", row.getKri());
-		addFields(values, "ermMaturity", row.getErmMaturity());
-		addFields(values, "kpaKpiReview", row.getKpaKpiReview());
 		return values;
 	}
 
@@ -298,32 +241,16 @@ public class RiskRegisterService {
 		if (value instanceof RiskControl item) return item.getRisk().getId();
 		if (value instanceof RiskResponseTreatment item) return item.getRisk().getId();
 		if (value instanceof RiskReview item) return item.getRisk().getId();
-		if (value instanceof KriKpiReview item) return item.getRisk().getId();
 		throw new IllegalArgumentException("Unsupported risk register type: " + value.getClass().getName());
-	}
-
-	private static Map<Long, List<ERMMaturityAssessment>> groupMaturityByCompany(
-			List<ERMMaturityAssessment> values) {
-		return values.stream().filter(item -> item.getCompany() != null)
-				.collect(Collectors.groupingBy(item -> item.getCompany().getId(), LinkedHashMap::new,
-						Collectors.toList()));
-	}
-
-	private static Map<Long, List<KpaKpiReview>> groupKpaKpiByCompany(List<KpaKpiReview> values) {
-		return values.stream().filter(item -> item.getCompany() != null)
-				.collect(Collectors.groupingBy(item -> item.getCompany().getId(), LinkedHashMap::new,
-						Collectors.toList()));
 	}
 
 	private record RegisterData(List<Risk> risks, Map<Long, List<RiskAssessment>> assessments,
 			Map<Long, List<RiskControl>> controls, Map<Long, List<RiskResponseTreatment>> responses,
-			Map<Long, List<RiskReview>> reviews, Map<Long, List<KriKpiReview>> kris,
-			Map<Long, List<ERMMaturityAssessment>> maturity, Map<Long, List<KpaKpiReview>> kpaKpi) {
+			Map<Long, List<RiskReview>> reviews) {
 
 		private static RegisterData empty() {
 			return new RegisterData(Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap(),
-					Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
-					Collections.emptyMap());
+					Collections.emptyMap(), Collections.emptyMap());
 		}
 	}
 }
