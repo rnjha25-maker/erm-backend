@@ -94,9 +94,7 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 				})
 				 .collect(Collectors.toList());
 		
-		ModelMapper mapper = new ModelMapper();
-		mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
-		mapper.map(request, kriKpiReview);
+		createMapper().map(request, kriKpiReview);
 		kriKpiReview.setOrganization(organization);
 		kriKpiReview.setCompany(company);
 		kriKpiReview.setRiskOwner(owner);
@@ -109,6 +107,24 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 		KriKpiReview saved = kriKpiReskRepository.save(kriKpiReview);
 
 		return new KriKpiReviewResponseDTO(saved);
+	}
+
+	private ModelMapper createMapper() {
+		ModelMapper mapper = new ModelMapper();
+		mapper.getConfiguration()
+				.setMatchingStrategy(MatchingStrategies.STRICT)
+				.setPreferNestedProperties(false);
+		mapper.typeMap(KriKpiReviewRequestDTO.class, KriKpiReview.class).addMappings(mapping -> {
+			mapping.skip(KriKpiReview::setRisk);
+			mapping.skip(KriKpiReview::setRiskAssessment);
+			mapping.skip(KriKpiReview::setRiskOwner);
+			mapping.skip(KriKpiReview::setKriEvaluationBy);
+			mapping.skip(KriKpiReview::setReporting);
+			mapping.skip(KriKpiReview::setOrganization);
+			mapping.skip(KriKpiReview::setCompany);
+			mapping.skip(KriKpiReview::setSubRisks);
+		});
+		return mapper;
 	}
 
 	@Override

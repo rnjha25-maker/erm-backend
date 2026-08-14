@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.modelmapper.ModelMapper;
+import org.modelmapper.convention.MatchingStrategies;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -65,9 +66,7 @@ public class RiskReviewService implements IRiskReviewService {
 					.orElseThrow(() -> new ResourceNotFoundException("RiskReview not found."));
 			}
 			
-			ModelMapper mapper = new ModelMapper();
-			
-			mapper.map(request, riskReview);
+			createMapper().map(request, riskReview);
 			
 			// Ensure new entities have id = null (ModelMapper might have copied the ID)
 			if (request.getRiskReviewId() == null || request.getRiskReviewId() == 0) {
@@ -88,6 +87,21 @@ public class RiskReviewService implements IRiskReviewService {
 				riskReview.setCompany(company);
 				RiskReview saved = riskReviewRepository.save(riskReview);
 		return new RiskReviewResponseDtoResponse(saved);
+	}
+
+	private ModelMapper createMapper() {
+		ModelMapper mapper = new ModelMapper();
+		mapper.getConfiguration()
+				.setMatchingStrategy(MatchingStrategies.STRICT)
+				.setPreferNestedProperties(false);
+		mapper.typeMap(RiskReviewRequestDTO.class, RiskReview.class).addMappings(mapping -> {
+			mapping.skip(RiskReview::setRisk);
+			mapping.skip(RiskReview::setRiskReporting);
+			mapping.skip(RiskReview::setOrganization);
+			mapping.skip(RiskReview::setCompany);
+			mapping.skip(RiskReview::setSubRisks);
+		});
+		return mapper;
 	}
 
 	@Override
