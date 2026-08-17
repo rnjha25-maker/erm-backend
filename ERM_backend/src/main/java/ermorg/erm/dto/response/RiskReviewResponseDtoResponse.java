@@ -39,7 +39,7 @@ public class RiskReviewResponseDtoResponse {
     private RiskValueUnit valueUnit;
     private String currency;
     private String riskEvaluationBy;
-    private long riskReporting;
+    private Long riskReporting;
     private String reviewType;
     private String status;
     private String riskEvaluationFrequency;
@@ -77,7 +77,7 @@ public class RiskReviewResponseDtoResponse {
 		this.valueUnit = riskReview.getValueUnit();
 		this.currency = riskReview.getCurrency();
 		this.riskEvaluationBy = riskReview.getRiskEvaluationBy();
-		this.riskReporting = riskReview.getRiskReporting().getId();
+		this.riskReporting = riskReview.getRiskReporting() != null ? riskReview.getRiskReporting().getId() : null;
 		this.reviewType = riskReview.getReviewType();
 		this.status = riskReview.getStatus();
 		this.riskEvaluationFrequency = riskReview.getRiskEvaluationFrequency();

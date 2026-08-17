@@ -53,7 +53,11 @@ public class FieldService implements IFieldService {
             throw new ResourceNotFoundException("Organization not found");
         }
         return categoryRepository.findAllByOrgAndModule(orgId, moduleId).stream()
-                .map(CategoryListResponse::new)
+                .map(category -> {
+                    CategoryListResponse response = new CategoryListResponse(category);
+                    enrichWithOptions(response.getFields(), category.getMappedWithTable());
+                    return response;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -61,7 +65,14 @@ public class FieldService implements IFieldService {
     public CategoryResponse getCategory(Long categoryId) throws ResourceNotFoundException {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
-        return new CategoryResponse(category);
+        CategoryResponse response = new CategoryResponse(category);
+        List<CustomFieldResponse> fields = category.getFields().stream()
+                .filter(field -> !Boolean.TRUE.equals(field.getDeleted()))
+                .map(CustomFieldResponse::new)
+                .collect(Collectors.toList());
+        enrichWithOptions(fields, category.getMappedWithTable());
+        response.setFields(fields);
+        return response;
     }
 
     // -------------------------------------------------------------------------
@@ -164,7 +175,7 @@ public class FieldService implements IFieldService {
     public List<SystemTableResponse> getSystemTables(Long moduleId) throws ResourceNotFoundException {
         return systemTableRepository.findAllByModuleId(moduleId).stream()
                 .filter(table -> !table.getDeleted())
-                .map(SystemTableResponse::new)
+                .map(this::toSystemTableResponse)
                 .collect(Collectors.toList());
     }
 
@@ -175,7 +186,20 @@ public class FieldService implements IFieldService {
         if (systemTable == null || systemTable.getDeleted()) {
             throw new ResourceNotFoundException("System table not found: " + tableName);
         }
-        return new SystemTableResponse(systemTable);
+        return toSystemTableResponse(systemTable);
+    }
+
+    private SystemTableResponse toSystemTableResponse(ermorg.erm.model.SystemTable systemTable) {
+        SystemTableResponse response = new SystemTableResponse(systemTable);
+        response.getFields().forEach(field -> {
+            List<FieldOption> options = fieldOptionRepository.findActiveBySystemFieldId(field.getId());
+            if (!options.isEmpty()) {
+                field.setOptions(options.stream()
+                        .map(SystemFieldResponse.FieldOptionResponse::new)
+                        .toList());
+            }
+        });
+        return response;
     }
 
     // -------------------------------------------------------------------------

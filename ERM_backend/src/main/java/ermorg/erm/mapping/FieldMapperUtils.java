@@ -9,6 +9,8 @@ import java.util.Objects;
 import org.springframework.stereotype.Component;
 
 import ermorg.erm.dto.response.UserDto;
+import ermorg.erm.model.Department;
+import ermorg.erm.service.DepartmentRepository;
 import ermorg.erm.service.IUserService;
 import lombok.RequiredArgsConstructor;
 
@@ -17,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 public class FieldMapperUtils {
 
     private final IUserService userService;
+    private final DepartmentRepository departmentRepository;
 
     public String resolveUser(Long userId) {
         if (userId == null) {
@@ -31,6 +34,17 @@ public class FieldMapperUtils {
             return resolveUser(resolvedId);
         }
         return value != null ? value.toString() : null;
+    }
+
+    public String resolveDepartmentFromObject(Object value) {
+        Long resolvedId = parseNullableLong(value);
+        if (resolvedId == null) {
+            return value != null ? value.toString() : null;
+        }
+        return departmentRepository.findById(resolvedId)
+                .filter(department -> !Boolean.TRUE.equals(department.getDeleted()))
+                .map(Department::getName)
+                .orElse(value.toString());
     }
 
     public Long parseNullableLong(Object value) {

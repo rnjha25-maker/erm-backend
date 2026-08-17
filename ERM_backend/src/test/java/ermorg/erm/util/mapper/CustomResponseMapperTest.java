@@ -15,6 +15,7 @@ import ermorg.erm.dto.response.CustomFieldResponse;
 import ermorg.erm.dto.response.CustomResponse;
 import ermorg.erm.mapping.GenericFieldMapper;
 import ermorg.erm.mapping.FieldMapperUtils;
+import ermorg.erm.service.DepartmentRepository;
 import ermorg.erm.service.IFieldService;
 import ermorg.erm.service.IUserService;
 
@@ -25,7 +26,8 @@ class CustomResponseMapperTest {
         IFieldService fieldService = mock(IFieldService.class);
         GenericFieldMapper genericFieldMapper = mock(GenericFieldMapper.class);
         IUserService userService = mock(IUserService.class);
-        FieldMapperUtils fieldMapperUtils = new FieldMapperUtils(userService);
+        DepartmentRepository departmentRepository = mock(DepartmentRepository.class);
+        FieldMapperUtils fieldMapperUtils = new FieldMapperUtils(userService, departmentRepository);
 
         CustomResponseMapper mapper = new CustomResponseMapper();
         ReflectionTestUtils.setField(mapper, "fieldService", fieldService);
@@ -52,7 +54,8 @@ class CustomResponseMapperTest {
     void shouldResolveDatabaseStyleSystemFieldForTableWithoutRegisteredStrategy() throws Exception {
         IFieldService fieldService = mock(IFieldService.class);
         IUserService userService = mock(IUserService.class);
-        FieldMapperUtils fieldMapperUtils = new FieldMapperUtils(userService);
+        DepartmentRepository departmentRepository = mock(DepartmentRepository.class);
+        FieldMapperUtils fieldMapperUtils = new FieldMapperUtils(userService, departmentRepository);
         GenericFieldMapper genericFieldMapper = new GenericFieldMapper(List.of());
 
         CustomResponseMapper mapper = new CustomResponseMapper();
@@ -73,6 +76,36 @@ class CustomResponseMapperTest {
         assertThat(responses).hasSize(1);
         assertThat(responses.get(0).getFieldName()).isEqualTo("Key Performance Indicator");
         assertThat(responses.get(0).getValue()).isEqualTo("Revenue Growth");
+    }
+
+    @Test
+    void shouldRenderDropdownOptionLabelsInsteadOfStoredIds() throws Exception {
+        IFieldService fieldService = mock(IFieldService.class);
+        GenericFieldMapper genericFieldMapper = mock(GenericFieldMapper.class);
+        IUserService userService = mock(IUserService.class);
+        DepartmentRepository departmentRepository = mock(DepartmentRepository.class);
+        FieldMapperUtils fieldMapperUtils = new FieldMapperUtils(userService, departmentRepository);
+
+        CustomResponseMapper mapper = new CustomResponseMapper();
+        ReflectionTestUtils.setField(mapper, "fieldService", fieldService);
+        ReflectionTestUtils.setField(mapper, "genericFieldMapper", genericFieldMapper);
+        ReflectionTestUtils.setField(mapper, "fieldMapperUtils", fieldMapperUtils);
+
+        CustomFieldResponse customField = new CustomFieldResponse();
+        customField.setFieldName("Name of Assessment Area");
+        customField.setFieldType("Dropdown");
+        customField.setSystemFieldName("assessmentArea");
+        customField.setOptions(List.of(
+                new CustomFieldResponse.FieldOptionItem("8", "Risk Appetite", 1),
+                new CustomFieldResponse.FieldOptionItem("9", "Operational Policies & Procedures", 2)));
+
+        when(fieldService.getCustomFieldResponse(1L, "ermMaturity")).thenReturn(List.of(customField));
+        when(genericFieldMapper.mapFields(any(), any(), any())).thenReturn(Map.of("assessmentArea", "8,9"));
+
+        List<CustomResponse> responses = mapper.map("ermMaturity", 1L, new Object(), false);
+
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).getValue()).isEqualTo("Risk Appetite, Operational Policies & Procedures");
     }
 
     private static class KpaResponse {

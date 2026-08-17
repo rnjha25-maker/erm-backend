@@ -125,9 +125,13 @@ public class RiskService implements IRiskService {
 		Organization organization = OrganizationContext.getOrganization();
 		Company company = CompanyContext.getCompany();
 //		String clientIp = ((AuditorAwareImpl) auditAware).getClientIp();
-		Optional<Risk> riskOptional = riskRepository.findById(request.getRiskId()).filter(r -> !r.getDeleted());
-		Risk newRisk = new Risk();
-		Risk risk = riskOptional.orElse(newRisk);
+		validateRequiredId(request.getRiskOwnerId(), "Please select risk owner.");
+		validateRequiredId(request.getRiskChampionId(), "Please select risk champion.");
+		validateRequiredId(request.getBranchId(), "Please select branch.");
+		Risk risk = isExistingId(request.getRiskId())
+				? Optional.ofNullable(riskRepository.getRisksByOrgIdAndRiskId(organization.getId(), request.getRiskId()))
+						.orElseThrow(() -> new ResourceNotFoundException("Risk not found."))
+				: new Risk();
 
 		User owner = userRepository.findById(request.getRiskOwnerId()).filter(u -> !u.getDeleted())
 				.orElseThrow(() -> new ResourceNotFoundException("User not found for selected owner."));
@@ -166,7 +170,7 @@ public class RiskService implements IRiskService {
         risk.setSubRisk(subRisks);
 		Risk savedRisk = riskRepository.save(risk);
 
-		if (request.getRiskId() != 0) {
+		if (isExistingId(request.getRiskId())) {
 			captureHistory(risk, "U");
 
 		}
@@ -174,32 +178,53 @@ public class RiskService implements IRiskService {
 		return toRiskResponse(savedRisk);
 	}
 	
-	private List<SubRisk> buildSubRisks(List<SubRiskDTO> dtos, Risk risk, Organization org, Company company) {
+	private List<SubRisk> buildSubRisks(List<SubRiskDTO> dtos, Risk risk, Organization org, Company company)
+			throws ResourceNotFoundException {
 
 		if (dtos == null || dtos.isEmpty()) {
 			return Collections.emptyList();
 		}
 
 		// Fetch all existing SubRisks in one query
+		List<Long> existingIds = dtos.stream()
+				.map(SubRiskDTO::getSubRiskId)
+				.filter(Objects::nonNull)
+				.filter(id -> id > 0)
+				.toList();
 		Map<Long, SubRisk> existing = subRiskRepository
-				.findAllById(dtos.stream().map(SubRiskDTO::getSubRiskId).filter(Objects::nonNull).toList()).stream()
+				.findAllById(existingIds).stream()
 				.collect(Collectors.toMap(SubRisk::getId, Function.identity()));
 
-		return dtos.stream().map(dto -> {
+		List<SubRisk> subRisks = new ArrayList<>();
+		for (SubRiskDTO dto : dtos) {
+			Long subRiskId = dto.getSubRiskId();
+			if (subRiskId != null && subRiskId < 0) {
+				throw new ResourceNotFoundException("Please select valid sub risk.");
+			}
 
-			// ? Reuse if exists, else create new
-			SubRisk subRisk = Optional.ofNullable(dto.getSubRiskId()).map(existing::get).orElseGet(SubRisk::new);
+			SubRisk subRisk;
+			if (subRiskId != null && subRiskId > 0) {
+				subRisk = existing.get(subRiskId);
+				if (subRisk == null || Boolean.TRUE.equals(subRisk.getDeleted())) {
+					throw new ResourceNotFoundException("Selected sub risk does not exist.");
+				}
+				if (risk.getId() == null || subRisk.getRisk() == null
+						|| !Objects.equals(subRisk.getRisk().getId(), risk.getId())
+						|| !Objects.equals(subRisk.getOrganizationId(), org.getId())) {
+					throw new ResourceNotFoundException("Selected sub risk does not belong to the selected risk.");
+				}
+			} else {
+				subRisk = new SubRisk();
+			}
 
-			// ? Always update name (your requirement)
 			subRisk.setSubRisk(dto.getSubRiskName());
-			// ? Common fields
 			subRisk.setRisk(risk);
 			subRisk.setOrganizationId(org.getId());
 			subRisk.setCompanyId(company.getId());
 
-			return subRisk;
-
-		}).toList();
+			subRisks.add(subRisk);
+		}
+		return subRisks;
 	}
 
 	@Override
@@ -208,16 +233,25 @@ public class RiskService implements IRiskService {
 
 		Organization organization = OrganizationContext.getOrganization();
 		Company company = CompanyContext.getCompany();
+		validateRequiredId(request.getRiskId(), "Please select risk.");
 
-		Risk risk = riskRepository.findById(request.getRiskId())
+		Risk risk = Optional.ofNullable(riskRepository.getRisksByOrgIdAndRiskId(organization.getId(), request.getRiskId()))
 				.orElseThrow(() -> new ResourceNotFoundException("Risk not found."));
 
-		RiskAssessment riskAsessment = riskAsessmentRepository.findById(request.getAssessmentId())
-				.filter(as -> !as.getDeleted()).orElse(new RiskAssessment());
+		RiskAssessment riskAsessment = request.getAssessmentId() > 0
+				? riskAsessmentRepository.findByIdAndOrganizationIdAndDeletedFalse(
+						request.getAssessmentId(), organization.getId())
+						.orElseThrow(() -> new ResourceNotFoundException("Risk assessment not found."))
+				: new RiskAssessment();
+		if (riskAsessment.getId() != null && (riskAsessment.getRisk() == null
+				|| !Objects.equals(riskAsessment.getRisk().getId(), risk.getId()))) {
+			throw new ResourceNotFoundException("Selected risk assessment does not belong to the selected risk.");
+		}
 
 		SubRisk subRisk = null;
 		if (request.getSubRiskId() != null) {
-			subRisk = risk.getSubRisk().stream()
+			validateRequiredId(request.getSubRiskId(), "Please select valid sub risk.");
+			subRisk = safeList(risk.getSubRisk()).stream()
 					.filter(existingSubRisk -> request.getSubRiskId().equals(existingSubRisk.getId()))
 					.findFirst()
 					.orElseThrow(() -> new ResourceNotFoundException(
@@ -370,7 +404,7 @@ public class RiskService implements IRiskService {
 
 //		riskHistory.setBranchId(risk.getBranch());
 
-		List<SubRiskHistory> subRiskHistoryList = risk.getSubRisk().stream().map(subRisk -> {
+		List<SubRiskHistory> subRiskHistoryList = safeList(risk.getSubRisk()).stream().map(subRisk -> {
 			SubRiskHistory subRiskHistory = new SubRiskHistory();
 			subRiskHistory.setSubRisk(subRisk.getSubRisk());
 			subRiskHistory.setRisk(risk);
@@ -533,10 +567,11 @@ public class RiskService implements IRiskService {
 		if (status == null || (!status.equals("APPROVED") && !status.equals("REJECT"))) {
 			throw new ResourceNotFoundException("Invalid status. Status must be either 'APPROVED' or 'REJECT'.");
 		}
+		Organization organization = OrganizationContext.getOrganization();
+		validateRequiredId(request.getRiskId(), "Please select risk.");
 		
 		// Find the risk by ID
-		Risk risk = riskRepository.findById(request.getRiskId())
-				.filter(r -> !r.getDeleted())
+		Risk risk = Optional.ofNullable(riskRepository.getRisksByOrgIdAndRiskId(organization.getId(), request.getRiskId()))
 				.orElseThrow(() -> new ResourceNotFoundException("Risk not found."));
 		
 		// Update the risk status
@@ -549,6 +584,26 @@ public class RiskService implements IRiskService {
 		captureHistory(risk, "U");
 		
 		return toRiskResponse(savedRisk);
+	}
+
+	private boolean isExistingId(Long id) {
+		return id != null && id > 0;
+	}
+
+	private void validateRequiredId(Long id, String message) throws ResourceNotFoundException {
+		if (id == null || id <= 0) {
+			throw new ResourceNotFoundException(message);
+		}
+	}
+
+	private void validateRequiredId(long id, String message) throws ResourceNotFoundException {
+		if (id <= 0) {
+			throw new ResourceNotFoundException(message);
+		}
+	}
+
+	private <T> List<T> safeList(List<T> values) {
+		return values == null ? Collections.emptyList() : values;
 	}
 
 	private RiskResponse toRiskResponse(Risk risk) {

@@ -214,7 +214,9 @@ public class DashboardService implements IDashboardService {
 		List<List<CustomResponse>> customReponse = toCustomReponse(
 				allRisksByCompany.stream().limit(pageable.getPageSize()).collect(Collectors.toList()));
 
-		long totalSubRisks = allRisksByCompany.stream().flatMap(r -> r.getSubRisk().stream()).count();
+		long totalSubRisks = allRisksByCompany.stream()
+				.flatMap(r -> r.getSubRisk() != null ? r.getSubRisk().stream() : Stream.empty())
+				.count();
 		CompanyAdminDashboardDto dashboardData = new CompanyAdminDashboardDto();
 		dashboardData.setTotalBranches(branches.size());
 		dashboardData.setTotalDepartments(totalDepartments);

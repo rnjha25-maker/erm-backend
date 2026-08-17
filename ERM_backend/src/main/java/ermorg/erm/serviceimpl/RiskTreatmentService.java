@@ -28,6 +28,7 @@ import ermorg.erm.service.IFieldService;
 import ermorg.erm.service.IRiskTreatmentService;
 import ermorg.erm.util.CompanyContext;
 import ermorg.erm.util.OrganizationContext;
+import ermorg.erm.util.SubRiskSelectionUtil;
 import ermorg.erm.util.mapper.CustomResponseMapper;
 import ermorg.erm.util.mapper.CustomResponseMapperUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -55,9 +56,10 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 		
 		Organization organization = OrganizationContext.getOrganization();
 		Company company = CompanyContext.getCompany();
+		validateRequiredId(request.getRiskId(), "Please select risk.");
+		validateRequiredId(request.getRiskReporting(), "Please select risk reporting.");
 		
-		Risk risk = riskRepository.findById(request.getRiskId())
-		.filter(r -> !r.getDeleted())
+		Risk risk = java.util.Optional.ofNullable(riskRepository.getRisksByOrgIdAndRiskId(organization.getId(), request.getRiskId()))
 		.orElseThrow(() -> new ResourceNotFoundException("Risk not found."));
 		
 		User riskReporting = userRepository.findById(request.getRiskReporting())
@@ -67,7 +69,7 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 		.filter(r -> !r.getDeleted())
 		.orElse(new RiskResponseTreatment());
 		
-		List<SubRisk> subRisks = risk.getSubRisk().stream().filter(r-> request.getRiskSubIds().contains(r.getId()))
+		List<SubRisk> subRisks = SubRiskSelectionUtil.resolveSelectedSubRisks(risk, request.getRiskSubIds()).stream()
 				.map(sbRisk->{
 					sbRisk.setRiskResponseTreatment(riskResponseTreatment);
 					return sbRisk;
@@ -102,6 +104,13 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 		RiskResponseTreatment saved = riskResponseTreatmentRepository.save(riskResponseTreatment);
 		return new RiskResponseTreatmentResponse(saved);
 	}
+
+	private void validateRequiredId(long id, String message) throws ResourceNotFoundException {
+		if (id <= 0) {
+			throw new ResourceNotFoundException(message);
+		}
+	}
+
 	@Override
 	public RiskResponseTreatmentResponse getRiskTreatment(Long treatmentId) throws ResourceNotFoundException {
 

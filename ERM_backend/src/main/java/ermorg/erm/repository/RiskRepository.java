@@ -64,8 +64,8 @@ public interface RiskRepository extends JpaRepository<Risk, Long>{
 	Risk getRiskWithAssessments(@Param("id") Long id);
 
 	// Optimized dashboard queries - fetch critical data upfront
-	@Query(value = "SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.deleted = false ORDER BY r.id DESC", nativeQuery = false)
-	List<Risk> getTopRisksByOrganization(@Param("organizationId") Long organizationId, @Param("limit") int limit);
+	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.deleted = false ORDER BY r.id DESC")
+	List<Risk> getTopRisksByOrganization(@Param("organizationId") Long organizationId);
 	
 	@Query("SELECT r FROM Risk r LEFT JOIN FETCH r.riskOwner LEFT JOIN FETCH r.riskChampion LEFT JOIN FETCH r.subRisk WHERE r.organizationId = :organizationId AND r.deleted = false ORDER BY r.id DESC")
 	Page<Risk> getRisksPagedOptimized(@Param("organizationId") Long organizationId, Pageable pageable);

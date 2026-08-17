@@ -28,6 +28,7 @@ import ermorg.erm.repository.UserRepository;
 import ermorg.erm.service.IKriKpiRiskService;
 import ermorg.erm.util.CompanyContext;
 import ermorg.erm.util.OrganizationContext;
+import ermorg.erm.util.SubRiskSelectionUtil;
 import ermorg.erm.util.mapper.CustomResponseMapper;
 
 @Service
@@ -53,22 +54,23 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 	public KriKpiReviewResponseDTO save(KriKpiReviewRequestDTO request) throws ResourceNotFoundException {
 		Organization organization = OrganizationContext.getOrganization();
 		Company company = CompanyContext.getCompany();
+		validateRequiredId(request.getRiskId(), "Please select risk.");
+		validateRequiredId(request.getRiskOwner(), "Please select risk owner.");
+
 		User owner = userRepository.findById(request.getRiskOwner()).filter(r -> !r.getDeleted())
 				.orElseThrow(() -> new ResourceNotFoundException("No user found for selected owner."));
 
-		Risk risk = riskRepository.findById(request.getRiskId()).filter(r -> !r.getDeleted())
+		Risk risk = java.util.Optional.ofNullable(riskRepository.getRisksByOrgIdAndRiskId(organization.getId(), request.getRiskId()))
 				.orElseThrow(() -> new ResourceNotFoundException("No risk found for selected risk."));
 
-		RiskAssessment riskAssessment = riskAsessmentRepository
-				.findByIdAndOrganizationIdAndDeletedFalse(request.getRiskAssessmentId(), organization.getId())
-				.orElseThrow(() -> new ResourceNotFoundException("No risk assessment found for selected assessment."));
-
-		if (riskAssessment.getRisk() == null || !riskAssessment.getRisk().getId().equals(risk.getId())) {
-			throw new ResourceNotFoundException("Selected risk assessment does not belong to the selected risk.");
-		}
+		List<SubRisk> subRisks = SubRiskSelectionUtil.resolveSelectedSubRisks(risk, request.getSubRiskIds());
+		RiskAssessment riskAssessment = resolveRiskAssessment(request, organization, risk, subRisks);
 		
-		User evaluationBy = userRepository.findById(request.getKriEvaluationBy()).filter(r -> !r.getDeleted())
-				.orElseThrow(() -> new ResourceNotFoundException("No user found for selected evaluation by."));
+		User evaluationBy = null;
+		if (request.getKriEvaluationBy() > 0) {
+			evaluationBy = userRepository.findById(request.getKriEvaluationBy()).filter(r -> !r.getDeleted())
+					.orElseThrow(() -> new ResourceNotFoundException("No user found for selected evaluation by."));
+		}
 
 		User reporting = null;
 		if (request.getReporting() > 0) {
@@ -87,8 +89,8 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 				.orElseThrow(() -> new ResourceNotFoundException("KriKpiReview not found."));
 		}
 
-		List<SubRisk> subRisks = risk.getSubRisk().stream().filter(r-> request.getSubRiskIds().contains(r.getId()))
-				.map(sbRisk->{
+		subRisks = subRisks.stream()
+				.map(sbRisk -> {
 					sbRisk.setKriKpiReview(kriKpiReview);
 					return sbRisk;
 				})
@@ -107,6 +109,52 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 		KriKpiReview saved = kriKpiReskRepository.save(kriKpiReview);
 
 		return new KriKpiReviewResponseDTO(saved);
+	}
+
+	private RiskAssessment resolveRiskAssessment(KriKpiReviewRequestDTO request, Organization organization, Risk risk,
+			List<SubRisk> subRisks) throws ResourceNotFoundException {
+		if (request.getRiskAssessmentId() > 0) {
+			RiskAssessment riskAssessment = riskAsessmentRepository
+					.findByIdAndOrganizationIdAndDeletedFalse(request.getRiskAssessmentId(), organization.getId())
+					.orElseThrow(() -> new ResourceNotFoundException("No risk assessment found for selected assessment."));
+			validateAssessmentBelongsToSelection(riskAssessment, risk, subRisks);
+			return riskAssessment;
+		}
+
+		if (subRisks.size() > 1) {
+			throw new ResourceNotFoundException("Please select risk assessment for multiple sub risks.");
+		}
+
+		List<RiskAssessment> assessments = subRisks.isEmpty()
+				? riskAsessmentRepository.findLatestByOrgIdAndRiskIdWithoutSubRisk(organization.getId(), risk.getId())
+				: riskAsessmentRepository.findLatestByOrgIdAndRiskIdAndSubRiskId(
+						organization.getId(), risk.getId(), subRisks.get(0).getId());
+
+		if (assessments.isEmpty()) {
+			throw new ResourceNotFoundException("No risk assessment found for selected risk and sub risk.");
+		}
+		return assessments.get(0);
+	}
+
+	private void validateAssessmentBelongsToSelection(RiskAssessment riskAssessment, Risk risk, List<SubRisk> subRisks)
+			throws ResourceNotFoundException {
+		if (riskAssessment.getRisk() == null || !riskAssessment.getRisk().getId().equals(risk.getId())) {
+			throw new ResourceNotFoundException("Selected risk assessment does not belong to the selected risk.");
+		}
+
+		if (!subRisks.isEmpty()) {
+			Long assessmentSubRiskId = riskAssessment.getSubRisk() != null ? riskAssessment.getSubRisk().getId() : null;
+			boolean matched = subRisks.stream().anyMatch(subRisk -> subRisk.getId().equals(assessmentSubRiskId));
+			if (!matched) {
+				throw new ResourceNotFoundException("Selected risk assessment does not belong to the selected sub risk.");
+			}
+		}
+	}
+
+	private void validateRequiredId(long id, String message) throws ResourceNotFoundException {
+		if (id <= 0) {
+			throw new ResourceNotFoundException(message);
+		}
 	}
 
 	private ModelMapper createMapper() {

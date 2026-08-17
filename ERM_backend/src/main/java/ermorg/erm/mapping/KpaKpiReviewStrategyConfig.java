@@ -35,6 +35,10 @@ public class KpaKpiReviewStrategyConfig implements FieldStrategy {
 
         map.put(normalizeKey("businessFunctionalOwner"),
                 r -> fieldMapperUtils.resolveUser(r.getBusinessFunctionalOwner()));
+        map.put(normalizeKey("businessFunction"),
+                r -> fieldMapperUtils.resolveDepartmentFromObject(r.getBusinessFunction()));
+        map.put(normalizeKey("departmentFunction"),
+                r -> fieldMapperUtils.resolveDepartmentFromObject(r.getDepartmentFunction()));
         map.put(normalizeKey("evaluationBy"),
                 r -> fieldMapperUtils.resolveUser(r.getEvaluationBy()));
         map.put(normalizeKey("targets"),  KpaKpiReviewResponseDTO::getTargetValue);

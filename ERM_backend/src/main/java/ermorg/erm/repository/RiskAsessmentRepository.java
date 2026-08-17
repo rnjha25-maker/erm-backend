@@ -19,6 +19,18 @@ public interface RiskAsessmentRepository extends JpaRepository<RiskAssessment, L
 	@Query("SELECT r FROM RiskAssessment r LEFT JOIN FETCH r.risk WHERE r.id = :id AND r.organization.id = :orgId AND r.deleted = false")
 	Optional<RiskAssessment> findByIdAndOrganizationIdAndDeletedFalse(@Param("id") Long id, @Param("orgId") Long organizationId);
 
+	@Query("SELECT r FROM RiskAssessment r LEFT JOIN FETCH r.risk LEFT JOIN FETCH r.subRisk "
+			+ "WHERE r.organization.id = :orgId AND r.risk.id = :riskId AND r.subRisk.id = :subRiskId "
+			+ "AND r.deleted = false ORDER BY r.id DESC")
+	List<RiskAssessment> findLatestByOrgIdAndRiskIdAndSubRiskId(@Param("orgId") Long orgId,
+			@Param("riskId") Long riskId, @Param("subRiskId") Long subRiskId);
+
+	@Query("SELECT r FROM RiskAssessment r LEFT JOIN FETCH r.risk LEFT JOIN FETCH r.subRisk "
+			+ "WHERE r.organization.id = :orgId AND r.risk.id = :riskId AND r.subRisk IS NULL "
+			+ "AND r.deleted = false ORDER BY r.id DESC")
+	List<RiskAssessment> findLatestByOrgIdAndRiskIdWithoutSubRisk(@Param("orgId") Long orgId,
+			@Param("riskId") Long riskId);
+
 	@Query("SELECT r FROM RiskAssessment r LEFT JOIN FETCH r.risk LEFT JOIN FETCH "
 			+ "r.subRisk WHERE r.organization.id = :orgId AND r.id = :assessmentId AND r.deleted = false")
 	RiskAssessment getAssessmentByOrgIdAndAssessmentId(@Param("orgId") Long orgId,

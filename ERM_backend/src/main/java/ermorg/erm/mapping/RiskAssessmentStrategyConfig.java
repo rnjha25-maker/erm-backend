@@ -40,6 +40,7 @@ public class RiskAssessmentStrategyConfig implements FieldStrategy {
         map.put(normalizeKey("riskTitle"),  RiskAssessmentResponse::getRiskTitle);
         map.put(normalizeKey("subRiskIds"), RiskAssessmentResponse::getSubRiskName);
         map.put(normalizeKey("riskId"),     RiskAssessmentResponse::getRiskTitle);
+        map.put(normalizeKey("residualRiskRatingCriteria"), RiskAssessmentResponse::getRiskRating);
         map.put(normalizeKey("valueUnit"),
                 r -> r.getValueUnit() != null ? r.getValueUnit().getLabel() : null);
         map.put(normalizeKey("currency"),   RiskAssessmentResponse::getCurrency);

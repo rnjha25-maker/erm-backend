@@ -1,8 +1,10 @@
 package ermorg.erm.mapping;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
@@ -40,12 +42,21 @@ public class RiskControlStrategyConfig implements FieldStrategy {
 
         map.put(n("approver"),
                 r -> fieldMapperUtils.resolveUser(r.getApprover()));
-        map.put(n("riskSubs"),RiskControlResponse::getRiskSubs);
         map.put(n("controlSubTitle"),
-                r -> fieldMapperUtils.stringify(fieldMapperUtils.resolveSubList(r.getControlSubTitle())));
+                r -> stringifyControlSubTitles(r.getControlSubTitle()));
 
 
         return map;
+    }
+
+    private String stringifyControlSubTitles(List<ermorg.erm.dto.riskDTO.RiskSubControlDto> controls) {
+        if (controls == null || controls.isEmpty()) {
+            return null;
+        }
+        return controls.stream()
+                .map(ermorg.erm.dto.riskDTO.RiskSubControlDto::getControlSubTitle)
+                .filter(value -> value != null && !value.isBlank())
+                .collect(Collectors.joining(", "));
     }
 
     private static String n(String value) {
