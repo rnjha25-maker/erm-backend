@@ -1,8 +1,8 @@
 package ermorg.erm.serviceimpl;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -30,6 +30,7 @@ import ermorg.erm.repository.UserRepository;
 import ermorg.erm.service.IRiskControlService;
 import ermorg.erm.util.CompanyContext;
 import ermorg.erm.util.OrganizationContext;
+import ermorg.erm.util.SubRiskSelectionUtil;
 import ermorg.erm.util.mapper.CustomResponseMapper;
 import ermorg.erm.util.mapper.CustomResponseMapperUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -65,12 +66,15 @@ public class RiskControlService implements IRiskControlService {
 		
 		Organization organization = OrganizationContext.getOrganization();
 		Company company = CompanyContext.getCompany();
+		validateRequiredId(request.getRiskId(), "Please select risk.");
+		validateRequiredId(request.getApprover(), "Please select approver.");
+		validateRequiredId(request.getPrimaryResponsible(), "Please select primary responsible.");
+
 		 RiskControl riskControl = riskControlRepository.findById(request.getRiskControlId())
 		.filter(d-> !d.getDeleted())
 		.orElse(new RiskControl());
 
-		 Risk risk = riskRepository.findById(request.getRiskId())
-		 .filter(d-> !d.getDeleted())
+		 Risk risk = java.util.Optional.ofNullable(riskRepository.getRisksByOrgIdAndRiskId(organization.getId(), request.getRiskId()))
 		 .orElseThrow(()-> new ResourceNotFoundException("Risk not found for selected risk."));
 		 
 		 User approver = userRepository.findById(request.getApprover())
@@ -81,9 +85,9 @@ public class RiskControlService implements IRiskControlService {
 		 .filter(d -> !d.getDeleted())
 		 .orElseThrow(()-> new ResourceNotFoundException("User not found for selected primary responsible."));
 		 
-		 List<SubRisk> subRisks = risk.getSubRisk().stream().filter(r-> request.getSubRiskIds().contains(r.getId()))
+		 List<SubRisk> subRisks = SubRiskSelectionUtil.resolveSelectedSubRisks(risk, request.getSubRiskIds()).stream()
 		 .peek(sbRisk -> sbRisk.setRiskControl(riskControl))
-		 .collect(Collectors.toList());
+		 .toList();
 		 
 		 riskControl.setOrganization(organization);
 		 riskControl.setCompany(company);
@@ -109,7 +113,7 @@ public class RiskControlService implements IRiskControlService {
 		
 		 
 			List<RiskSubControl> riskSubControlList = new ArrayList<>(); 
-		 for (RiskSubControlDto subControlDto : request.getControlSubTitle()) {
+		 for (RiskSubControlDto subControlDto : safeList(request.getControlSubTitle())) {
 				RiskSubControl  riskSubControl = new RiskSubControl();
 				if (subControlDto.getSubControlId() != 0) {
 					riskSubControl = subRiskControlRepository.findById(subControlDto.getSubControlId()).orElse(new RiskSubControl());
@@ -128,6 +132,16 @@ public class RiskControlService implements IRiskControlService {
 		 savedControl.setSubControls(riskSubControlList);
 		
 		return new RiskControlResponse(savedControl);
+	}
+
+	private void validateRequiredId(long id, String message) throws ResourceNotFoundException {
+		if (id <= 0) {
+			throw new ResourceNotFoundException(message);
+		}
+	}
+
+	private <T> List<T> safeList(List<T> values) {
+		return values == null ? Collections.emptyList() : values;
 	}
 
 	@Override

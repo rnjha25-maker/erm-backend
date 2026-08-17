@@ -25,6 +25,7 @@ import ermorg.erm.repository.UserRepository;
 import ermorg.erm.service.IRiskReviewService;
 import ermorg.erm.util.CompanyContext;
 import ermorg.erm.util.OrganizationContext;
+import ermorg.erm.util.SubRiskSelectionUtil;
 import ermorg.erm.util.mapper.CustomResponseMapper;
 
 @Service
@@ -46,9 +47,10 @@ public class RiskReviewService implements IRiskReviewService {
 		
 		Organization organization = OrganizationContext.getOrganization();
 		Company company = CompanyContext.getCompany();
+		validateRequiredId(request.getRiskId(), "Please select risk.");
+		validateRequiredId(request.getRiskReporting(), "Please select risk reporting.");
 		
-		Risk risk = riskRepository.findById(request.getRiskId())
-				.filter(r -> !r.getDeleted())
+		Risk risk = java.util.Optional.ofNullable(riskRepository.getRisksByOrgIdAndRiskId(organization.getId(), request.getRiskId()))
 				.orElseThrow(() -> new ResourceNotFoundException("Risk not found."));
 				
 			User riskReporting = userRepository.findById(request.getRiskReporting())
@@ -73,7 +75,7 @@ public class RiskReviewService implements IRiskReviewService {
 				riskReview.setId(null);
 			}
 				
-				List<SubRisk> subRisks = risk.getSubRisk().stream().filter(r-> request.getSubRiskIds().contains(r.getId()))
+				List<SubRisk> subRisks = SubRiskSelectionUtil.resolveSelectedSubRisks(risk, request.getSubRiskIds()).stream()
 						.map(sbRisk->{
 							sbRisk.setRiskReview(riskReview);
 							return sbRisk;
@@ -87,6 +89,12 @@ public class RiskReviewService implements IRiskReviewService {
 				riskReview.setCompany(company);
 				RiskReview saved = riskReviewRepository.save(riskReview);
 		return new RiskReviewResponseDtoResponse(saved);
+	}
+
+	private void validateRequiredId(long id, String message) throws ResourceNotFoundException {
+		if (id <= 0) {
+			throw new ResourceNotFoundException(message);
+		}
 	}
 
 	private ModelMapper createMapper() {

@@ -36,6 +36,8 @@ public class RiskTreatmentStrategyConfig implements FieldStrategy {
                 r -> fieldMapperUtils.stringify(fieldMapperUtils.resolveSubList(r.getSubRisk())));
         map.put(n("subRiskIds"),
                 r -> fieldMapperUtils.stringify(fieldMapperUtils.resolveSubList(r.getSubRisk())));
+        map.put(n("riskSubIds"),
+                r -> fieldMapperUtils.stringify(fieldMapperUtils.resolveSubList(r.getSubRisk())));
         
         map.put(n("controlEvaluationBy"),
                 r -> fieldMapperUtils.resolveUserFromObject(r.getControlEvaluationBy()));

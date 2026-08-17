@@ -119,8 +119,7 @@ public class RoleService implements IRoleService {
 
 	@Override
 	public List<RoleType> getRoleType() throws ResourceNotFoundException {
-		roleTypeRepository.findAll();
-		return List.of();
+		return roleTypeRepository.findAll();
 	}
 
 	private void saveRoleHistory(Role role, String operation) {

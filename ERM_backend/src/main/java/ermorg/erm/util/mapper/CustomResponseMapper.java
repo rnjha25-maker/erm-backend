@@ -1,6 +1,7 @@
 package ermorg.erm.util.mapper;
 
 import java.util.Collections;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -133,8 +134,83 @@ public class CustomResponseMapper {
         CustomResponse response = new CustomResponse();
         response.setFieldName(field.getFieldName());
         response.setFieldType(field.getFieldType());
-        response.setValue(fieldMapperUtils.stringify(value));
+        response.setValue(fieldMapperUtils.stringify(resolveOptionLabels(field, value)));
         return response;
+    }
+
+    private Object resolveOptionLabels(CustomFieldResponse field, Object value) {
+        if (value == null || field == null || field.getOptions() == null || field.getOptions().isEmpty()) {
+            return value;
+        }
+
+        if (value instanceof Collection<?> collection) {
+            return collection.stream()
+                    .map(item -> resolveOptionLabel(field, item))
+                    .filter(Objects::nonNull)
+                    .toList();
+        }
+
+        String text = value.toString().trim();
+        if (text.isEmpty()) {
+            return value;
+        }
+
+        if (looksLikeMultiValue(text)) {
+            List<String> labels = splitMultiValue(text).stream()
+                    .map(item -> resolveOptionLabel(field, item))
+                    .filter(Objects::nonNull)
+                    .toList();
+            return labels.isEmpty() ? value : labels;
+        }
+
+        String label = resolveOptionLabel(field, text);
+        return label != null ? label : value;
+    }
+
+    private String resolveOptionLabel(CustomFieldResponse field, Object rawValue) {
+        if (rawValue == null) {
+            return null;
+        }
+
+        String value = cleanOptionValue(rawValue.toString());
+        if (value.isBlank()) {
+            return null;
+        }
+
+        return field.getOptions().stream()
+                .filter(option -> value.equalsIgnoreCase(cleanOptionValue(option.getValue()))
+                        || value.equalsIgnoreCase(cleanOptionValue(option.getLabel())))
+                .map(CustomFieldResponse.FieldOptionItem::getLabel)
+                .filter(label -> label != null && !label.isBlank())
+                .findFirst()
+                .orElse(value);
+    }
+
+    private boolean looksLikeMultiValue(String value) {
+        return value.contains(",") || (value.startsWith("[") && value.endsWith("]"));
+    }
+
+    private List<String> splitMultiValue(String value) {
+        String text = value.trim();
+        if (text.startsWith("[") && text.endsWith("]")) {
+            text = text.substring(1, text.length() - 1);
+        }
+        return java.util.Arrays.stream(text.split(","))
+                .map(this::cleanOptionValue)
+                .filter(item -> !item.isBlank())
+                .toList();
+    }
+
+    private String cleanOptionValue(String value) {
+        if (value == null) {
+            return "";
+        }
+        String text = value.trim();
+        if ((text.startsWith("\"") && text.endsWith("\""))
+                || (text.startsWith("'") && text.endsWith("'"))) {
+            text = text.substring(1, text.length() - 1).trim();
+        }
+        return text;
     }
 
     private CustomResponse mapFallback(Object object, CustomFieldResponse field, String tableName) {

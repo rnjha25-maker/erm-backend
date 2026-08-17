@@ -1,6 +1,7 @@
 package ermorg.erm.dto.response;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -39,7 +40,9 @@ public class RiskResponseTreatmentResponse {
 	    this.riskResponseTreatmentId = riskResponseTreatment.getId();
     	this.riskId = riskResponseTreatment.getRisk().getId();
     	this.riskTitle = riskResponseTreatment.getRisk().getRisktitle();
-    	this.subRisk = riskResponseTreatment.getSubRisks().stream().map(SubRiskResponse::new).toList();
+    	this.subRisk = riskResponseTreatment.getSubRisks() != null
+				? riskResponseTreatment.getSubRisks().stream().map(SubRiskResponse::new).toList()
+				: Collections.emptyList();
     	this.controlPresence = riskResponseTreatment.getControlPresence();
 		this.controlDescription = riskResponseTreatment.getControlDescription();
 		this.controlGapsIdentified = riskResponseTreatment.getControlGapsIdentified();

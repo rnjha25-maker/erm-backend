@@ -39,11 +39,14 @@ public class KriKpiReviewStrategyConfig implements FieldStrategy {
                 r -> fieldMapperUtils.stringify(fieldMapperUtils.resolveSubList(r.getSubRiskIds())));
         map.put(normalizeKey("riskOwner"),
                 r -> fieldMapperUtils.resolveUser(r.getRiskOwner()));
+        map.put(normalizeKey("businessFunction"),
+                r -> fieldMapperUtils.resolveDepartmentFromObject(r.getBusinessFunction()));
         map.put(normalizeKey("reporting"),
                 r -> fieldMapperUtils.resolveUser(r.getReporting()));
         map.put(normalizeKey("kriEvaluationBy"),
                 r -> fieldMapperUtils.resolveUser(r.getKriEvaluationBy()));
         map.put(normalizeKey("riskId"),    KriKpiReviewResponseDTO::getRiskTitle);
+        map.put(normalizeKey("riskAppetite"), KriKpiReviewResponseDTO::getRiskAppetiteStatus);
         map.put(normalizeKey("valueUnit"),
                 r -> r.getValueUnit() != null ? r.getValueUnit().getLabel() : null);
         map.put(normalizeKey("currency"),  KriKpiReviewResponseDTO::getCurrency);
