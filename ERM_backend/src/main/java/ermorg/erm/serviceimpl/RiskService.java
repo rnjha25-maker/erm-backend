@@ -203,15 +203,16 @@ public class RiskService implements IRiskService {
 			}
 
 			SubRisk subRisk;
-			if (subRiskId != null && subRiskId > 0) {
+			if (isExistingId(risk.getId()) && subRiskId != null && subRiskId > 0) {
 				subRisk = existing.get(subRiskId);
-				if (subRisk == null || Boolean.TRUE.equals(subRisk.getDeleted())) {
-					throw new ResourceNotFoundException("Selected sub risk does not exist.");
-				}
-				if (risk.getId() == null || subRisk.getRisk() == null
+				if (subRisk != null && !Boolean.TRUE.equals(subRisk.getDeleted())
+						&& (subRisk.getRisk() == null
 						|| !Objects.equals(subRisk.getRisk().getId(), risk.getId())
-						|| !Objects.equals(subRisk.getOrganizationId(), org.getId())) {
+						|| !Objects.equals(subRisk.getOrganizationId(), org.getId()))) {
 					throw new ResourceNotFoundException("Selected sub risk does not belong to the selected risk.");
+				}
+				if (subRisk == null || Boolean.TRUE.equals(subRisk.getDeleted())) {
+					subRisk = new SubRisk();
 				}
 			} else {
 				subRisk = new SubRisk();
