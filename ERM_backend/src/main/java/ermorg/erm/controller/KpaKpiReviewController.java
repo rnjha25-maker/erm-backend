@@ -39,7 +39,7 @@ public class KpaKpiReviewController {
         return response;
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/get-view/{id}")
     public GeneralResponse<KpaKpiReviewResponseDTO> get(@PathVariable("id") Long id)
             throws ResourceNotFoundException {
         GeneralResponse<KpaKpiReviewResponseDTO> response = new GeneralResponse<>();
@@ -48,7 +48,7 @@ public class KpaKpiReviewController {
         return response;
     }
 
-    @GetMapping
+    @GetMapping("/all")
     public GeneralResponse<Page<KpaKpiReviewResponseDTO>> getAll(
             @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable,
             @RequestParam(required = false) String status,
