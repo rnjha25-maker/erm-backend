@@ -9,6 +9,7 @@ import lombok.Data;
 public class ErmDashboardSummaryResponse {
 
 	private long totalRisks;
+	private ErmDashboardCardCounts cardCounts = new ErmDashboardCardCounts();
 	private List<NamedCount> byCategory = new ArrayList<>();
 	private ErmHierarchyBreakdown hierarchy = new ErmHierarchyBreakdown();
 	private List<NamedCount> byPriority = new ArrayList<>();

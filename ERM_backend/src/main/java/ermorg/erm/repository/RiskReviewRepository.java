@@ -51,4 +51,9 @@ public interface RiskReviewRepository extends JpaRepository<RiskReview, Long> {
             + "AND r.createdAt BETWEEN :startDate AND :endDate ORDER BY r.id DESC")
     List<RiskReview> findForRiskRegister(@Param("orgId") Long orgId, @Param("riskIds") List<Long> riskIds,
             @Param("startDate") Date startDate, @Param("endDate") Date endDate);
+
+    @Query("SELECT COUNT(r) FROM RiskReview r WHERE r.organization.id = :orgId AND r.deleted = false "
+            + "AND r.risk.id IN :riskIds AND r.createdAt BETWEEN :startDate AND :endDate")
+    long countForErmDashboardByRiskIds(@Param("orgId") Long orgId, @Param("riskIds") List<Long> riskIds,
+            @Param("startDate") Date startDate, @Param("endDate") Date endDate);
 }
