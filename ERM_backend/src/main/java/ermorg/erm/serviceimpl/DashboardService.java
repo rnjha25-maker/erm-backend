@@ -27,6 +27,7 @@ import ermorg.erm.constant.ErmDashboardPeriodType;
 import ermorg.erm.dto.response.BasicDashboardResponse;
 import ermorg.erm.dto.response.CompanyAdminDashboardDto;
 import ermorg.erm.dto.response.CustomResponse;
+import ermorg.erm.dto.response.ErmDashboardCardCounts;
 import ermorg.erm.dto.response.ErmDashboardSummaryResponse;
 import ermorg.erm.dto.response.ErmHierarchyBreakdown;
 import ermorg.erm.dto.response.ErmBranchRatingGroup;
@@ -52,7 +53,9 @@ import ermorg.erm.model.UserDetail;
 import ermorg.erm.repository.BranchRepository;
 import ermorg.erm.repository.CompanyRepository;
 import ermorg.erm.repository.ErmMaturityRepository;
+import ermorg.erm.repository.KpaKpiReviewRepository;
 import ermorg.erm.repository.RiskRepository;
+import ermorg.erm.repository.RiskReviewRepository;
 import ermorg.erm.repository.UserRepository;
 import ermorg.erm.service.DepartmentRepository;
 import ermorg.erm.service.IDashboardService;
@@ -86,6 +89,12 @@ public class DashboardService implements IDashboardService {
 
 	@Autowired
 	private ErmMaturityRepository ermMaturityRepository;
+
+	@Autowired
+	private RiskReviewRepository riskReviewRepository;
+
+	@Autowired
+	private KpaKpiReviewRepository kpaKpiReviewRepository;
 
 	@Autowired
 	private RiskRegisterService riskRegisterService;
@@ -235,6 +244,7 @@ public class DashboardService implements IDashboardService {
 		Organization organization = dashboardData.organization();
 		ErmDashboardAccessScope scope = dashboardData.scope();
 		Long scopeCompanyId = dashboardData.scopeCompanyId();
+		Long scopeCreatorUserId = dashboardData.scopeCreatorUserId();
 		boolean applyBranchDepartmentScope = dashboardData.applyBranchDepartmentScope();
 		List<Long> scopeDepartmentIds = dashboardData.scopeDepartmentIds();
 		ErmDashboardPeriodBounds bounds = dashboardData.bounds();
@@ -313,8 +323,11 @@ public class DashboardService implements IDashboardService {
 		}
 
 		boolean scopeByDepartment = applyBranchDepartmentScope && !scopeDepartmentIds.isEmpty();
-		populateErmMaturitySummary(response, organization, bounds, scopeCompanyId, functionId,
-				applyBranchDepartmentScope, scopeByDepartment, scopeDepartmentIds);
+		List<ERMMaturityAssessment> scopedMaturities = loadScopedMaturityAssessments(organization, bounds,
+				scopeCompanyId, functionId, applyBranchDepartmentScope, scopeByDepartment, scopeDepartmentIds);
+		response.setCardCounts(buildCardCounts(organization.getId(), risks, bounds, scopeCompanyId,
+				scopeCreatorUserId, scopedMaturities));
+		populateErmMaturitySummary(response, scopedMaturities);
 		response.setRiskRegister(riskRegisterService.buildPage(organization.getId(), risks,
 				bounds.getStartInclusive(), bounds.getEndInclusive(), functionId, scopeByDepartment,
 				scopeDepartmentIds, page, size));
@@ -395,16 +408,42 @@ public class DashboardService implements IDashboardService {
 					applyBranchDepartmentScope, scopeByBranch, scopeByDepartment, queryBranchIds, queryDepartmentIds);
 		}
 
-		return new ErmDashboardData(organization, scope, scopeCompanyId, applyBranchDepartmentScope,
-				scopeDepartmentIds, bounds, risks);
+		return new ErmDashboardData(organization, scope, scopeCompanyId, scopeCreatorUserId,
+				applyBranchDepartmentScope, scopeDepartmentIds, bounds, risks);
 	}
 
 	private record ErmDashboardData(Organization organization, ErmDashboardAccessScope scope, Long scopeCompanyId,
-			boolean applyBranchDepartmentScope, List<Long> scopeDepartmentIds, ErmDashboardPeriodBounds bounds,
-			List<Risk> risks) {
+			Long scopeCreatorUserId, boolean applyBranchDepartmentScope, List<Long> scopeDepartmentIds,
+			ErmDashboardPeriodBounds bounds, List<Risk> risks) {
 	}
 
-	private void populateErmMaturitySummary(ErmDashboardSummaryResponse response, Organization organization,
+	private ErmDashboardCardCounts buildCardCounts(Long organizationId, List<Risk> risks,
+			ErmDashboardPeriodBounds bounds, Long scopeCompanyId, Long scopeCreatorUserId,
+			List<ERMMaturityAssessment> scopedMaturities) {
+
+		ErmDashboardCardCounts cardCounts = new ErmDashboardCardCounts();
+		cardCounts.setTotalRiskCount(risks.size());
+
+		if (risks.isEmpty()) {
+			cardCounts.setTotalRiskAppetite(0L);
+		} else {
+			List<Long> riskIds = risks.stream().map(Risk::getId).toList();
+			cardCounts.setTotalRiskAppetite(riskReviewRepository.countForErmDashboardByRiskIds(organizationId, riskIds,
+					bounds.getStartInclusive(), bounds.getEndInclusive()));
+		}
+
+		cardCounts.setTotalRiskTolerance(kpaKpiReviewRepository.countForErmDashboard(organizationId,
+				bounds.getStartInclusive(), bounds.getEndInclusive(), scopeCompanyId, scopeCreatorUserId));
+
+		Date now = new Date();
+		long overdue = scopedMaturities.stream()
+				.filter(m -> m.getDueDate() != null && m.getDueDate().before(now))
+				.count();
+		cardCounts.setTotalOverdue(overdue);
+		return cardCounts;
+	}
+
+	private List<ERMMaturityAssessment> loadScopedMaturityAssessments(Organization organization,
 			ErmDashboardPeriodBounds bounds, Long scopeCompanyId, Long functionId,
 			boolean applyBranchDepartmentScope, boolean scopeByDepartment, List<Long> scopeDepartmentIds) {
 
@@ -413,6 +452,29 @@ public class DashboardService implements IDashboardService {
 						bounds.getEndInclusive(), scopeCompanyId, functionId));
 
 		Map<String, List<ERMMaturityAssessment>> byGroup = ErmMaturityGroupingUtil.groupByErmMaturityId(assessments);
+		boolean functionIdIsSpecific = functionId != null && functionId != 0;
+		List<ERMMaturityAssessment> scoped = new ArrayList<>();
+
+		byGroup.forEach((ermMaturityId, group) -> {
+			List<Long> activeDeptIds = ErmMaturityGroupingUtil
+					.activeDepartmentIds(ErmMaturityGroupingUtil.firstRowDepartmentIds(group));
+			if (!passesMaturityDepartmentScope(activeDeptIds, applyBranchDepartmentScope, scopeByDepartment,
+					scopeDepartmentIds)) {
+				return;
+			}
+			if (functionIdIsSpecific && !activeDeptIds.contains(functionId)) {
+				return;
+			}
+			scoped.addAll(group);
+		});
+		return scoped;
+	}
+
+	private void populateErmMaturitySummary(ErmDashboardSummaryResponse response,
+			List<ERMMaturityAssessment> scopedAssessments) {
+
+		Map<String, List<ERMMaturityAssessment>> byGroup = ErmMaturityGroupingUtil
+				.groupByErmMaturityId(scopedAssessments);
 
 		Set<Long> functionDeptIds = new HashSet<>();
 		for (List<ERMMaturityAssessment> group : byGroup.values()) {
@@ -426,21 +488,10 @@ public class DashboardService implements IDashboardService {
 
 		List<ErmMaturitySummaryGroup> companyWise = new ArrayList<>();
 		List<ErmMaturitySummaryGroup> functionWise = new ArrayList<>();
-		boolean functionIdIsSpecific = functionId != null && functionId != 0;
 
 		byGroup.forEach((ermMaturityId, group) -> {
 			List<Long> activeDeptIds = ErmMaturityGroupingUtil
 					.activeDepartmentIds(ErmMaturityGroupingUtil.firstRowDepartmentIds(group));
-
-			if (!passesMaturityDepartmentScope(activeDeptIds, applyBranchDepartmentScope, scopeByDepartment,
-					scopeDepartmentIds)) {
-				return;
-			}
-
-			if (functionIdIsSpecific && !activeDeptIds.contains(functionId)) {
-				return;
-			}
-
 			ErmMaturitySummaryGroup summary = buildMaturitySummaryGroup(ermMaturityId, group, activeDeptIds,
 					departmentLabels);
 			if (ErmMaturityGroupingUtil.isCompanyWiseMaturity(activeDeptIds)) {
