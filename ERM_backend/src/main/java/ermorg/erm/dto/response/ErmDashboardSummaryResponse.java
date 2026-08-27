@@ -11,6 +11,8 @@ public class ErmDashboardSummaryResponse {
 	private long totalRisks;
 	private ErmDashboardCardCounts cardCounts = new ErmDashboardCardCounts();
 	private List<NamedCount> byCategory = new ArrayList<>();
+	/** Residual risk rating counts from RiskReview (not company hierarchy). */
+	private List<NamedCount> byCompany = new ArrayList<>();
 	private ErmHierarchyBreakdown hierarchy = new ErmHierarchyBreakdown();
 	private List<NamedCount> byPriority = new ArrayList<>();
 	private List<NamedCount> byTreatmentStrategy = new ArrayList<>();
