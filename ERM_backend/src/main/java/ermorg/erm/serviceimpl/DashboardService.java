@@ -48,6 +48,7 @@ import ermorg.erm.model.ERMMaturityAssessment;
 import ermorg.erm.model.Organization;
 import ermorg.erm.model.Risk;
 import ermorg.erm.model.RiskAssessment;
+import ermorg.erm.model.RiskReview;
 import ermorg.erm.model.User;
 import ermorg.erm.model.UserDetail;
 import ermorg.erm.repository.BranchRepository;
@@ -253,9 +254,11 @@ public class DashboardService implements IDashboardService {
 		ErmDashboardSummaryResponse response = new ErmDashboardSummaryResponse();
 		response.setTotalRisks(risks.size());
 
-		Map<String, Long> byCategory = risks.stream().collect(Collectors.groupingBy(
-				r -> r.getCategory() == null ? "UNKNOWN" : r.getCategory().name(), Collectors.counting()));
+		Map<String, Long> byCategory = risks.stream()
+				.collect(Collectors.groupingBy(DashboardService::riskRegisterTypeKey, Collectors.counting()));
 		response.setByCategory(sortedCounts(byCategory, Map.of()));
+
+		response.setByCompany(buildByCompanyFromRiskReviews(organization.getId(), risks, bounds));
 
 		Map<String, String> companyLabels = resolveCompanyLabels(risks);
 		Map<String, String> functionLabels = resolveDepartmentLabels(risks);
@@ -278,6 +281,7 @@ public class DashboardService implements IDashboardService {
 				.collect(Collectors.groupingBy(
 						a -> assessmentBucket(a, RiskAssessment::getRiskPriority),
 						Collectors.counting()));
+		withoutUnassessed(byPriority);
 		response.setByPriority(sortedCounts(byPriority, Map.of()));
 
 		Map<String, Long> byTreatment = risks.stream()
@@ -285,6 +289,7 @@ public class DashboardService implements IDashboardService {
 				.collect(Collectors.groupingBy(
 						a -> assessmentBucket(a, RiskAssessment::getRiskTreatmentStrategy),
 						Collectors.counting()));
+		withoutUnassessed(byTreatment);
 		response.setByTreatmentStrategy(sortedCounts(byTreatment, Map.of()));
 
 		Map<String, Long> byImpact = risks.stream()
@@ -292,6 +297,7 @@ public class DashboardService implements IDashboardService {
 				.collect(Collectors.groupingBy(
 						a -> assessmentBucket(a, RiskAssessment::getGrossImpactScore),
 						Collectors.counting()));
+		withoutUnassessed(byImpact);
 		response.setByImpact(sortedCounts(byImpact, Map.of()));
 
 		Map<String, Long> byRating = risks.stream()
@@ -299,6 +305,7 @@ public class DashboardService implements IDashboardService {
 				.collect(Collectors.groupingBy(
 						a -> assessmentBucket(a, RiskAssessment::getRiskRating),
 						Collectors.counting()));
+		withoutUnassessed(byRating);
 		response.setByRating(sortedCounts(byRating, Map.of()));
 
 		Map<String, Long> byAnalysisType = risks.stream()
@@ -572,6 +579,7 @@ public class DashboardService implements IDashboardService {
 				.collect(Collectors.groupingBy(
 						p -> assessmentBucket(p.assessment(), RiskAssessment::getRiskRating),
 						Collectors.mapping(RiskAssessmentPair::risk, Collectors.toList())));
+		byRatingKey.remove("UNASSESSED");
 
 		return byRatingKey.entrySet().stream().sorted((a, b) -> compareRatingKeys(a.getKey(), b.getKey())).map(entry -> {
 			String ratingKey = entry.getKey();
@@ -586,12 +594,6 @@ public class DashboardService implements IDashboardService {
 	}
 
 	private static int compareRatingKeys(String a, String b) {
-		if ("UNASSESSED".equals(a)) {
-			return 1;
-		}
-		if ("UNASSESSED".equals(b)) {
-			return -1;
-		}
 		return a.compareTo(b);
 	}
 
@@ -604,7 +606,7 @@ public class DashboardService implements IDashboardService {
 					String companyKey = entry.getKey();
 					List<Risk> subset = entry.getValue();
 					Map<String, Long> byCategory = subset.stream()
-							.collect(Collectors.groupingBy(DashboardService::categoryKey, Collectors.counting()));
+							.collect(Collectors.groupingBy(DashboardService::riskRegisterTypeKey, Collectors.counting()));
 
 					ErmCompanyCategoryGroup group = new ErmCompanyCategoryGroup();
 					group.setKey(companyKey);
@@ -621,6 +623,32 @@ public class DashboardService implements IDashboardService {
 
 	private static String categoryKey(Risk r) {
 		return r.getCategory() == null ? "UNKNOWN" : r.getCategory().name();
+	}
+
+	private static String riskRegisterTypeKey(Risk r) {
+		return unknownIfBlank(r.getRiskRegisterType());
+	}
+
+	private List<NamedCount> buildByCompanyFromRiskReviews(Long organizationId, List<Risk> risks,
+			ErmDashboardPeriodBounds bounds) {
+		if (risks.isEmpty()) {
+			return List.of();
+		}
+		List<Long> riskIds = risks.stream().map(Risk::getId).toList();
+		List<RiskReview> reviews = riskReviewRepository.findForRiskRegister(organizationId, riskIds,
+				bounds.getStartInclusive(), bounds.getEndInclusive());
+		Map<String, Long> byResidualRating = reviews.stream()
+				.map(RiskReview::getResidualRiskRating)
+				.filter(Objects::nonNull)
+				.map(String::trim)
+				.filter(v -> !v.isBlank())
+				.filter(v -> !"UNASSESSED".equals(v))
+				.collect(Collectors.groupingBy(v -> v, Collectors.counting()));
+		return sortedCounts(byResidualRating, Map.of());
+	}
+
+	private static void withoutUnassessed(Map<String, Long> counts) {
+		counts.remove("UNASSESSED");
 	}
 
 	private static int compareCategoryKeys(String a, String b) {
@@ -655,11 +683,12 @@ public class DashboardService implements IDashboardService {
 							.collect(Collectors.groupingBy(
 									a -> assessmentBucket(a, RiskAssessment::getRiskRating),
 									Collectors.counting()));
+					withoutUnassessed(byRating);
 
 					ErmBranchRatingGroup group = new ErmBranchRatingGroup();
 					group.setKey(key);
 					group.setDisplayLabel(branchLabels.getOrDefault(key, key));
-					group.setTotal(subset.stream().flatMap(this::streamAssessments).count());
+					group.setTotal(byRating.values().stream().mapToLong(Long::longValue).sum());
 					group.setByRating(sortedRatingCounts(byRating));
 					return group;
 				}).collect(Collectors.toList());
@@ -678,11 +707,12 @@ public class DashboardService implements IDashboardService {
 							.collect(Collectors.groupingBy(
 									a -> assessmentBucket(a, RiskAssessment::getRiskRating),
 									Collectors.counting()));
+					withoutUnassessed(byRating);
 
 					ErmFunctionRatingGroup group = new ErmFunctionRatingGroup();
 					group.setKey(key);
 					group.setDisplayLabel(functionLabels.getOrDefault(key, key));
-					group.setTotal(subset.stream().flatMap(this::streamAssessments).count());
+					group.setTotal(byRating.values().stream().mapToLong(Long::longValue).sum());
 					group.setByRating(sortedRatingCounts(byRating));
 					return group;
 				}).collect(Collectors.toList());
@@ -700,11 +730,12 @@ public class DashboardService implements IDashboardService {
 							.collect(Collectors.groupingBy(
 									a -> assessmentBucket(a, RiskAssessment::getRiskRating),
 									Collectors.counting()));
+					withoutUnassessed(byRating);
 
 					ErmOwnerRatingGroup group = new ErmOwnerRatingGroup();
 					group.setKey(key);
 					group.setDisplayLabel(ownerLabels.getOrDefault(key, key));
-					group.setTotal(subset.stream().flatMap(this::streamAssessments).count());
+					group.setTotal(byRating.values().stream().mapToLong(Long::longValue).sum());
 					group.setByRating(sortedRatingCounts(byRating));
 					return group;
 				}).collect(Collectors.toList());
