@@ -18,8 +18,11 @@ public class KpaKpiReviewResponseDTO {
     private String businessObjectives;
     private String businessFunction;
     private String departmentFunction;
+    private String departmentName;
     private long ownerId;
+    private String ownerName;
     private Long businessFunctionalOwner;
+    private String evaluationByName;
     private String target;
     private String keyPerformanceArea;
     private String keyPerformanceParameters;

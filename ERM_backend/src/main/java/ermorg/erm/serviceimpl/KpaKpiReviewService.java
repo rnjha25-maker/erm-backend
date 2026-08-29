@@ -214,6 +214,15 @@ public class KpaKpiReviewService {
         if (review.getOwner() != null) {
             response.setOwnerId(review.getOwner().getId());
             response.setBusinessFunctionalOwner(review.getOwner().getId());
+            // owner name/email for UI convenience
+            if (review.getOwner().getUserDetail() != null) {
+                String fn = review.getOwner().getUserDetail().getFirstName() == null ? "" : review.getOwner().getUserDetail().getFirstName();
+                String ln = review.getOwner().getUserDetail().getLastName() == null ? "" : review.getOwner().getUserDetail().getLastName();
+                String full = (fn + " " + ln).trim();
+                response.setOwnerName(full.isEmpty() ? review.getOwner().getEmail() : full);
+            } else {
+                response.setOwnerName(review.getOwner().getEmail());
+            }
         }
 
         response.setTarget(review.getTarget());
@@ -236,9 +245,13 @@ public class KpaKpiReviewService {
         response.setMeasurableParameters(review.getLevelOfMeasurementLevel());
         response.setReporting(review.getReportingFrequency());
         response.setReportingFrequency(review.getReportingFrequency());
-        response.setUnitOfMeasurement(review.getLevelOfMeasurementLevel());
+        // Prefer enum label (valueUnit) for display; fall back to levelOfMeasurementLevel column if enum not set
+        response.setUnitOfMeasurement(review.getValueUnit() != null ? review.getValueUnit().getLabel() : review.getLevelOfMeasurementLevel());
         response.setCurrency(review.getCurrency());
         response.setValueUnit(review.getValueUnit());
+        // departmentName — fallback to businessFunction then stakeholderDepartments
+        response.setDepartmentName(review.getBusinessFunction() != null && !review.getBusinessFunction().isBlank()
+                ? review.getBusinessFunction() : review.getStakeholderDepartments());
         response.setTargetValue(review.getTargetValue());
         response.setActualValue(review.getActualValue());
         response.setActuals(review.getActualValue());
@@ -271,6 +284,14 @@ public class KpaKpiReviewService {
         if (review.getKpiEvaluationBy() != null) {
             response.setKpiEvaluationBy(review.getKpiEvaluationBy().getId());
             response.setEvaluationBy(review.getKpiEvaluationBy().getId());
+            if (review.getKpiEvaluationBy().getUserDetail() != null) {
+                String fn = review.getKpiEvaluationBy().getUserDetail().getFirstName() == null ? "" : review.getKpiEvaluationBy().getUserDetail().getFirstName();
+                String ln = review.getKpiEvaluationBy().getUserDetail().getLastName() == null ? "" : review.getKpiEvaluationBy().getUserDetail().getLastName();
+                String full = (fn + " " + ln).trim();
+                response.setEvaluationByName(full.isEmpty() ? review.getKpiEvaluationBy().getEmail() : full);
+            } else {
+                response.setEvaluationByName(review.getKpiEvaluationBy().getEmail());
+            }
         }
 
         response.setKpiEvaluationFrequency(review.getKpiEvaluationFrequency());
