@@ -39,6 +39,7 @@ public class RiskAssessmentResponse {
     private String riskAppetiteStatus;
     private RiskAcceptanceLevel riskAcceptanceLevel;
     private RiskValueUnit valueUnit;
+    private String unitOfMeasurement;
     private String currency;
     private Long assetValue;
     private Long yearlyFrequency;
@@ -79,6 +80,7 @@ public class RiskAssessmentResponse {
 		this.riskAppetiteStatus = riskAssessment.getRiskAppetiteStatus();
 		this.riskAcceptanceLevel = riskAssessment.getRiskAcceptanceLevel();
 		this.valueUnit = riskAssessment.getValueUnit();
+		this.unitOfMeasurement = riskAssessment.getValueUnit() != null ? riskAssessment.getValueUnit().getLabel() : null;
 		this.currency = riskAssessment.getCurrency();
 		this.assetValue = riskAssessment.getAssetValue();
 		this.yearlyFrequency = riskAssessment.getYearlyFrequency();

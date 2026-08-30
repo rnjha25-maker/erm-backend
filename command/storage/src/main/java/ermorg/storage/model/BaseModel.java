@@ -73,9 +73,7 @@ public abstract class BaseModel {
     @PrePersist
     public void generateId() {
         if (id == null) {
-        	String uuidString = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx";
-    		UUID uuid = UUID.fromString(uuidString);
-            id = uuid;
+            id = UUID.randomUUID();
         }
     }
 }
