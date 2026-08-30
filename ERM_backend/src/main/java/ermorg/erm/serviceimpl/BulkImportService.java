@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -31,10 +32,12 @@ public class BulkImportService implements IBulkImportService {
 
     private final IFieldService fieldService;
     private final CompanyRepository companyRepository;
+    private final Map<Long, BulkImportUploadResponse> importStatusStore = new ConcurrentHashMap<>();
+    private final Map<Long, List<Object>> importErrorStore = new ConcurrentHashMap<>();
 
    @Override
     public byte[] downloadTemplate(Long moduleId, String templateType) throws ResourceNotFoundException {
-        String tableName = templateType != null && !templateType.isBlank() ? templateType : "company";
+        String tableName = resolveTemplateTableName(moduleId, templateType);
         try {
             SystemTableResponse table = fieldService.getSystemTableByName(tableName.toLowerCase());
             List<SystemFieldResponse> fields = table.getFields().stream()
@@ -64,24 +67,20 @@ public class BulkImportService implements IBulkImportService {
     @Override
     public BulkImportSummary validateImport(MultipartFile file, Long moduleId, String templateType) throws Exception {
         if (file == null || file.isEmpty()) {
-            throw new ResourceNotFoundException("Please upload an Excel or CSV file.");
+            throw new ResourceNotFoundException("Please upload a CSV file.");
         }
 
         String name = file.getOriginalFilename() == null ? "" : file.getOriginalFilename();
-        if (!(name.toLowerCase().endsWith(".csv") || name.toLowerCase().endsWith(".xlsx") || name.toLowerCase().endsWith(".xls"))) {
-            throw new ResourceNotFoundException("Unsupported file type. Please upload CSV or Excel.");
+        if (!name.toLowerCase().endsWith(".csv")) {
+            throw new ResourceNotFoundException("Unsupported file type. Please upload CSV.");
         }
 
        List<String> lines = new ArrayList<>();
-        if (name.toLowerCase().endsWith(".csv")) {
-            String content = new String(file.getBytes(), StandardCharsets.UTF_8);
-            for (String line : content.split("\\r?\\n")) {
-                if (!line.trim().isEmpty()) {
-                    lines.add(line);
-                }
+        String content = new String(file.getBytes(), StandardCharsets.UTF_8);
+        for (String line : content.split("\\r?\\n")) {
+            if (!line.trim().isEmpty()) {
+                lines.add(line);
             }
-        } else {
-            lines.add("organizationName,companyName,companyStatus");
         }
 
       BulkImportSummary summary = new BulkImportSummary();
@@ -96,7 +95,7 @@ public class BulkImportService implements IBulkImportService {
         List<String> headers = List.of(headerLine.split(","));
         summary.setTotalRows(Math.max(1, lines.size() - 1));
 
-     String tableName = templateType != null && !templateType.isBlank() ? templateType : "company";
+     String tableName = resolveTemplateTableName(moduleId, templateType);
         Map<String, SystemFieldResponse> headerFieldMap = new HashMap<>();
         List<SystemFieldResponse> tableFields = new ArrayList<>();
         try {
@@ -131,6 +130,7 @@ public class BulkImportService implements IBulkImportService {
             }
         }
 
+        boolean companyImport = "company".equalsIgnoreCase(tableName);
         Organization currentOrg = OrganizationContext.getOrganization();
         Long currentOrgId = currentOrg == null ? null : currentOrg.getId();
         for (int rowIndex = 1; rowIndex < lines.size(); rowIndex++) {
@@ -151,16 +151,16 @@ public class BulkImportService implements IBulkImportService {
                 rowMap.put(headers.get(c).trim(), cells[c].trim());
             }
 
-            String companyName = null;
-            if (rowMap.containsKey("companyName") || rowMap.containsKey("companyname")) {
-                companyName = rowMap.getOrDefault("companyName", rowMap.get("companyname"));
-            } else if (!headers.isEmpty()) {
-                companyName = cells[0].trim();
-            }
-            if (companyName == null || companyName.isEmpty()) {
-                summary.getErrors().add(new ermorg.erm.dto.bulk.BulkImportValidationError(rowIndex + 1, "companyName", "Company name is required."));
-            } else {
-                if (currentOrgId != null) {
+            if (companyImport) {
+                String companyName = null;
+                if (rowMap.containsKey("companyName") || rowMap.containsKey("companyname")) {
+                    companyName = rowMap.getOrDefault("companyName", rowMap.get("companyname"));
+                } else if (!headers.isEmpty()) {
+                    companyName = cells[0].trim();
+                }
+                if (companyName == null || companyName.isEmpty()) {
+                    summary.getErrors().add(new ermorg.erm.dto.bulk.BulkImportValidationError(rowIndex + 1, "companyName", "Company name is required."));
+                } else if (currentOrgId != null) {
                     Optional<Company> existing = companyRepository.findByNameAndOrganizationIdAndDeletedFalse(companyName, currentOrgId);
                     if (existing.isPresent()) {
                         summary.getWarnings().add("Row " + (rowIndex + 1) + ": company '" + companyName + "' already exists in the current organization and will be skipped.");
@@ -209,10 +209,11 @@ public class BulkImportService implements IBulkImportService {
         BulkImportSummary summary = validateImport(file, moduleId, templateType);
         BulkImportUploadResponse response = new BulkImportUploadResponse();
         response.setImportId(System.currentTimeMillis());
-        response.setStatus("COMPLETED");
+        response.setStatus(summary.getErrors().isEmpty() ? "COMPLETED" : "FAILED");
         response.setSummary(summary);
 
-       if (summary.getErrors().isEmpty()) {
+       String tableName = resolveTemplateTableName(moduleId, templateType);
+       if (summary.getErrors().isEmpty() && "company".equalsIgnoreCase(tableName)) {
             String content = new String(file.getBytes(), StandardCharsets.UTF_8);
             List<String> lines = new ArrayList<>();
             for (String line : content.split("\\r?\\n")) {
@@ -243,20 +244,43 @@ public class BulkImportService implements IBulkImportService {
             }
         }
 
+        importStatusStore.put(response.getImportId(), response);
+        importErrorStore.put(response.getImportId(), new ArrayList<>(summary.getErrors()));
         return response;
+    }
+
+    private String resolveTemplateTableName(Long moduleId, String templateType) {
+        if (templateType != null && !templateType.isBlank()) {
+            return templateType.trim();
+        }
+        if (moduleId != null) {
+            try {
+                List<SystemTableResponse> tables = fieldService.getSystemTables(moduleId);
+                if (tables != null && !tables.isEmpty() && tables.get(0).getTableName() != null
+                        && !tables.get(0).getTableName().isBlank()) {
+                    return tables.get(0).getTableName();
+                }
+            } catch (ResourceNotFoundException ignored) {
+            }
+        }
+        return "company";
     }
 
     @Override
     public BulkImportUploadResponse getImportStatus(Long importId) {
-        BulkImportUploadResponse response = new BulkImportUploadResponse();
-        response.setImportId(importId);
-        response.setStatus("COMPLETED");
-        response.setSummary(new BulkImportSummary());
-        return response;
+        return importStatusStore.getOrDefault(importId, notFoundImport(importId));
     }
 
     @Override
     public List<Object> getImportErrors(Long importId) {
-        return new ArrayList<>();
+        return importErrorStore.getOrDefault(importId, new ArrayList<>());
+    }
+
+    private BulkImportUploadResponse notFoundImport(Long importId) {
+        BulkImportUploadResponse response = new BulkImportUploadResponse();
+        response.setImportId(importId);
+        response.setStatus("NOT_FOUND");
+        response.setSummary(new BulkImportSummary());
+        return response;
     }
 }

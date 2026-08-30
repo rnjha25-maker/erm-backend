@@ -32,6 +32,7 @@ public class RiskReviewResponseDtoResponse {
     private String reviseImpactScore;
     private String residualRiskScoreRange;
     private String residualRiskRating;
+    private String residualRiskRatingCriteria;
     private String riskTreatmentStatus;
     private String riskToleranceStatus;
     private String riskAppetiteStatus;
@@ -70,6 +71,7 @@ public class RiskReviewResponseDtoResponse {
 		this.reviseImpactScore = riskReview.getReviseImpactScore();
 		this.residualRiskScoreRange = riskReview.getResidualRiskScoreRange();
 		this.residualRiskRating = riskReview.getResidualRiskRating();
+		this.residualRiskRatingCriteria = riskReview.getResidualRiskRating();
 		this.riskTreatmentStatus = riskReview.getRiskTreatmentStatus();
 		this.riskToleranceStatus = riskReview.getRiskToleranceStatus();
 		this.riskAppetiteStatus = riskReview.getRiskAppetiteStatus();

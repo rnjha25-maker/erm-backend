@@ -34,16 +34,47 @@ public class KpaKpiReviewStrategyConfig implements FieldStrategy {
         Map<String, Function<KpaKpiReviewResponseDTO, Object>> map = new HashMap<>();
 
         map.put(normalizeKey("businessFunctionalOwner"),
-                r -> fieldMapperUtils.resolveUser(r.getBusinessFunctionalOwner()));
+                KpaKpiReviewResponseDTO::getOwnerName);
+        map.put(normalizeKey("functionalOwner"),
+                KpaKpiReviewResponseDTO::getOwnerName);
+        map.put(normalizeKey("functionalOwnerName"),
+                KpaKpiReviewResponseDTO::getOwnerName);
+        map.put(normalizeKey("ownerId"),
+                KpaKpiReviewResponseDTO::getOwnerName);
+        map.put(normalizeKey("owner"),
+                KpaKpiReviewResponseDTO::getOwnerName);
         map.put(normalizeKey("businessFunction"),
-                r -> fieldMapperUtils.resolveDepartmentFromObject(r.getBusinessFunction()));
+                KpaKpiReviewResponseDTO::getDepartmentName);
         map.put(normalizeKey("departmentFunction"),
-                r -> fieldMapperUtils.resolveDepartmentFromObject(r.getDepartmentFunction()));
+                KpaKpiReviewResponseDTO::getDepartmentName);
+        map.put(normalizeKey("departmentName"),
+                KpaKpiReviewResponseDTO::getDepartmentName);
+        map.put(normalizeKey("department"),
+                KpaKpiReviewResponseDTO::getDepartmentName);
+        map.put(normalizeKey("stakeholderDepartments"),
+                KpaKpiReviewResponseDTO::getDepartmentName);
         map.put(normalizeKey("evaluationBy"),
-                r -> fieldMapperUtils.resolveUser(r.getEvaluationBy()));
+                KpaKpiReviewResponseDTO::getEvaluationByName);
+        map.put(normalizeKey("evaluationByNo"),
+                KpaKpiReviewResponseDTO::getEvaluationByName);
+        map.put(normalizeKey("evaluationByName"),
+                KpaKpiReviewResponseDTO::getEvaluationByName);
+        map.put(normalizeKey("kpiEvaluationBy"),
+                KpaKpiReviewResponseDTO::getEvaluationByName);
+        map.put(normalizeKey("kpiEvaluationByName"),
+                KpaKpiReviewResponseDTO::getEvaluationByName);
         map.put(normalizeKey("targets"),  KpaKpiReviewResponseDTO::getTargetValue);
+        map.put(normalizeKey("kpa"), KpaKpiReviewResponseDTO::getKpa);
+        map.put(normalizeKey("keyPerformanceArea"), KpaKpiReviewResponseDTO::getKpa);
+        map.put(normalizeKey("kpi"), KpaKpiReviewResponseDTO::getKeyPerformanceIndicator);
+        map.put(normalizeKey("keyPerformanceIndicator"), KpaKpiReviewResponseDTO::getKeyPerformanceIndicator);
+        map.put(normalizeKey("keyPerformanceIndicators"), KpaKpiReviewResponseDTO::getKeyPerformanceIndicator);
+        map.put(normalizeKey("levelOfMeasurementLevel"),
+                KpaKpiReviewResponseDTO::getUnitOfMeasurement);
         map.put(normalizeKey("valueUnit"),
-                r -> r.getValueUnit() != null ? r.getValueUnit().getLabel() : null);
+                KpaKpiReviewResponseDTO::getUnitOfMeasurement);
+        map.put(normalizeKey("unitOfMeasurement"),
+                KpaKpiReviewResponseDTO::getUnitOfMeasurement);
         map.put(normalizeKey("currency"), KpaKpiReviewResponseDTO::getCurrency);
 
         return map;

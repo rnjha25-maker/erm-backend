@@ -35,8 +35,8 @@ public class KpaKpiReviewService {
         Organization organization = getOrganizationContext();
         Company company = getCompanyContext();
 
-        User owner = getActiveUser(request.getOwnerId(), "No user found for selected owner.");
-        User evaluationBy = getActiveUser(request.getKpiEvaluationBy(), "No user found for selected evaluation by.");
+        User owner = getActiveUser(resolveOwnerId(request), "No user found for selected owner.");
+        User evaluationBy = getActiveUser(resolveEvaluationById(request), "No user found for selected evaluation by.");
 
         KpaKpiReview review;
         if (request.getKpaKpiReviewId() == 0) {
@@ -142,7 +142,9 @@ public class KpaKpiReviewService {
     private void mapRequestToEntity(KpaKpiReviewRequestDTO request, KpaKpiReview review) {
         review.setKpa(request.getKpa());
         review.setBusinessObjectives(request.getBusinessObjectives());
-        review.setBusinessFunction(request.getBusinessFunction());
+        review.setBusinessFunction(resolveFirstText(
+                request.getBusinessFunction(), request.getDepartmentFunction(), request.getDepartmentName(),
+                request.getDepartment()));
         review.setTarget(request.getTarget());
         review.setKeyPerformanceParameters(request.getKeyPerformanceParameters());
         review.setKeyPerformanceIndicator(request.getKeyPerformanceIndicator());
@@ -158,7 +160,8 @@ public class KpaKpiReviewService {
         review.setThresholds(request.getThresholds());
         review.setPerformanceAppetite(resolveStringAlias(request.getPerformanceAppetite(), request.getRiskAppetite()));
         review.setEscalationMatrix(request.getEscalationMatrix());
-        review.setLevelOfMeasurementLevel(request.getMeasurableParameters());
+        review.setLevelOfMeasurementLevel(resolveFirstText(
+                request.getMeasurableParameters(), request.getUnitOfMeasurement()));
         review.setReportingFrequency(request.getReportingFrequency());
         review.setCurrency(request.getCurrency());
         review.setValueUnit(request.getValueUnit());
@@ -202,6 +205,35 @@ public class KpaKpiReviewService {
         return preferred != null ? preferred : deprecated;
     }
 
+    private long resolveOwnerId(KpaKpiReviewRequestDTO request) {
+        if (request.getOwnerId() > 0) {
+            return request.getOwnerId();
+        }
+        if (request.getFunctionalOwner() != null && request.getFunctionalOwner() > 0) {
+            return request.getFunctionalOwner();
+        }
+        return request.getBusinessFunctionalOwner() != null ? request.getBusinessFunctionalOwner() : 0;
+    }
+
+    private long resolveEvaluationById(KpaKpiReviewRequestDTO request) {
+        if (request.getKpiEvaluationBy() > 0) {
+            return request.getKpiEvaluationBy();
+        }
+        if (request.getEvaluationByNo() != null && request.getEvaluationByNo() > 0) {
+            return request.getEvaluationByNo();
+        }
+        return request.getEvaluationBy() != null ? request.getEvaluationBy() : 0;
+    }
+
+    private String resolveFirstText(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
+    }
+
     public KpaKpiReviewResponseDTO toResponse(KpaKpiReview review) {
         KpaKpiReviewResponseDTO response = new KpaKpiReviewResponseDTO();
         response.setKpaKpiReviewId(review.getId());
@@ -210,6 +242,7 @@ public class KpaKpiReviewService {
         response.setBusinessObjectives(review.getBusinessObjectives());
         response.setBusinessFunction(review.getBusinessFunction());
         response.setDepartmentFunction(review.getBusinessFunction());
+        response.setDepartment(review.getBusinessFunction());
 
         if (review.getOwner() != null) {
             response.setOwnerId(review.getOwner().getId());
@@ -223,6 +256,7 @@ public class KpaKpiReviewService {
             } else {
                 response.setOwnerName(review.getOwner().getEmail());
             }
+            response.setFunctionalOwner(response.getOwnerName());
         }
 
         response.setTarget(review.getTarget());
@@ -292,6 +326,7 @@ public class KpaKpiReviewService {
             } else {
                 response.setEvaluationByName(review.getKpiEvaluationBy().getEmail());
             }
+            response.setEvaluationByNo(response.getEvaluationByName());
         }
 
         response.setKpiEvaluationFrequency(review.getKpiEvaluationFrequency());

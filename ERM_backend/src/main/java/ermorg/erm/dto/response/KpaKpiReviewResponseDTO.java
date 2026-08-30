@@ -19,9 +19,11 @@ public class KpaKpiReviewResponseDTO {
     private String businessFunction;
     private String departmentFunction;
     private String departmentName;
+    private String department;
     private long ownerId;
     private String ownerName;
     private Long businessFunctionalOwner;
+    private String functionalOwner;
     private String evaluationByName;
     private String target;
     private String keyPerformanceArea;
@@ -77,6 +79,7 @@ public class KpaKpiReviewResponseDTO {
     private RiskAcceptanceLevel riskAcceptanceLevel;
     private long kpiEvaluationBy;
     private Long evaluationBy;
+    private String evaluationByNo;
     private String kpiEvaluationFrequency;
     private BigDecimal potentialLossPercentage;
     private Integer yearlyFrequency;
