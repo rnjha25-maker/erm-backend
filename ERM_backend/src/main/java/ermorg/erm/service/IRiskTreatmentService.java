@@ -11,7 +11,6 @@ import ermorg.erm.dto.response.CustomResponse;
 import ermorg.erm.dto.response.RiskResponseTreatmentResponse;
 import ermorg.erm.dto.riskDTO.RiskResponseTreatmentDto;
 import ermorg.erm.exception.ResourceNotFoundException;
-import ermorg.storage.exception.InvalidResourceAccess;
 
 public interface IRiskTreatmentService {
 
@@ -26,11 +25,11 @@ public interface IRiskTreatmentService {
 	public Page<List<CustomResponse>> getAllRisks(Pageable pageable) throws ResourceNotFoundException;
 
 	public RiskResponseTreatmentResponse uploadEvidence(Long riskTreatmentId, MultipartFile file, String description,
-			String purpose) throws IOException, InvalidResourceAccess, ResourceNotFoundException;
+			String purpose) throws IOException, ResourceNotFoundException;
 
 	public Object getEvidence(Long riskTreatmentId) throws ResourceNotFoundException;
 
-	public Object downloadEvidence(String documentId) throws IOException, ermorg.storage.exception.ResourceNotFoundException;
+	public Object downloadEvidence(String documentId) throws IOException, ResourceNotFoundException;
 
-	public void deleteEvidence(Long riskTreatmentId, String documentId) throws ResourceNotFoundException, ermorg.storage.exception.ResourceNotFoundException;
+	public void deleteEvidence(Long riskTreatmentId, String documentId) throws ResourceNotFoundException;
 }

@@ -2,16 +2,23 @@ package ermorg.erm.serviceimpl;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 
 import ermorg.erm.dto.response.CustomFieldResponse;
 import ermorg.erm.dto.response.CustomResponse;
@@ -34,9 +41,6 @@ import ermorg.erm.util.OrganizationContext;
 import ermorg.erm.util.SubRiskSelectionUtil;
 import ermorg.erm.util.mapper.CustomResponseMapper;
 import ermorg.erm.util.mapper.CustomResponseMapperUtil;
-import ermorg.storage.dto.response.DocumentDto;
-import ermorg.storage.exception.InvalidResourceAccess;
-import ermorg.storage.service.DocumentStorageService;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -59,7 +63,11 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 	private IFieldService fieldService;
 
 	@Autowired
-	private DocumentStorageService documentStorageService;
+	private RestTemplate restTemplate;
+
+	@Value("${erm.storage-service-url:http://storage}")
+	private String storageServiceUrl;
+
 	@Override
 	public RiskResponseTreatmentResponse save(RiskResponseTreatmentDto request) throws ResourceNotFoundException {
 		
@@ -169,17 +177,18 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 	}
 	
 	public RiskResponseTreatmentResponse uploadEvidence(Long riskTreatmentId, MultipartFile file, String description,
-			String purpose) throws IOException, InvalidResourceAccess, ResourceNotFoundException {
+			String purpose) throws IOException, ResourceNotFoundException {
+		if (file == null || file.isEmpty()) {
+			throw new ResourceNotFoundException("Please select a file to upload.");
+		}
 		RiskResponseTreatment riskResponseTreatment = riskResponseTreatmentRepository.findById(riskTreatmentId)
 				.filter(r -> !Boolean.TRUE.equals(r.getDeleted()))
 				.orElseThrow(() -> new ResourceNotFoundException("Risk response treatment not found."));
-		Long organizationId = riskResponseTreatment.getOrganization() != null ? riskResponseTreatment.getOrganization().getId() : null;
-		Long companyId = riskResponseTreatment.getCompany() != null ? riskResponseTreatment.getCompany().getId() : null;
-		DocumentDto document = documentStorageService.uploadDocument(file, organizationId, companyId, purpose);
+		Map<String, Object> document = uploadDocument(file, purpose);
 		if (description != null && !description.isBlank()) {
 			riskResponseTreatment.setSupportingEvidence(description);
 		}
-		riskResponseTreatment.setSupportingEvidenceDocument(UUID.fromString(document.getDocumentId()));
+		riskResponseTreatment.setSupportingEvidenceDocument(UUID.fromString(requiredDocumentId(document)));
 		riskResponseTreatmentRepository.save(riskResponseTreatment);
 		return new RiskResponseTreatmentResponse(riskResponseTreatment);
 	}
@@ -195,24 +204,19 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 		if (evidenceDocumentId == null) {
 			return response;
 		}
-		DocumentDto document;
-		try {
-			document = documentStorageService.getDocument(evidenceDocumentId.toString());
-		} catch (ermorg.storage.exception.ResourceNotFoundException ex) {
-			throw new ResourceNotFoundException("Supporting evidence document not found.");
-		}
-		response.put("fileName", document.getFileName() + document.getFileExtension());
-		response.put("contentType", document.getContentType());
-		response.put("purpose", document.getPurpose());
-		response.put("path", document.getFilePath());
+		Map<String, Object> document = downloadDocument(evidenceDocumentId.toString());
+		response.put("fileName", stringValue(document.get("fileName")) + stringValue(document.get("fileExtension")));
+		response.put("contentType", document.get("contentType"));
+		response.put("purpose", document.get("purpose"));
+		response.put("path", document.get("filePath"));
 		return response;
 	}
 	
-	public Object downloadEvidence(String documentId) throws IOException, ermorg.storage.exception.ResourceNotFoundException {
-		return documentStorageService.downloadDocument(documentId);
+	public Object downloadEvidence(String documentId) throws IOException, ResourceNotFoundException {
+		return downloadDocument(documentId);
 	}
 	
-	public void deleteEvidence(Long riskTreatmentId, String documentId) throws ResourceNotFoundException, ermorg.storage.exception.ResourceNotFoundException {
+	public void deleteEvidence(Long riskTreatmentId, String documentId) throws ResourceNotFoundException {
 		RiskResponseTreatment riskResponseTreatment = riskResponseTreatmentRepository.findById(riskTreatmentId)
 				.filter(r -> !Boolean.TRUE.equals(r.getDeleted()))
 				.orElseThrow(() -> new ResourceNotFoundException("Risk response treatment not found."));
@@ -222,7 +226,74 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 			riskResponseTreatment.setSupportingEvidence(null);
 			riskResponseTreatmentRepository.save(riskResponseTreatment);
 		}
-		documentStorageService.deleteDocument(documentId);
+		deleteDocument(documentId);
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> uploadDocument(MultipartFile file, String purpose) throws IOException, ResourceNotFoundException {
+		String originalFilename = StringUtils.cleanPath(file.getOriginalFilename() == null ? "document" : file.getOriginalFilename());
+		String extension = StringUtils.getFilenameExtension(originalFilename);
+		String fileName = StringUtils.stripFilenameExtension(originalFilename);
+
+		Map<String, Object> request = new HashMap<>();
+		request.put("fileName", fileName == null || fileName.isBlank() ? "supporting-evidence" : fileName);
+		request.put("fileExtension", "." + (extension == null || extension.isBlank() ? "bin" : extension));
+		request.put("contentType", file.getContentType() == null ? "application/octet-stream" : file.getContentType());
+		request.put("purpose", purpose == null || purpose.isBlank() ? "risk-response-treatment" : purpose);
+		request.put("fileContent", Base64.getEncoder().encodeToString(file.getBytes()));
+
+		try {
+			Map<String, Object> response = restTemplate.postForObject(storageUrl("/upload"), request, Map.class);
+			return extractData(response);
+		} catch (RestClientException ex) {
+			log.error("Supporting evidence upload failed.", ex);
+			throw new ResourceNotFoundException("Supporting evidence upload failed.");
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> downloadDocument(String documentId) throws ResourceNotFoundException {
+		try {
+			Map<String, Object> response = restTemplate.getForObject(storageUrl("/download/" + documentId), Map.class);
+			return extractData(response);
+		} catch (RestClientException ex) {
+			log.error("Supporting evidence fetch failed for documentId: {}", documentId, ex);
+			throw new ResourceNotFoundException("Supporting evidence document not found.");
+		}
+	}
+
+	private void deleteDocument(String documentId) throws ResourceNotFoundException {
+		try {
+			restTemplate.delete(storageUrl("/delete/" + documentId));
+		} catch (RestClientException ex) {
+			log.error("Supporting evidence delete failed for documentId: {}", documentId, ex);
+			throw new ResourceNotFoundException("Supporting evidence document not found.");
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> extractData(Map<String, Object> response) throws ResourceNotFoundException {
+		Object data = response == null ? null : response.get("data");
+		if (data instanceof Map<?, ?> map) {
+			return (Map<String, Object>) map;
+		}
+		throw new ResourceNotFoundException("Invalid response from storage service.");
+	}
+
+	private String requiredDocumentId(Map<String, Object> document) throws ResourceNotFoundException {
+		String documentId = stringValue(document.get("documentId"));
+		if (documentId.isBlank()) {
+			throw new ResourceNotFoundException("Storage service did not return a document id.");
+		}
+		return documentId;
+	}
+
+	private String storageUrl(String path) {
+		return storageServiceUrl.replaceAll("/+$", "") + path;
+	}
+
+	private String stringValue(Object value) {
+		return value == null ? "" : value.toString();
 	}
 	
 	private List<CustomResponse> mapRiskTreatment(RiskResponseTreatment riskTreatment) {
