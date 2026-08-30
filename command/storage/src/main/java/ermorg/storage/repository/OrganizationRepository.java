@@ -5,7 +5,7 @@ import org.springframework.stereotype.Repository;
 
 import ermorg.storage.model.Organization;
 
-@Repository
+@Repository("storageOrganizationRepository")
 public interface OrganizationRepository extends JpaRepository<Organization, Long> {
 
 }

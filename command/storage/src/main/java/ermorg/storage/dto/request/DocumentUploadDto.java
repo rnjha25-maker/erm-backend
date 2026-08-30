@@ -12,5 +12,7 @@ public class DocumentUploadDto {
 	private String fileContent;
 	private String purpose;
 	private String contentType;
+	private Long organizationId;
+	private Long companyId;
 
 }

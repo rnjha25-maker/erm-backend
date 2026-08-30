@@ -19,7 +19,7 @@ import io.swagger.v3.oas.annotations.Hidden;
 
 @Hidden
 @Slf4j
-@ControllerAdvice
+@ControllerAdvice(name = "ermGlobalExceptionHandler")
 public class GlobalExceptionHandler {
 	
 	@ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)

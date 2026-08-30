@@ -3,11 +3,14 @@ package ermorg.storage.service.impl;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Base64;
 import java.util.Date;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -39,8 +42,12 @@ public class DocumentStorageServiceImpl implements DocumentStorageService {
 	public DocumentDto uploadDocument(DocumentUploadDto documentUploadDto) throws InvalidResourceAccess {
 		
 		Organization organization = OrganizationContext.getOrganization();
+		Long organizationId = documentUploadDto.getOrganizationId();
+		if (organizationId == null && organization != null) {
+			organizationId = organization.getId();
+		}
 		
-		if(organization == null) {
+		if(organizationId == null) {
 			throw new InvalidResourceAccess("Invalid resource access.");
 		}
 		byte[] fileBytes = FileUtil.decodeBase64ToBytes(documentUploadDto.getFileContent());
@@ -60,9 +67,47 @@ public class DocumentStorageServiceImpl implements DocumentStorageService {
 		document.setPurpose(documentUploadDto.getPurpose());
 		document.setContentType(documentUploadDto.getContentType());
 		document.setFilePath(key);
-		document.setOrganizationId(organization.getId());
+		document.setOrganizationId(organizationId);
+		document.setCompanyId(documentUploadDto.getCompanyId());
 		Document savedDocument = documentRepository.save(document);
 		return new DocumentDto(savedDocument);
+	}
+
+	@Override
+	public DocumentDto uploadDocument(MultipartFile file, Long organizationId, Long companyId, String purpose)
+			throws IOException, InvalidResourceAccess {
+		if (file == null || file.isEmpty()) {
+			throw new IllegalArgumentException("Please select a file to upload.");
+		}
+		if (file.getSize() > 10L * 1024 * 1024) {
+			throw new IllegalArgumentException("File size exceeds the allowed limit of 10MB.");
+		}
+		String originalFilename = StringUtils.cleanPath(file.getOriginalFilename() == null ? "document" : file.getOriginalFilename());
+		String extension = StringUtils.getFilenameExtension(originalFilename);
+		String fileName = StringUtils.stripFilenameExtension(originalFilename);
+		if (fileName == null || fileName.isBlank()) {
+			fileName = "supporting-evidence";
+		}
+		if (extension == null || extension.isBlank()) {
+			extension = "bin";
+		}
+		DocumentUploadDto uploadRequest = new DocumentUploadDto();
+		uploadRequest.setFileName(fileName);
+		uploadRequest.setFileExtension("." + extension);
+		uploadRequest.setContentType(file.getContentType() == null ? "application/octet-stream" : file.getContentType());
+		uploadRequest.setPurpose(purpose == null || purpose.isBlank() ? "risk-response-treatment" : purpose);
+		uploadRequest.setFileContent(Base64.getEncoder().encodeToString(file.getBytes()));
+		uploadRequest.setOrganizationId(organizationId);
+		uploadRequest.setCompanyId(companyId);
+		return uploadDocument(uploadRequest);
+	}
+
+	@Override
+	public DocumentDto getDocument(String documentId) throws ResourceNotFoundException {
+		UUID id = UUID.fromString(documentId);
+		Document document = documentRepository.findById(id).filter(doc -> !doc.getDeleted())
+				.orElseThrow(() -> new ResourceNotFoundException("No document found."));
+		return new DocumentDto(document);
 	}
 	
 	@Override

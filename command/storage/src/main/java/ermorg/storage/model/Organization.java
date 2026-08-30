@@ -6,7 +6,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@Entity
+@Entity(name = "storageOrganization")
 public class Organization extends ParentBaseModel {
     private String name;
     private String organizationLogoImageUrl;

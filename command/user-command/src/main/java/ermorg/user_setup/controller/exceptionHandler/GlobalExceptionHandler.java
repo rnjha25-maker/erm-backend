@@ -23,9 +23,9 @@ import io.swagger.v3.oas.annotations.Hidden;
 public class GlobalExceptionHandler {
 
 
-	@ExceptionHandler(org.springframework.web.bind.support.WebExchangeBindException.class)
+	@ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
 	public ResponseEntity<GeneralResponse<Map<String, String>>> handleValidationExceptions(
-			org.springframework.web.bind.support.WebExchangeBindException ex) {
+			org.springframework.web.bind.MethodArgumentNotValidException ex) {
 		
 		GeneralResponse<Map<String, String>> response = new GeneralResponse<>();
 		Map<String, String> errors = new HashMap<>();

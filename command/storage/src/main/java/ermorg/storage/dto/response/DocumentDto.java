@@ -14,6 +14,7 @@ public class DocumentDto {
 	private String fileContent;
 	private String contentType;
 	private String purpose;
+	private String filePath;
 	
 	public DocumentDto(Document doc) {
 		
@@ -23,6 +24,7 @@ public class DocumentDto {
 		this.bucketName = doc.getBucketName();
 		this.contentType = doc.getContentType();
 		this.purpose = doc.getPurpose();
+		this.filePath = doc.getFilePath();
 	}
 	
 	public DocumentDto(Document doc, String base64) {
@@ -34,6 +36,7 @@ public class DocumentDto {
 		this.contentType = doc.getContentType();
 		this.purpose = doc.getPurpose();
 		this.fileContent = base64;
+		this.filePath = doc.getFilePath();
 	}
 
 

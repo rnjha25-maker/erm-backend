@@ -4,6 +4,7 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.AuditorAware;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import ermorg.erm.model.BaseModel;
@@ -13,7 +14,8 @@ import ermorg.erm.repository.UserRepository;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-@Component
+@Primary
+@Component("ermAuditorAwareImpl")
 public class AuditorAwareImpl implements AuditorAware<User> {
 
 	@Autowired

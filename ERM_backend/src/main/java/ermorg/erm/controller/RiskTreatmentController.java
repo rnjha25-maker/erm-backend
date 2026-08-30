@@ -91,7 +91,7 @@ public class RiskTreatmentController {
 	
 	@GetMapping("/evidence/{documentId}")
 	public GeneralResponse<Object> downloadEvidence(@PathVariable("documentId") String documentId)
-            throws IOException, ResourceNotFoundException, ermorg.storage.exception.ResourceNotFoundException {
+            throws IOException, ResourceNotFoundException {
 		GeneralResponse<Object> response = new GeneralResponse<>();
 		response.setData(riskTreatmentService.downloadEvidence(documentId));
 		response.setStatus(ResponseStatus.SUCCESS);
@@ -101,7 +101,7 @@ public class RiskTreatmentController {
 	
 	@DeleteMapping("/{id}/evidence/{documentId}")
 	public GeneralResponse<Void> deleteEvidence(@PathVariable("id") Long riskTreatmentId,
-			@PathVariable("documentId") String documentId) throws ResourceNotFoundException, ermorg.storage.exception.ResourceNotFoundException {
+			@PathVariable("documentId") String documentId) throws ResourceNotFoundException {
 		GeneralResponse<Void> response = new GeneralResponse<>();
 		riskTreatmentService.deleteEvidence(riskTreatmentId, documentId);
 		response.setStatus(ResponseStatus.SUCCESS);

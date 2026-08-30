@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import ermorg.erm.model.Organization;
 
-@Repository
+@Repository("ermOrganizationRepository")
 public interface OrganizationRepository extends JpaRepository<Organization, Long> {
     Organization save(Organization organization);
 

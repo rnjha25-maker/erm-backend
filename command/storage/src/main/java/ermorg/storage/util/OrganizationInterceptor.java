@@ -11,7 +11,7 @@ import ermorg.storage.repository.OrganizationRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-@Component
+@Component("storageOrganizationInterceptor")
 public class OrganizationInterceptor implements HandlerInterceptor {
 	
 	private final OrganizationRepository organizationRepository;

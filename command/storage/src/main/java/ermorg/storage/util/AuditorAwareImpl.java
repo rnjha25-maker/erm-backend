@@ -13,7 +13,7 @@ import ermorg.storage.model.Organization;
 import ermorg.storage.repository.UserRepository;
 
 import jakarta.servlet.http.HttpServletRequest;
-@Component
+@Component("storageAuditorAwareImpl")
 public class AuditorAwareImpl implements AuditorAware<User> {
 
 	@Autowired

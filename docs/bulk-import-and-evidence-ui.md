@@ -1,175 +1,240 @@
-# Bulk Import & Evidence Upload — Backend Changes and UI Integration Guide
+# Bulk Import & Evidence Upload - Backend Changes and UI Integration Guide
 
-This document summarizes the backend changes made for CSV bulk import and Risk Response & Treatment supporting evidence upload, and describes how the UI should interact with the new/updated endpoints. Share this with the frontend/UI developer.
+This document summarizes the backend changes for CSV bulk import and Risk Response & Treatment supporting evidence upload, and describes how the UI should call the new/updated endpoints.
 
 ---
 
 ## Summary of backend changes
 
 1. CSV bulk-import scaffold (CSV-only)
-   - New controller: ermorg.erm.controller.BulkImportController
-   - New service: ermorg.erm.service.IBulkImportService and implementation BulkImportService
-   - DTOs: under ermorg.erm.dto.bulk (BulkImportRequest, BulkImportUploadResponse, BulkImportSummary, BulkImportValidationError)
-   - Template generation uses SystemTable/SystemField metadata (IFieldService) when available. Falls back to a generic template with required headers (e.g., organizationName, companyName).
-   - Validation rules: CSV-only, required fields, numeric parsing for numeric fields, and dropdown option checks using field metadata.
-   - Processing: synchronous, creates Company rows (skips duplicates by name within organization). Implementation is intentionally lightweight and synchronous.
+   - Controller: `ermorg.erm.controller.BulkImportController`
+   - Service: `ermorg.erm.service.IBulkImportService` and `ermorg.erm.serviceimpl.BulkImportService`
+   - DTOs: `ermorg.erm.dto.bulk.BulkImportRequest`, `BulkImportUploadResponse`, `BulkImportSummary`, `BulkImportValidationError`
+   - Template generation uses `SystemTable` / `SystemField` metadata through `IFieldService` when available.
+   - Fallback template supports company imports with required headers such as `companyName` and `organizationName`.
+   - Validation rules cover CSV-only uploads, required fields, numeric parsing, and dropdown option checks from metadata.
+   - Processing is synchronous and currently creates new `Company` rows, skipping existing company names in the current organization.
 
 2. Supporting evidence (Risk Response & Treatment)
-   - Evidence endpoints added to RiskTreatmentController and wired to existing storage module (ermorg.storage.*). These endpoints reuse the project's S3-backed DocumentStorageService and Document DTOs from the storage module.
-   - Endpoints support upload (multipart/form-data), list, download, and delete operations for supporting evidence related to Risk Treatment records.
+   - Evidence endpoints were added to `RiskTreatmentController`.
+   - Upload/download/delete are routed through the storage service using the existing storage `DocumentDto` contract.
+   - Each risk treatment currently stores one supporting evidence document UUID in `supportingEvidenceDocument`.
 
 3. DTO mapping fixes for UI clarity
-   - KPA/KPI and KRI/KPI response DTOs updated to expose human-friendly fields:
-     - ownerName / riskOwnerName
-     - evaluationByName / kriEvaluationByName
-     - departmentName (prefer businessFunction, fallback to stakeholderDepartments)
-     - unitOfMeasurement now prefers the enum label from RiskValueUnit when present (e.g., "Million")
-   - These fixes address UI mapping issues where only IDs or raw internal values were shown.
-
-4. Small repo/service changes
-   - CompanyRepository: added findByNameAndOrganizationIdAndDeletedFalse(...) to assist import duplicate checks.
+   - KPA/KPI and KRI/KPI response DTOs expose display-friendly fields:
+     - `ownerName` / `riskOwnerName`
+     - `evaluationByName` / `kriEvaluationByName`
+     - `departmentName`
+     - `unitOfMeasurement`
+   - These fields are additive and should be preferred for list/detail display where present.
 
 ---
 
-## New / Updated API endpoints (high-level)
+## API endpoints
 
-Note: replace `{base}` with the backend base path (e.g., `/erm`).
+Examples below use the `ERM_backend` route paths. If the UI calls through API Gateway, prepend the gateway prefix used by the environment.
 
-1. Bulk import
+### Bulk import
 
-- GET {base}/admin/bulk-import/template?tableName={table}
-  - Purpose: Download CSV template for a named system table (metadata-driven headers when available).
-  - Response: `text/csv` file download. Filename: `<table>-template.csv`.
-  - UI: Trigger download when developer selects "Download template". No auth specifics in this doc — follow existing admin auth flows.
+#### GET {base}/bulk-import/template/{moduleId}?templateType={table}
 
-- POST {base}/admin/bulk-import/validate
-  - Purpose: Validate a CSV file against template/metadata
-  - Request: multipart/form-data with field `file` (CSV) and JSON param(s) in form field `request` or other as implemented (see controller for exact param names). Use the existing pattern used elsewhere in the app if needed.
-  - Response: JSON `BulkImportUploadResponse` containing:
-    - `valid` (boolean)
-    - `errors` (list of row-level BulkImportValidationError entries with row numbers and messages)
-    - `summary` (counts of rows, invalid rows)
-  - UI: Show validation errors with row numbers, and allow user to fix CSV before processing.
+Downloads a generated CSV template.
 
-- POST {base}/admin/bulk-import/process
-  - Purpose: Process an already-validated CSV (or process directly after validation depending on UI flow)
-  - Request: similar to validate endpoint; can accept CSV file and additional params (see controller)
-  - Response: `BulkImportSummary` with counts of created/updated/skipped rows and any non-blocking messages.
-  - UI: After successful validation, show Process button which calls this endpoint; present the summary on completion.
+Path/query parameters:
 
-2. Supporting evidence (Risk Treatment)
+| Name | Required | Notes |
+|------|----------|-------|
+| `moduleId` | yes | Used to resolve module metadata |
+| `templateType` | no | Overrides the resolved table name, for example `company` |
 
-- POST {base}/risk-treatment/{id}/evidence
-  - Purpose: Upload a supporting evidence file for a Risk Response/Treatment id.
-  - Request: multipart/form-data with `file` and optional `description`/`metadata`. Endpoint attaches file metadata and stores object in configured S3 bucket via DocumentStorageService.
-  - Response: Document DTO (from storage module) or app-specific small wrapper containing `id`, `path`, `name`, `size`, `uploadedBy`, `uploadedAt`.
-  - UI: Use file input; show progress upload indicator. When upload completes, refresh evidence list for the treatment record.
+Response: `GeneralResponse<byte[]>`
 
-- GET {base}/risk-treatment/{id}/evidence
-  - Purpose: List supporting evidence documents for a treatment record.
-  - Response: JSON array of Document DTOs with `id`, `name`, `path`, `uploadedBy`, `uploadedAt`, `size`.
-  - UI: Render as list with download and delete actions.
+The `data` field contains generated CSV bytes. The controller does not currently set a file download header, so the UI may need to convert the wrapped bytes into a CSV download.
 
-- GET {base}/risk-treatment/{id}/evidence/{docId}/download
-  - Purpose: Download file content.
-  - Response: file stream with proper content-type and content-disposition.
-  - UI: Trigger file download in browser (link or programmatic download).
+#### POST {base}/bulk-import/validate
 
-- DELETE {base}/risk-treatment/{id}/evidence/{docId}
-  - Purpose: Remove the evidence pointer and delete from storage (if implemented).
-  - Response: success status (204 or JSON confirmation).
-  - UI: Confirm delete modal before calling.
+Validates a CSV file before processing.
+
+Consumes: `multipart/form-data`
+
+Form fields:
+
+| Name | Required | Notes |
+|------|----------|-------|
+| `file` | yes | Must be a `.csv` file |
+| `moduleId` | yes | Used to resolve validation metadata |
+| `templateType` | no | Overrides the resolved table name |
+
+Response: `GeneralResponse<BulkImportSummary>`
+
+```json
+{
+  "status": "SUCCESS",
+  "message": "Validation complete.",
+  "data": {
+    "totalRows": 10,
+    "validRows": 8,
+    "invalidRows": 2,
+    "duplicateRows": 0,
+    "warnings": [
+      "Row 7: company 'Acme Ltd' already exists in the current organization and will be skipped."
+    ],
+    "errors": [
+      {
+        "rowNumber": 3,
+        "columnName": "companyName",
+        "message": "Company name is required."
+      }
+    ]
+  }
+}
+```
+
+#### POST {base}/bulk-import/process
+
+Processes the uploaded CSV. The backend calls validation first.
+
+Consumes: `multipart/form-data`
+
+Form fields: same as `POST /bulk-import/validate`.
+
+Response: `GeneralResponse<BulkImportUploadResponse>`
+
+```json
+{
+  "status": "SUCCESS",
+  "message": "Import processed.",
+  "data": {
+    "importId": 1788026400000,
+    "status": "COMPLETED",
+    "summary": {
+      "totalRows": 10,
+      "validRows": 10,
+      "invalidRows": 0,
+      "duplicateRows": 0,
+      "warnings": [],
+      "errors": []
+    }
+  }
+}
+```
+
+`data.status` is `COMPLETED` when validation passes and `FAILED` when validation errors exist.
+
+#### GET {base}/bulk-import/{importId}/status
+
+Returns the in-memory status for a processed import.
+
+Response: `GeneralResponse<BulkImportUploadResponse>`
+
+Unknown import ids return `data.status: "NOT_FOUND"`.
+
+#### GET {base}/bulk-import/{importId}/errors
+
+Returns stored validation errors for a processed import.
+
+Response: `GeneralResponse<List<Object>>`
+
+Unknown import ids return an empty list.
+
+### Supporting evidence (Risk Treatment)
+
+#### POST {base}/risk-treatment/{id}/evidence
+
+Uploads or replaces supporting evidence for a Risk Response & Treatment record.
+
+Consumes: `multipart/form-data`
+
+Form fields:
+
+| Name | Required | Default | Notes |
+|------|----------|---------|-------|
+| `file` | yes | - | File to upload |
+| `description` | no | - | Stored as `supportingEvidence` when present |
+| `purpose` | no | `risk-response-treatment` | Forwarded to storage metadata |
+
+Response: `GeneralResponse<RiskResponseTreatmentResponse>`
+
+The updated treatment response includes `supportingEvidence` and `supportingEvidenceDocument`.
+
+#### GET {base}/risk-treatment/{id}/evidence
+
+Fetches attached evidence metadata.
+
+Response data shape:
+
+```json
+{
+  "documentId": "8fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "description": "Board minutes and action plan",
+  "fileName": "evidence.pdf",
+  "contentType": "application/pdf",
+  "purpose": "risk-response-treatment",
+  "path": "s3://bucket/path/evidence.pdf"
+}
+```
+
+If no document is attached, `documentId` is `null` and only `description` is returned.
+
+#### GET {base}/risk-treatment/evidence/{documentId}
+
+Fetches evidence document content and metadata from storage.
+
+Response: `GeneralResponse<DocumentDto>`
+
+`data.fileContent` contains Base64 file content. Use `data.fileName + data.fileExtension` for the downloaded filename and `data.contentType` for the Blob MIME type.
+
+#### DELETE {base}/risk-treatment/{id}/evidence/{documentId}
+
+Deletes the storage document and clears the risk treatment evidence fields when the document id matches the attached document.
+
+Response: `GeneralResponse<Void>` with message `Supporting evidence deleted.`
 
 ---
 
-## Expected request/response examples (simplified)
-
-1. Validate CSV (example request)
-
-- Request (multipart/form-data):
-  - file: companies.csv (CSV file)
-  - optionally: organizationId
-
-- Response (application/json):
-{
-  "valid": false,
-  "errors": [
-    { "row": 3, "messages": ["companyName is required", "revenue must be numeric"] },
-    { "row": 7, "messages": ["industry not in allowed options: [Banking, Insurance]"] }
-  ],
-  "summary": { "totalRows": 10, "validRows": 8, "invalidRows": 2 }
-}
-
-2. Process CSV (example response)
-
-{
-  "created": 8,
-  "skipped": 1,
-  "updated": 0,
-  "errors": []
-}
-
-3. Evidence upload (example response)
-
-{
-  "id": 123,
-  "name": "invoice.pdf",
-  "path": "s3://bucket/path/2026/08/29/invoice.pdf",
-  "size": 42581,
-  "uploadedBy": 45,
-  "uploadedAt": "2026-08-29T16:00:00Z"
-}
-
----
-
-## UI developer notes and recommendations
+## UI developer notes
 
 1. CSV template
-   - Use the template endpoint to provide a pre-filled header that matches server-side expected columns (avoids header mismatch errors).
-   - Ensure the CSV is UTF-8 encoded without BOM (server-side parsing is strict). The backend removes stray BOMs in implementation but avoid it.
+   - Use `GET /bulk-import/template/{moduleId}` to avoid header mismatches.
+   - Pass `templateType=company` when the UI needs the company fallback import.
+   - Keep the CSV UTF-8 encoded.
 
 2. Validation UI
-   - Display row-level errors in a table with an option to download the error report (or re-download a template with invalid rows flagged).
-   - For dropdown fields tied to SystemField metadata, consider fetching field options from the existing metadata endpoints the app already provides (IFieldService-backed endpoints). This allows client-side validation before upload.
+   - Display row-level errors using `rowNumber`, `columnName`, and `message`.
+   - Display `warnings` separately. Duplicate company names are warnings and will be skipped during processing.
+   - Only enable processing when `errors.length === 0`.
 
 3. File uploads
-   - Use a resumable / chunked upload UI only if files are expected very large. The backend reuses S3 client and currently expects standard multipart uploads.
-   - Show file size, upload progress, and a user-friendly name. After upload, call list endpoint to refresh attachments.
+   - Use standard multipart uploads.
+   - After upload or delete, call `GET /risk-treatment/{id}/evidence` to refresh the visible attachment.
+   - Current backend supports one supporting evidence document per treatment, so uploads replace the stored document reference.
 
 4. Error handling
-   - For validation errors: show the row number, field(s), and message(s). Allow user to correct CSV and re-upload.
-   - For processing errors: show summary and allow retry for failed rows.
+   - Missing/empty bulk import file: `Please upload a CSV file.`
+   - Non-CSV bulk import file: `Unsupported file type. Please upload CSV.`
+   - Missing evidence file: `Please select a file to upload.`
+   - Missing treatment record: `Risk response treatment not found.`
 
-5. Permissions & RBAC
-   - Bulk import endpoints are intended for system-admin users. Ensure the frontend calls these only from admin screens and respects access tokens/headers in existing app flows.
-
-6. Backward compatibility
-   - The DTOs for KPA/KPI and KRI/KPI were extended with display-friendly fields (ownerName, evaluationByName, departmentName, unitOfMeasurement label). These are additive fields and should be consumed by the UI in place of raw id fields where present.
-   - If the UI previously used `ownerId` or `kpiEvaluationBy`, prefer to show the new `ownerName` / `kriEvaluationByName` fields in lists and detail views.
+5. Permissions and RBAC
+   - Bulk import endpoints are intended for admin screens. Keep route visibility and API calls aligned with the app's existing auth and tenant headers.
 
 ---
 
-## Files changed (for reviewer)
-- ERM_backend/src/main/java/ermorg/erm/controller/BulkImportController.java (new)
-- ERM_backend/src/main/java/ermorg/erm/service/IBulkImportService.java (new)
-- ERM_backend/src/main/java/ermorg/erm/serviceimpl/BulkImportService.java (new)
-- ERM_backend/src/main/java/ermorg/erm/dto/bulk/* (new DTOs)
-- ERM_backend/src/main/java/ermorg/erm/serviceimpl/KpaKpiReviewService.java (modified)
-- ERM_backend/src/main/java/ermorg/erm/dto/response/KpaKpiReviewResponseDTO.java (modified)
-- ERM_backend/src/main/java/ermorg/erm/dto/response/KriKpiReviewResponseDTO.java (modified)
-- ERM_backend/src/main/java/ermorg/erm/repository/CompanyRepository.java (modified)
-- ERM_backend/src/main/java/ermorg/erm/controller/RiskTreatmentController.java (modified - evidence endpoints)
-- ERM_backend/src/main/java/ermorg/erm/serviceimpl/RiskTreatmentService.java (modified - uses storage module APIs)
+## Files changed for reviewer
+
+- `ERM_backend/src/main/java/ermorg/erm/controller/BulkImportController.java`
+- `ERM_backend/src/main/java/ermorg/erm/service/IBulkImportService.java`
+- `ERM_backend/src/main/java/ermorg/erm/serviceimpl/BulkImportService.java`
+- `ERM_backend/src/main/java/ermorg/erm/dto/bulk/*`
+- `ERM_backend/src/main/java/ermorg/erm/controller/RiskTreatmentController.java`
+- `ERM_backend/src/main/java/ermorg/erm/serviceimpl/RiskTreatmentService.java`
+- `command/storage/src/main/java/ermorg/storage/dto/request/DocumentUploadDto.java`
+- `command/storage/src/main/java/ermorg/storage/dto/response/DocumentDto.java`
 
 ---
 
-## Next actions & follow-ups
-- Residual Risk Rating mapping: still pending — will add mapping fixes to ensure residual risk rating shows up in risk review/assessment APIs (can implement on request).
-- Background processing: consider converting CSV processing to an asynchronous job with progress tracking for large datasets.
-- Additional tests: add unit/integration tests for bulk import validation and evidence endpoints.
+## Follow-ups
 
-If you'd like, create a short API spec (OpenAPI snippet) for the new endpoints or a UI mock showing how the import flow and evidence UI should look. I can also open a pull request with this doc included.
-
----
-
-(End of document)
+- Consider returning the template as `text/csv` with `Content-Disposition` instead of wrapped bytes.
+- Consider asynchronous import jobs with persistent status tracking for large CSV files.
+- Add unit/integration tests for validation failures, duplicate handling, evidence upload, and evidence deletion.
