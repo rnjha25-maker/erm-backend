@@ -29,6 +29,7 @@ import ermorg.erm.dto.response.CompanyAdminDashboardDto;
 import ermorg.erm.dto.response.CustomResponse;
 import ermorg.erm.dto.response.ErmDashboardCardCounts;
 import ermorg.erm.dto.response.ErmDashboardSummaryResponse;
+import ermorg.erm.dto.response.ErmDashboardSummaryV2Response;
 import ermorg.erm.dto.response.ErmHierarchyBreakdown;
 import ermorg.erm.dto.response.ErmBranchRatingGroup;
 import ermorg.erm.dto.response.ErmCategoryBranchGroup;
@@ -99,6 +100,9 @@ public class DashboardService implements IDashboardService {
 
 	@Autowired
 	private RiskRegisterService riskRegisterService;
+
+	@Autowired
+	private ErmDashboardV2Service ermDashboardV2Service;
 
 	@Override
 	public BasicDashboardResponse getBasicDashboardData(String period, Pageable pageable)
@@ -340,6 +344,27 @@ public class DashboardService implements IDashboardService {
 				scopeDepartmentIds, page, size));
 
 		return response;
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public ErmDashboardSummaryV2Response getErmDashboardSummaryV2(int year, ErmDashboardPeriodType periodType,
+			Long companyId, Long branchId, Long functionId) throws ResourceNotFoundException {
+
+		ErmDashboardData dashboardData = loadErmDashboardData(year, periodType, companyId, branchId, functionId);
+		List<Risk> risks = dashboardData.risks();
+
+		Map<String, String> companyLabels = resolveCompanyLabels(risks);
+		Map<String, String> functionLabels = resolveDepartmentLabels(risks);
+		Map<String, String> branchLabels = resolveBranchLabels(risks);
+		Map<String, String> ownerLabels = resolveOwnerLabels(risks);
+		companyLabels.put("NONE", "Unassigned");
+		functionLabels.put("NONE", "Unassigned");
+		branchLabels.put("NONE", "Unassigned");
+		ownerLabels.put("NONE", "Unassigned");
+
+		return ermDashboardV2Service.build(dashboardData.organization().getId(), risks, dashboardData.bounds(),
+				companyLabels, branchLabels, functionLabels, ownerLabels);
 	}
 
 	@Override
