@@ -170,14 +170,14 @@ Create a KPA/KPI review record.
 
 ---
 
-### GET /kpa-kpi-review/{id}
+### GET /kpa-kpi-review/get-view/{id}
 Get a single KPA/KPI review.
 
 **Response:** `KpaKpiReviewResponseDTO`
 
 ---
 
-### GET /kpa-kpi-review
+### GET /kpa-kpi-review/all
 Paginated list with optional filters.
 
 **Query params:**
