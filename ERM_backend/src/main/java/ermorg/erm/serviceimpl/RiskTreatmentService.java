@@ -2,9 +2,7 @@ package ermorg.erm.serviceimpl;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -13,7 +11,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import ermorg.erm.dto.response.CustomFieldResponse;
@@ -37,11 +34,8 @@ import ermorg.erm.util.OrganizationContext;
 import ermorg.erm.util.SubRiskSelectionUtil;
 import ermorg.erm.util.mapper.CustomResponseMapper;
 import ermorg.erm.util.mapper.CustomResponseMapperUtil;
-import ermorg.storage.dto.request.DocumentUploadDto;
 import ermorg.storage.dto.response.DocumentDto;
 import ermorg.storage.exception.InvalidResourceAccess;
-import ermorg.storage.model.Document;
-import ermorg.storage.repository.DocumentRepository;
 import ermorg.storage.service.DocumentStorageService;
 import lombok.extern.slf4j.Slf4j;
 
@@ -66,9 +60,6 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 
 	@Autowired
 	private DocumentStorageService documentStorageService;
-
-	@Autowired
-	private DocumentRepository documentRepository;
 	@Override
 	public RiskResponseTreatmentResponse save(RiskResponseTreatmentDto request) throws ResourceNotFoundException {
 		
@@ -179,31 +170,12 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 	
 	public RiskResponseTreatmentResponse uploadEvidence(Long riskTreatmentId, MultipartFile file, String description,
 			String purpose) throws IOException, InvalidResourceAccess, ResourceNotFoundException {
-		if (file == null || file.isEmpty()) {
-			throw new ResourceNotFoundException("Please select a file to upload.");
-		}
-		if (file.getSize() > 10L * 1024 * 1024) {
-			throw new ResourceNotFoundException("File size exceeds the allowed limit of 10MB.");
-		}
-		String originalFilename = StringUtils.cleanPath(file.getOriginalFilename() == null ? "document" : file.getOriginalFilename());
-		String extension = StringUtils.getFilenameExtension(originalFilename);
-		String fileName = StringUtils.stripFilenameExtension(originalFilename);
-		if (fileName == null || fileName.isBlank()) {
-			fileName = "supporting-evidence";
-		}
-		if (extension == null || extension.isBlank()) {
-			extension = "bin";
-		}
-		DocumentUploadDto uploadRequest = new DocumentUploadDto();
-		uploadRequest.setFileName(fileName);
-		uploadRequest.setFileExtension("." + extension);
-		uploadRequest.setContentType(file.getContentType() == null ? "application/octet-stream" : file.getContentType());
-		uploadRequest.setPurpose(purpose == null || purpose.isBlank() ? "risk-response-treatment" : purpose);
-		uploadRequest.setFileContent(Base64.getEncoder().encodeToString(file.getBytes()));
-		DocumentDto document = documentStorageService.uploadDocument(uploadRequest);
 		RiskResponseTreatment riskResponseTreatment = riskResponseTreatmentRepository.findById(riskTreatmentId)
 				.filter(r -> !Boolean.TRUE.equals(r.getDeleted()))
 				.orElseThrow(() -> new ResourceNotFoundException("Risk response treatment not found."));
+		Long organizationId = riskResponseTreatment.getOrganization() != null ? riskResponseTreatment.getOrganization().getId() : null;
+		Long companyId = riskResponseTreatment.getCompany() != null ? riskResponseTreatment.getCompany().getId() : null;
+		DocumentDto document = documentStorageService.uploadDocument(file, organizationId, companyId, purpose);
 		if (description != null && !description.isBlank()) {
 			riskResponseTreatment.setSupportingEvidence(description);
 		}
@@ -223,9 +195,12 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 		if (evidenceDocumentId == null) {
 			return response;
 		}
-		Document document = documentRepository.findById(evidenceDocumentId)
-				.filter(d -> !Boolean.TRUE.equals(d.getDeleted()))
-				.orElseThrow(() -> new ResourceNotFoundException("Supporting evidence document not found."));
+		DocumentDto document;
+		try {
+			document = documentStorageService.getDocument(evidenceDocumentId.toString());
+		} catch (ermorg.storage.exception.ResourceNotFoundException ex) {
+			throw new ResourceNotFoundException("Supporting evidence document not found.");
+		}
 		response.put("fileName", document.getFileName() + document.getFileExtension());
 		response.put("contentType", document.getContentType());
 		response.put("purpose", document.getPurpose());
