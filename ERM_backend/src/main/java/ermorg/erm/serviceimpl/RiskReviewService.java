@@ -69,6 +69,8 @@ public class RiskReviewService implements IRiskReviewService {
 			}
 			
 			createMapper().map(request, riskReview);
+			riskReview.setResidualRiskRating(resolveFirstText(
+					request.getResidualRiskRating(), request.getResidualRiskRatingCriteria()));
 			
 			// Ensure new entities have id = null (ModelMapper might have copied the ID)
 			if (request.getRiskReviewId() == null || request.getRiskReviewId() == 0) {
@@ -110,6 +112,15 @@ public class RiskReviewService implements IRiskReviewService {
 			mapping.skip(RiskReview::setSubRisks);
 		});
 		return mapper;
+	}
+
+	private String resolveFirstText(String... values) {
+		for (String value : values) {
+			if (value != null && !value.isBlank()) {
+				return value;
+			}
+		}
+		return null;
 	}
 
 	@Override

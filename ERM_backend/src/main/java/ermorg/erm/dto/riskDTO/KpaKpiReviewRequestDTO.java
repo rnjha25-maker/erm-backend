@@ -12,7 +12,6 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -31,8 +30,15 @@ public class KpaKpiReviewRequestDTO {
     private String businessObjectives;
     @Size(max = 255)
     private String businessFunction;
-    @Positive
+    @Size(max = 255)
+    private String departmentFunction;
+    @Size(max = 255)
+    private String departmentName;
+    @Size(max = 255)
+    private String department;
     private long ownerId;
+    private Long businessFunctionalOwner;
+    private Long functionalOwner;
     @Size(max = 1000)
     private String target;
     @Size(max = 1000)
@@ -68,6 +74,8 @@ public class KpaKpiReviewRequestDTO {
     private String escalationMatrix;
     @Size(max = 255)
     private String measurableParameters;
+    @Size(max = 255)
+    private String unitOfMeasurement;
     @NotBlank
     @Pattern(regexp = "DAILY|WEEKLY|MONTHLY|QUARTERLY|HALF_YEARLY|ANNUALLY|AD_HOC",
             message = "reportingFrequency must be DAILY, WEEKLY, MONTHLY, QUARTERLY, HALF_YEARLY, ANNUALLY, or AD_HOC")
@@ -118,8 +126,9 @@ public class KpaKpiReviewRequestDTO {
     @Size(max = 255)
     private String riskAppetiteStatus;
     private RiskAcceptanceLevel riskAcceptanceLevel;
-    @Positive
     private long kpiEvaluationBy;
+    private Long evaluationBy;
+    private Long evaluationByNo;
     @Pattern(regexp = "DAILY|WEEKLY|MONTHLY|QUARTERLY|HALF_YEARLY|ANNUALLY|AD_HOC",
             message = "kpiEvaluationFrequency must be DAILY, WEEKLY, MONTHLY, QUARTERLY, HALF_YEARLY, ANNUALLY, or AD_HOC")
     private String kpiEvaluationFrequency;

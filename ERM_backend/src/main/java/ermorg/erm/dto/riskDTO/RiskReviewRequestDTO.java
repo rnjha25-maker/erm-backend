@@ -29,6 +29,7 @@ public class RiskReviewRequestDTO {
     private String reviseImpactScore;
     private String residualRiskScoreRange;
     private String residualRiskRating;
+    private String residualRiskRatingCriteria;
     private String riskTreatmentStatus;
     private String riskToleranceStatus;
     private String riskAppetiteStatus;

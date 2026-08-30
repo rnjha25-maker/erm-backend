@@ -22,6 +22,7 @@ public class KriKpiReviewResponseDTO {
     private String businessObjectives;
     private String businessFunction;
     private long riskOwner;
+    private String riskOwnerName;
     private long riskId;
     private long riskAssessmentId;
     private String riskTitle;
@@ -37,6 +38,7 @@ public class KriKpiReviewResponseDTO {
 
     private String performanceIndicators;
     private String stakeholderDepartments;
+    private String departmentName;
     private String riskToleranceRangeMinValue;
     private String riskToleranceRangeMaxValue;
     private String targets;
@@ -79,6 +81,7 @@ public class KriKpiReviewResponseDTO {
     private RiskAcceptanceLevel riskAcceptanceLevel;
 
     private long kriEvaluationBy;
+    private String kriEvaluationByName;
     private String kriEvaluationFrequency;
 
     private String dueDate;
@@ -118,6 +121,14 @@ public class KriKpiReviewResponseDTO {
 
         if (kriKpiReview.getRiskOwner() != null) {
             this.riskOwner = kriKpiReview.getRiskOwner().getId();
+            if (kriKpiReview.getRiskOwner().getUserDetail() != null) {
+                String fn = kriKpiReview.getRiskOwner().getUserDetail().getFirstName() == null ? "" : kriKpiReview.getRiskOwner().getUserDetail().getFirstName();
+                String ln = kriKpiReview.getRiskOwner().getUserDetail().getLastName() == null ? "" : kriKpiReview.getRiskOwner().getUserDetail().getLastName();
+                String full = (fn + " " + ln).trim();
+                this.riskOwnerName = full.isEmpty() ? kriKpiReview.getRiskOwner().getEmail() : full;
+            } else {
+                this.riskOwnerName = kriKpiReview.getRiskOwner().getEmail();
+            }
         }
 
         this.target = kriKpiReview.getTarget();
@@ -140,13 +151,23 @@ public class KriKpiReviewResponseDTO {
         if (kriKpiReview.getReporting() != null) {
             this.reporting = kriKpiReview.getReporting().getId();
         }
-        this.unitOfMeasurement = kriKpiReview.getUnitOfMeasurement();
+        // Prefer enum label from valueUnit when present; fallback to legacy unitOfMeasurement string
+        if (kriKpiReview.getValueUnit() != null) {
+            this.unitOfMeasurement = kriKpiReview.getValueUnit().getLabel();
+        } else {
+            this.unitOfMeasurement = kriKpiReview.getUnitOfMeasurement();
+        }
 
         this.reportingFrequency = kriKpiReview.getReportingFrequency();
         this.currency = kriKpiReview.getCurrency();
         this.valueUnit = kriKpiReview.getValueUnit();
         this.targetValue = kriKpiReview.getTargetValue();
         this.actualValue = kriKpiReview.getActualValue();
+
+        // Human-friendly department name: prefer businessFunction otherwise use stakeholderDepartments
+        this.departmentName = kriKpiReview.getBusinessFunction() != null && !kriKpiReview.getBusinessFunction().isBlank()
+                ? kriKpiReview.getBusinessFunction()
+                : kriKpiReview.getStakeholderDepartments();
         this.actuals = kriKpiReview.getActuals();
 
         this.january = kriKpiReview.getJanuary();
@@ -174,6 +195,14 @@ public class KriKpiReviewResponseDTO {
 
         if (kriKpiReview.getKriEvaluationBy() != null) {
             this.kriEvaluationBy = kriKpiReview.getKriEvaluationBy().getId();
+            if (kriKpiReview.getKriEvaluationBy().getUserDetail() != null) {
+                String fn = kriKpiReview.getKriEvaluationBy().getUserDetail().getFirstName() == null ? "" : kriKpiReview.getKriEvaluationBy().getUserDetail().getFirstName();
+                String ln = kriKpiReview.getKriEvaluationBy().getUserDetail().getLastName() == null ? "" : kriKpiReview.getKriEvaluationBy().getUserDetail().getLastName();
+                String full = (fn + " " + ln).trim();
+                this.kriEvaluationByName = full.isEmpty() ? kriKpiReview.getKriEvaluationBy().getEmail() : full;
+            } else {
+                this.kriEvaluationByName = kriKpiReview.getKriEvaluationBy().getEmail();
+            }
         }
 
         this.kriEvaluationFrequency = kriKpiReview.getKriEvaluationFrequency();

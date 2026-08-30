@@ -1,6 +1,7 @@
 package ermorg.erm.repository;
 
 import java.util.Date;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -22,4 +23,7 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
 	@Query("SELECT c FROM Company c JOIN FETCH c.branches WHERE c.id = :id AND c.deleted = false")
 	Company getCompanyWithBranches(@Param("id") Long id);
 
+	// Find active company by name within an organization (used by bulk import to detect duplicates)
+	Optional<Company> findByNameAndOrganizationIdAndDeletedFalse(String name, Long organizationId);
 }
+
