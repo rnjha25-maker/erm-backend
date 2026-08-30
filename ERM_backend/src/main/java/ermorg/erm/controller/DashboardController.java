@@ -19,6 +19,7 @@ import ermorg.erm.dto.ResponseStatus;
 import ermorg.erm.dto.response.BasicDashboardResponse;
 import ermorg.erm.dto.response.CompanyAdminDashboardDto;
 import ermorg.erm.dto.response.ErmDashboardSummaryResponse;
+import ermorg.erm.dto.response.ErmDashboardSummaryV2Response;
 import ermorg.erm.dto.response.OrgAdminDashboardDto;
 import ermorg.erm.exception.ResourceNotFoundException;
 import ermorg.erm.response.GeneralResponse;
@@ -78,6 +79,20 @@ public class DashboardController {
 		GeneralResponse<ErmDashboardSummaryResponse> response = new GeneralResponse<>();
 		ErmDashboardSummaryResponse data = dashboardService.getErmDashboardSummary(year, type, companyId, branchId,
 				functionId, page, size);
+		response.setData(data);
+		response.setStatus(ResponseStatus.SUCCESS);
+		return response;
+	}
+
+	@GetMapping("/dashboard/erm-summary-v2")
+	public GeneralResponse<ErmDashboardSummaryV2Response> getErmDashboardSummaryV2(@RequestParam int year,
+			@RequestParam String periodType, @RequestParam(required = false) Long companyId,
+			@RequestParam(required = false) Long branchId, @RequestParam(required = false) Long functionId)
+			throws ResourceNotFoundException {
+
+		GeneralResponse<ErmDashboardSummaryV2Response> response = new GeneralResponse<>();
+		ErmDashboardSummaryV2Response data = dashboardService.getErmDashboardSummaryV2(year,
+				parsePeriodType(periodType), companyId, branchId, functionId);
 		response.setData(data);
 		response.setStatus(ResponseStatus.SUCCESS);
 		return response;
