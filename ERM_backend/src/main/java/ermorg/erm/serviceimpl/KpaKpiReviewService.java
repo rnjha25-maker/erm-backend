@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ermorg.erm.dto.response.KpaKpiReviewResponseDTO;
 import ermorg.erm.dto.riskDTO.KpaKpiReviewRequestDTO;
 import ermorg.erm.exception.ResourceNotFoundException;
+import ermorg.erm.mapping.FieldMapperUtils;
 import ermorg.erm.model.Company;
 import ermorg.erm.model.KpaKpiReview;
 import ermorg.erm.model.Organization;
@@ -29,6 +30,9 @@ public class KpaKpiReviewService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private FieldMapperUtils fieldMapperUtils;
 
     @Transactional
     public KpaKpiReviewResponseDTO save(KpaKpiReviewRequestDTO request) throws ResourceNotFoundException {
@@ -54,6 +58,7 @@ public class KpaKpiReviewService {
         review.setCompany(company);
         review.setOwner(owner);
         review.setKpiEvaluationBy(evaluationBy);
+        review.setReporting(resolveOptionalUser(request.getReporting(), "No user found for selected reporting person."));
         review.setAnnualLossExpectancy(calculateAnnualLossExpectancy(
                 request.getPotentialLossPercentage(),
                 request.getYearlyFrequency()));
@@ -205,6 +210,26 @@ public class KpaKpiReviewService {
         return preferred != null ? preferred : deprecated;
     }
 
+    private User resolveOptionalUser(Long userId, String errorMessage) throws ResourceNotFoundException {
+        if (userId == null || userId <= 0) {
+            return null;
+        }
+        return userRepository.findById(userId)
+                .filter(u -> !Boolean.TRUE.equals(u.getDeleted()))
+                .orElseThrow(() -> new ResourceNotFoundException(errorMessage));
+    }
+
+    private String formatUserName(User user) {
+        if (user == null) return null;
+        if (user.getUserDetail() != null) {
+            String fn = user.getUserDetail().getFirstName() == null ? "" : user.getUserDetail().getFirstName();
+            String ln = user.getUserDetail().getLastName() == null ? "" : user.getUserDetail().getLastName();
+            String full = (fn + " " + ln).trim();
+            return full.isEmpty() ? user.getEmail() : full;
+        }
+        return user.getEmail();
+    }
+
     private long resolveOwnerId(KpaKpiReviewRequestDTO request) {
         if (request.getOwnerId() > 0) {
             return request.getOwnerId();
@@ -277,15 +302,21 @@ public class KpaKpiReviewService {
         response.setRiskAppetite(review.getPerformanceAppetite());
         response.setEscalationMatrix(review.getEscalationMatrix());
         response.setMeasurableParameters(review.getLevelOfMeasurementLevel());
-        response.setReporting(review.getReportingFrequency());
+        // reporting: store both the user ID (for input re-population) and the resolved name
+        if (review.getReporting() != null) {
+            response.setReportingId(review.getReporting().getId());
+            response.setReportingName(formatUserName(review.getReporting()));
+        }
+        response.setReporting(response.getReportingName());
         response.setReportingFrequency(review.getReportingFrequency());
         // Prefer enum label (valueUnit) for display; fall back to levelOfMeasurementLevel column if enum not set
         response.setUnitOfMeasurement(review.getValueUnit() != null ? review.getValueUnit().getLabel() : review.getLevelOfMeasurementLevel());
         response.setCurrency(review.getCurrency());
         response.setValueUnit(review.getValueUnit());
-        // departmentName — fallback to businessFunction then stakeholderDepartments
-        response.setDepartmentName(review.getBusinessFunction() != null && !review.getBusinessFunction().isBlank()
-                ? review.getBusinessFunction() : review.getStakeholderDepartments());
+        // departmentName — resolve ID → name using the department repository
+        String rawDept = review.getBusinessFunction() != null && !review.getBusinessFunction().isBlank()
+                ? review.getBusinessFunction() : review.getStakeholderDepartments();
+        response.setDepartmentName(fieldMapperUtils.resolveDepartmentFromObject(rawDept));
         response.setTargetValue(review.getTargetValue());
         response.setActualValue(review.getActualValue());
         response.setActuals(review.getActualValue());

@@ -49,6 +49,10 @@ public class KpaKpiReview extends BaseModel {
     private User owner;
 
     @ManyToOne
+    @JoinColumn(name = "reporting_id")
+    private User reporting;
+
+    @ManyToOne
     @JoinColumn(name = "organization_id", nullable = false)
     private Organization organization;
 
