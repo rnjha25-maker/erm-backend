@@ -4,6 +4,7 @@ server:
 spring:
   application:
     name: erm
+
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
 
@@ -35,7 +36,7 @@ spring:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}
 
-# ✅ MUST be outside spring
+# MUST be outside spring
 eureka:
   client:
     service-url:
@@ -46,7 +47,7 @@ eureka:
   instance:
     prefer-ip-address: true
 
-# ✅ Standard AWS config (optional)
+# AWS config (optional)
 cloud:
   aws:
     credentials:
@@ -54,3 +55,6 @@ cloud:
       secret-key: ${AWS_SECRET_ACCESS_KEY}
     region:
       static: ${AWS_REGION:ap-south-1}
+
+erm:
+  storage-service-url: ${ERM_STORAGE_SERVICE_URL:http://storage:8085}

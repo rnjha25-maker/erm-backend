@@ -42,13 +42,13 @@ public class KriKpiReviewStrategyConfig implements FieldStrategy {
         map.put(normalizeKey("riskOwnerName"),
                 KriKpiReviewResponseDTO::getRiskOwnerName);
         map.put(normalizeKey("businessFunction"),
-                KriKpiReviewResponseDTO::getDepartmentName);
+                r -> fieldMapperUtils.resolveDepartmentFromObject(r.getDepartmentName()));
         map.put(normalizeKey("departmentFunction"),
-                KriKpiReviewResponseDTO::getDepartmentName);
+                r -> fieldMapperUtils.resolveDepartmentFromObject(r.getDepartmentName()));
         map.put(normalizeKey("departmentName"),
-                KriKpiReviewResponseDTO::getDepartmentName);
+                r -> fieldMapperUtils.resolveDepartmentFromObject(r.getDepartmentName()));
         map.put(normalizeKey("stakeholderDepartments"),
-                KriKpiReviewResponseDTO::getDepartmentName);
+                r -> fieldMapperUtils.resolveDepartmentFromObject(r.getDepartmentName()));
         map.put(normalizeKey("reporting"),
                 r -> fieldMapperUtils.resolveUser(r.getReporting()));
         map.put(normalizeKey("kriEvaluationBy"),
@@ -63,7 +63,8 @@ public class KriKpiReviewStrategyConfig implements FieldStrategy {
         map.put(normalizeKey("kri"), KriKpiReviewResponseDTO::getKeyRiskIndicatorKri);
         map.put(normalizeKey("keyRiskIndicator"), KriKpiReviewResponseDTO::getKeyRiskIndicatorKri);
         map.put(normalizeKey("keyRiskIndicatorKri"), KriKpiReviewResponseDTO::getKeyRiskIndicatorKri);
-        map.put(normalizeKey("riskAppetite"), KriKpiReviewResponseDTO::getRiskAppetiteStatus);
+        map.put(normalizeKey("riskAppetite"), KriKpiReviewResponseDTO::getRiskAppetite);
+        map.put(normalizeKey("riskAppetiteStatus"), KriKpiReviewResponseDTO::getRiskAppetiteStatus);
         map.put(normalizeKey("valueUnit"),
                 KriKpiReviewResponseDTO::getUnitOfMeasurement);
         map.put(normalizeKey("unitOfMeasurement"),

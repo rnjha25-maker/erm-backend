@@ -10,6 +10,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -63,9 +64,10 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 	private IFieldService fieldService;
 
 	@Autowired
+	@Qualifier("storageRestTemplate")
 	private RestTemplate restTemplate;
 
-	@Value("${erm.storage-service-url:http://storage}")
+	@Value("${erm.storage-service-url:http://storage:8085}")
 	private String storageServiceUrl;
 
 	@Override

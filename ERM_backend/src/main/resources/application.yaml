@@ -2,6 +2,12 @@ spring:
   profiles:
     active: qa
 
+approval:
+  escalation:
+    enabled: false
+  notifications:
+    enabled: false
+
 # Eureka service id for erm-command-organization (used by OrganizationCommandProxyController)
 erm:
   command-organization:
