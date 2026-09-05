@@ -63,6 +63,12 @@ public class KpaKpiReviewStrategyConfig implements FieldStrategy {
                 KpaKpiReviewResponseDTO::getEvaluationByName);
         map.put(normalizeKey("kpiEvaluationByName"),
                 KpaKpiReviewResponseDTO::getEvaluationByName);
+        map.put(normalizeKey("reporting"),
+                KpaKpiReviewResponseDTO::getReportingName);
+        map.put(normalizeKey("reportingName"),
+                KpaKpiReviewResponseDTO::getReportingName);
+        map.put(normalizeKey("reportingId"),
+                KpaKpiReviewResponseDTO::getReportingName);
         map.put(normalizeKey("targets"),  KpaKpiReviewResponseDTO::getTargetValue);
         map.put(normalizeKey("kpa"), KpaKpiReviewResponseDTO::getKpa);
         map.put(normalizeKey("keyPerformanceArea"), KpaKpiReviewResponseDTO::getKpa);

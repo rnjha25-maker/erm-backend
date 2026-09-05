@@ -47,6 +47,8 @@ public class KpaKpiReviewResponseDTO {
     private String riskAppetite;
     private String escalationMatrix;
     private String measurableParameters;
+    private Long reportingId;
+    private String reportingName;
     private String reporting;
     private String reportingFrequency;
     private String unitOfMeasurement;

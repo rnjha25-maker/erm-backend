@@ -14,6 +14,7 @@ import ermorg.erm.dto.response.CustomResponse;
 import ermorg.erm.dto.response.KriKpiReviewResponseDTO;
 import ermorg.erm.dto.riskDTO.KriKpiReviewRequestDTO;
 import ermorg.erm.exception.ResourceNotFoundException;
+import ermorg.erm.mapping.FieldMapperUtils;
 import ermorg.erm.model.Company;
 import ermorg.erm.model.KriKpiReview;
 import ermorg.erm.model.Organization;
@@ -43,6 +44,9 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 
 	@Autowired
 	private CustomResponseMapper customResponseMapper;
+
+	@Autowired
+	private FieldMapperUtils fieldMapperUtils;
 	
 	@Autowired
 	private RiskRepository riskRepository;
@@ -108,7 +112,7 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 
 		KriKpiReview saved = kriKpiReskRepository.save(kriKpiReview);
 
-		return new KriKpiReviewResponseDTO(saved);
+		return toResponse(saved);
 	}
 
 	private RiskAssessment resolveRiskAssessment(KriKpiReviewRequestDTO request, Organization organization, Risk risk,
@@ -157,6 +161,20 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 		}
 	}
 
+	/**
+	 * Builds the response DTO and resolves the department ID stored in
+	 * {@code businessFunction} to its human-readable name so that all
+	 * endpoints — including the raw {@code GET /{id}} — return the name,
+	 * not the numeric ID.
+	 */
+	private KriKpiReviewResponseDTO toResponse(KriKpiReview kriKpiReview) {
+		KriKpiReviewResponseDTO dto = new KriKpiReviewResponseDTO(kriKpiReview);
+		// The DTO constructor copies the raw businessFunction string (dept ID)
+		// into departmentName. Resolve it to the actual name here.
+		dto.setDepartmentName(fieldMapperUtils.resolveDepartmentFromObject(dto.getDepartmentName()));
+		return dto;
+	}
+
 	private ModelMapper createMapper() {
 		ModelMapper mapper = new ModelMapper();
 		mapper.getConfiguration()
@@ -183,7 +201,7 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 		if (kriKpiReview == null) {
 			throw new ResourceNotFoundException("No record found.");
 		}
-		return new KriKpiReviewResponseDTO(kriKpiReview);
+		return toResponse(kriKpiReview);
 	}
 
 	@Override
@@ -196,7 +214,7 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 		}
 
 		List<CustomResponse> customResponse = customResponseMapper.map("kriKpiReview", 1l,
-				new KriKpiReviewResponseDTO(kriKpiReview), false);
+				toResponse(kriKpiReview), false);
 
 		return customResponse;
 	}
@@ -211,7 +229,7 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 		List<List<CustomResponse>> responseList = new ArrayList<>();
 		for (KriKpiReview kriKpiReview : kriKpiReviewlist) {
 			List<CustomResponse> customResponse = customResponseMapper.map("kriKpiReview", 1l,
-					new KriKpiReviewResponseDTO(kriKpiReview),true);
+					toResponse(kriKpiReview), true);
 			responseList.add(customResponse);
 		}
 

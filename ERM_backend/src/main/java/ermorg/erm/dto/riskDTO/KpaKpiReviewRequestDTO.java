@@ -129,6 +129,7 @@ public class KpaKpiReviewRequestDTO {
     private long kpiEvaluationBy;
     private Long evaluationBy;
     private Long evaluationByNo;
+    private Long reporting;
     @Pattern(regexp = "DAILY|WEEKLY|MONTHLY|QUARTERLY|HALF_YEARLY|ANNUALLY|AD_HOC",
             message = "kpiEvaluationFrequency must be DAILY, WEEKLY, MONTHLY, QUARTERLY, HALF_YEARLY, ANNUALLY, or AD_HOC")
     private String kpiEvaluationFrequency;

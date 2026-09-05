@@ -48,7 +48,8 @@ public class KriKpiReviewResponseDTO {
     private String riskAppetite;
     private String escalationMatrix;
     private String measurableParameters;
-    private long reporting;
+    private Long reporting;
+    private String reportingName;
     private String unitOfMeasurement;
     private String reportingFrequency;
     private String currency;
@@ -150,6 +151,7 @@ public class KriKpiReviewResponseDTO {
         this.measurableParameters = kriKpiReview.getLevelOfMeasurementLevel();
         if (kriKpiReview.getReporting() != null) {
             this.reporting = kriKpiReview.getReporting().getId();
+            this.reportingName = formatUserName(kriKpiReview.getReporting());
         }
         // Prefer enum label from valueUnit when present; fallback to legacy unitOfMeasurement string
         if (kriKpiReview.getValueUnit() != null) {
@@ -195,14 +197,7 @@ public class KriKpiReviewResponseDTO {
 
         if (kriKpiReview.getKriEvaluationBy() != null) {
             this.kriEvaluationBy = kriKpiReview.getKriEvaluationBy().getId();
-            if (kriKpiReview.getKriEvaluationBy().getUserDetail() != null) {
-                String fn = kriKpiReview.getKriEvaluationBy().getUserDetail().getFirstName() == null ? "" : kriKpiReview.getKriEvaluationBy().getUserDetail().getFirstName();
-                String ln = kriKpiReview.getKriEvaluationBy().getUserDetail().getLastName() == null ? "" : kriKpiReview.getKriEvaluationBy().getUserDetail().getLastName();
-                String full = (fn + " " + ln).trim();
-                this.kriEvaluationByName = full.isEmpty() ? kriKpiReview.getKriEvaluationBy().getEmail() : full;
-            } else {
-                this.kriEvaluationByName = kriKpiReview.getKriEvaluationBy().getEmail();
-            }
+            this.kriEvaluationByName = formatUserName(kriKpiReview.getKriEvaluationBy());
         }
 
         this.kriEvaluationFrequency = kriKpiReview.getKriEvaluationFrequency();
@@ -235,4 +230,22 @@ public class KriKpiReviewResponseDTO {
                     .orElse("");
         }
 }
+
+    private String formatUserName(ermorg.erm.model.User user) {
+        if (user == null) {
+            return null;
+        }
+
+        if (user.getUserDetail() != null) {
+            String fn = user.getUserDetail().getFirstName() == null ? "" : user.getUserDetail().getFirstName();
+            String mn = user.getUserDetail().getMiddleName() == null ? "" : user.getUserDetail().getMiddleName();
+            String ln = user.getUserDetail().getLastName() == null ? "" : user.getUserDetail().getLastName();
+            String full = String.join(" ", fn, mn, ln).trim().replaceAll("\\s+", " ");
+            if (!full.isEmpty()) {
+                return full;
+            }
+        }
+
+        return user.getEmail();
+    }
 }
