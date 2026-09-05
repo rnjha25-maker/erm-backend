@@ -219,13 +219,14 @@ public class KriKpiReviewResponseDTO {
 
         this.status = kriKpiReview.getStatus();
 
-        this.riskToleranceStatus =
-                kriKpiReview.getRiskAssessment() != null
-                        ? kriKpiReview.getRiskAssessment().getRiskToleranceStatus()
-                        : "";
+        if (this.riskToleranceStatus == null || this.riskToleranceStatus.isBlank()) {
+            this.riskToleranceStatus =
+                    kriKpiReview.getRiskAssessment() != null
+                            ? kriKpiReview.getRiskAssessment().getRiskToleranceStatus()
+                            : null;
+        }
 
-    // ✅ SAFE derived field
-        if (this.riskToleranceStatus == null) {
+        if (this.riskToleranceStatus == null || this.riskToleranceStatus.isBlank()) {
             this.riskToleranceStatus = Optional.ofNullable(kriKpiReview.getRisk())
                     .map(Risk::getRiskAssessments)
                     .filter(list -> !list.isEmpty())

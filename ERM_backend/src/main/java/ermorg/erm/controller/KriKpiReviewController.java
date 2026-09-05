@@ -35,7 +35,7 @@ public class KriKpiReviewController {
 		response.setData(data);
 		response.setStatus(ResponseStatus.SUCCESS);
 
-		response.setMessage("Saved.");
+		response.setMessage(request.getKriId() == 0 ? "KRI created successfully." : "KRI updated successfully.");
 		return response;
 	}
 

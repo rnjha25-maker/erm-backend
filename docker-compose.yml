@@ -162,6 +162,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: 2116
       SPRING_DATA_REDIS_HOST: redis
       EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-server:8761/eureka/
+      ERM_STORAGE_SERVICE_URL: http://storage:8085
     ports:
       - "8086:8086"
     restart: unless-stopped
