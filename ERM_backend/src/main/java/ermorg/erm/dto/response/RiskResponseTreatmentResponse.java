@@ -34,6 +34,7 @@ public class RiskResponseTreatmentResponse {
     private UUID supportingEvidenceDocument;
     private String controlEvaluationBy;
     private long riskReporting;
+    private String riskReportingName;
     private String controlStatus;
     
     public RiskResponseTreatmentResponse(RiskResponseTreatment riskResponseTreatment) {
@@ -62,5 +63,14 @@ public class RiskResponseTreatmentResponse {
 		this.riskReporting = riskResponseTreatment.getRiskReporting().getId();
 		this.controlStatus = riskResponseTreatment.getControlStatus();
     }
-    
+
+    /**
+     * Resolves raw IDs to human-readable values.
+     * Call this in every service method that returns this DTO directly.
+     */
+    public RiskResponseTreatmentResponse resolve(ermorg.erm.mapping.FieldMapperUtils utils) {
+        this.controlEvaluationBy = utils.resolveUserFromObject(this.controlEvaluationBy);
+        this.riskReportingName   = utils.resolveUser(this.riskReporting);
+        return this;
+    }
 }

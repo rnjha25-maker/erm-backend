@@ -42,6 +42,9 @@ public class RiskReviewService implements IRiskReviewService {
 	
 	@Autowired
 	private CustomResponseMapper customResponseMapper;
+
+	@Autowired
+	private ermorg.erm.mapping.FieldMapperUtils fieldMapperUtils;
 	@Override
 	public RiskReviewResponseDtoResponse saveRiskReview(RiskReviewRequestDTO request) throws ResourceNotFoundException {
 		
@@ -90,7 +93,7 @@ public class RiskReviewService implements IRiskReviewService {
 				riskReview.setOrganization(organization);
 				riskReview.setCompany(company);
 				RiskReview saved = riskReviewRepository.save(riskReview);
-		return new RiskReviewResponseDtoResponse(saved);
+		return new RiskReviewResponseDtoResponse(saved).resolve(fieldMapperUtils);
 	}
 
 	private void validateRequiredId(long id, String message) throws ResourceNotFoundException {
@@ -131,7 +134,7 @@ public class RiskReviewService implements IRiskReviewService {
 		if(riskRivew == null) {
 			throw new ResourceNotFoundException("No record found.");
 		}
-		return new RiskReviewResponseDtoResponse(riskRivew);
+		return new RiskReviewResponseDtoResponse(riskRivew).resolve(fieldMapperUtils);
 	}
 
 	@Override
@@ -155,7 +158,7 @@ public class RiskReviewService implements IRiskReviewService {
 		
 		List<List<CustomResponse>> responseList = new ArrayList<>();
 		for(RiskReview riskReview : riskReviewList) {
-			List<CustomResponse> response = customResponseMapper.map("riskReview", 1l, new RiskReviewResponseDtoResponse(riskReview),true);
+			List<CustomResponse> response = customResponseMapper.map("riskReview", 1l, new RiskReviewResponseDtoResponse(riskReview).resolve(fieldMapperUtils), true);
 			responseList.add(response);
 		}
 		return responseList;

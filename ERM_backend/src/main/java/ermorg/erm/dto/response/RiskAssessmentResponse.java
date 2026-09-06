@@ -90,4 +90,15 @@ public class RiskAssessmentResponse {
 		this.lastEvaluationDate = riskAssessment.getLastEvaluationDate();
 		this.nextEvaluationDate = riskAssessment.getNextEvaluationDate();
     }
+
+    /**
+     * Resolves raw IDs / numeric scores to human-readable values.
+     * Call this in every service method that returns this DTO directly.
+     */
+    public RiskAssessmentResponse resolve(ermorg.erm.mapping.FieldMapperUtils utils) {
+        this.riskRating       = utils.resolveRatingLabel(this.riskRating);
+        this.riskAssessmentBy = utils.resolveUserFromObject(this.riskAssessmentBy);
+        this.riskReporting    = utils.resolveUserFromObject(this.riskReporting);
+        return this;
+    }
 }

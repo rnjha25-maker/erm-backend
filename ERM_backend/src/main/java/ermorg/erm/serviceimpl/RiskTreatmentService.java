@@ -59,6 +59,9 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 	
 	@Autowired
 	private CustomResponseMapper customResponseMapper;
+
+	@Autowired
+	private ermorg.erm.mapping.FieldMapperUtils fieldMapperUtils;
 	
 	@Autowired
 	private IFieldService fieldService;
@@ -121,7 +124,7 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 		
 		
 		RiskResponseTreatment saved = riskResponseTreatmentRepository.save(riskResponseTreatment);
-		return new RiskResponseTreatmentResponse(saved);
+		return new RiskResponseTreatmentResponse(saved).resolve(fieldMapperUtils);
 	}
 
 	private void validateRequiredId(long id, String message) throws ResourceNotFoundException {
@@ -137,7 +140,7 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 		
 		RiskResponseTreatment riskResponseTreatment = riskResponseTreatmentRepository.getOrgRiskResponseTreatment(organization.getId(), treatmentId);
 		
-	return new RiskResponseTreatmentResponse(riskResponseTreatment);
+	return new RiskResponseTreatmentResponse(riskResponseTreatment).resolve(fieldMapperUtils);
 	}
 	@Override
 	public List<CustomResponse> getRiskTreatmentView(Long id) throws ResourceNotFoundException{
@@ -153,7 +156,7 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 		List<List<CustomResponse>> responseList = new ArrayList<>();
 		 
 		 for(RiskResponseTreatment riskTreatment : riskResponseTreatment) {
-			 List<CustomResponse> response = customResponseMapper.map("riskTreatment", 1l, new RiskResponseTreatmentResponse(riskTreatment), true);
+			 List<CustomResponse> response = customResponseMapper.map("riskTreatment", 1l, new RiskResponseTreatmentResponse(riskTreatment).resolve(fieldMapperUtils), true);
 		 
 			 responseList.add(response);
 		 }
@@ -192,7 +195,7 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 		}
 		riskResponseTreatment.setSupportingEvidenceDocument(UUID.fromString(requiredDocumentId(document)));
 		riskResponseTreatmentRepository.save(riskResponseTreatment);
-		return new RiskResponseTreatmentResponse(riskResponseTreatment);
+		return new RiskResponseTreatmentResponse(riskResponseTreatment).resolve(fieldMapperUtils);
 	}
 	
 	public Object getEvidence(Long riskTreatmentId) throws ResourceNotFoundException {
@@ -302,7 +305,7 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 	    return customResponseMapper.map(
 		        "riskTreatment",
 		        1L,
-		        new RiskResponseTreatmentResponse(riskTreatment),
+		        new RiskResponseTreatmentResponse(riskTreatment).resolve(fieldMapperUtils),
 		        true
 		);
 	}

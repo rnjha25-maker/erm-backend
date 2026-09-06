@@ -263,11 +263,15 @@ public class KpaKpiReviewService {
         KpaKpiReviewResponseDTO response = new KpaKpiReviewResponseDTO();
         response.setKpaKpiReviewId(review.getId());
         response.setKpa(review.getKpa());
+        response.setRiskTitle(review.getKpa());
+        response.setRiskSubTitle(review.getBusinessObjectives());
         response.setKeyPerformanceArea(review.getKpa());
         response.setBusinessObjectives(review.getBusinessObjectives());
-        response.setBusinessFunction(review.getBusinessFunction());
-        response.setDepartmentFunction(review.getBusinessFunction());
-        response.setDepartment(review.getBusinessFunction());
+        // Resolve department ID → name for all department alias fields
+        String resolvedDept = fieldMapperUtils.resolveDepartmentFromObject(review.getBusinessFunction());
+        response.setBusinessFunction(resolvedDept);
+        response.setDepartmentFunction(resolvedDept);
+        response.setDepartment(resolvedDept);
 
         if (review.getOwner() != null) {
             response.setOwnerId(review.getOwner().getId());
@@ -281,14 +285,20 @@ public class KpaKpiReviewService {
             } else {
                 response.setOwnerName(review.getOwner().getEmail());
             }
+            response.setRiskOwner(review.getOwner().getId());
+            response.setRiskOwnerName(response.getOwnerName());
             response.setFunctionalOwner(response.getOwnerName());
         }
 
-        response.setTarget(review.getTarget());
+        response.setTarget(resolveFirstText(review.getTarget(), review.getTargets()));
         response.setKeyPerformanceParameters(review.getKeyPerformanceParameters());
         response.setKeyPerformanceIndicator(review.getKeyPerformanceIndicator());
+        response.setKeyRiskIndicator(review.getKeyPerformanceIndicator());
+        response.setKeyRiskIndicatorKri(review.getKeyPerformanceIndicator());
         response.setKeyPerformanceIndicators(review.getKeyPerformanceIndicator());
         response.setTypesOfKpi(review.getTypesOfKpi());
+        response.setTypesOfKeyRiskIndicator(review.getTypesOfKpi());
+        response.setTypesOfKeyRiskIndicatorKri(review.getTypesOfKpi());
         response.setPerformanceIndicators(review.getPerformanceIndicators());
         response.setStakeholderDepartments(review.getStakeholderDepartments());
         response.setPerformanceToleranceMinValue(review.getPerformanceToleranceMinValue());
@@ -345,10 +355,13 @@ public class KpaKpiReviewService {
         response.setKraRating(review.getKraRating());
         response.setRiskAppetiteStatus(review.getRiskAppetiteStatus());
         response.setRiskAcceptanceLevel(review.getRiskAcceptanceLevel());
+        response.setRiskAppetiteLevel(review.getRiskAcceptanceLevel() != null
+                ? review.getRiskAcceptanceLevel().name()
+                : null);
 
         if (review.getKpiEvaluationBy() != null) {
             response.setKpiEvaluationBy(review.getKpiEvaluationBy().getId());
-            response.setEvaluationBy(review.getKpiEvaluationBy().getId());
+            response.setKriEvaluationBy(review.getKpiEvaluationBy().getId());
             if (review.getKpiEvaluationBy().getUserDetail() != null) {
                 String fn = review.getKpiEvaluationBy().getUserDetail().getFirstName() == null ? "" : review.getKpiEvaluationBy().getUserDetail().getFirstName();
                 String ln = review.getKpiEvaluationBy().getUserDetail().getLastName() == null ? "" : review.getKpiEvaluationBy().getUserDetail().getLastName();
@@ -357,10 +370,13 @@ public class KpaKpiReviewService {
             } else {
                 response.setEvaluationByName(review.getKpiEvaluationBy().getEmail());
             }
+            response.setKriEvaluationByName(response.getEvaluationByName());
+            response.setEvaluationBy(response.getEvaluationByName());
             response.setEvaluationByNo(response.getEvaluationByName());
         }
-
         response.setKpiEvaluationFrequency(review.getKpiEvaluationFrequency());
+        response.setKriEvaluationFrequency(review.getKpiEvaluationFrequency());
+        response.setKeyRiskEvaluationFrequency(review.getKpiEvaluationFrequency());
         response.setPotentialLossPercentage(review.getPotentialLossPercentage());
         response.setYearlyFrequency(review.getYearlyFrequency());
         response.setAnnualLossExpectancy(review.getAnnualLossExpectancy());

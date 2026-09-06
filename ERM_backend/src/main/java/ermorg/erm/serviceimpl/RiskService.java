@@ -118,6 +118,9 @@ public class RiskService implements IRiskService {
 	@Autowired
 	private CustomResponseMapper customResponseMapper;
 
+	@Autowired
+	private ermorg.erm.mapping.FieldMapperUtils fieldMapperUtils;
+
 	@Override
 	@Transactional
 	public RiskResponse addRisk(RiskDTO request) throws ResourceNotFoundException {
@@ -635,6 +638,11 @@ public class RiskService implements IRiskService {
 	private RiskResponse toRiskResponse(Risk risk, Map<Long, String> functionNames, Map<Long, String> branchNames,
 			Map<String, String> businessSegmentNames, Map<Long, String> businessVerticalNames) {
 		RiskResponse response = new RiskResponse(risk);
+
+		// Resolve assessment fields (rating labels, user names) in the raw DTO
+		if (response.getRiskAssessments() != null) {
+			response.getRiskAssessments().forEach(a -> a.resolve(fieldMapperUtils));
+		}
 
 		response.setFunctionName(functionNames.get(response.getFunction()));
 		response.setBranchName(response.getBranchId() != null ? branchNames.get(response.getBranchId()) : null);
