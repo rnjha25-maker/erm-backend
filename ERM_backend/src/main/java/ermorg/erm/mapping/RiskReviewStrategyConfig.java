@@ -40,14 +40,15 @@ public class RiskReviewStrategyConfig implements FieldStrategy {
         map.put(normalizeKey("riskEvaluationBy"),
                 r -> fieldMapperUtils.resolveUserFromObject(r.getRiskEvaluationBy()));
         map.put(normalizeKey("riskReporting"),
-                r -> fieldMapperUtils.resolveUser(r.getRiskReporting()));
+                r -> r.getRiskReportingName() != null ? r.getRiskReportingName()
+                        : fieldMapperUtils.resolveUser(r.getRiskReporting()));
         map.put(normalizeKey("riskId"),              RiskReviewResponseDtoResponse::getRiskTitle);
         map.put(normalizeKey("riskToleranceStatus"), RiskReviewResponseDtoResponse::getRiskToleranceStatus);
         map.put(normalizeKey("riskAppetiteStatus"),  RiskReviewResponseDtoResponse::getRiskAppetiteStatus);
-        map.put(normalizeKey("residualRiskRating"), RiskReviewResponseDtoResponse::getResidualRiskRating);
-        map.put(normalizeKey("residualRiskRatingCriteria"), RiskReviewResponseDtoResponse::getResidualRiskRating);
-        map.put(normalizeKey("residualRiskCriteria"), RiskReviewResponseDtoResponse::getResidualRiskRating);
-        map.put(normalizeKey("riskRating"), RiskReviewResponseDtoResponse::getResidualRiskRating);
+        map.put(normalizeKey("residualRiskRating"), r -> fieldMapperUtils.resolveRatingLabel(r.getResidualRiskRating()));
+        map.put(normalizeKey("residualRiskRatingCriteria"), r -> fieldMapperUtils.resolveRatingLabel(r.getResidualRiskRating()));
+        map.put(normalizeKey("residualRiskCriteria"), r -> fieldMapperUtils.resolveRatingLabel(r.getResidualRiskRating()));
+        map.put(normalizeKey("riskRating"), r -> fieldMapperUtils.resolveRatingLabel(r.getResidualRiskRating()));
         map.put(normalizeKey("2riskacceptancelevel"), RiskReviewResponseDtoResponse::getRiskAcceptanceLevel);
         map.put(normalizeKey("valueUnit"),
                 r -> r.getValueUnit() != null ? r.getValueUnit().getLabel() : null);

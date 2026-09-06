@@ -68,6 +68,35 @@ public class FieldMapperUtils {
         return null;
     }
 
+    /**
+     * If {@code value} already looks like a rating text label (contains letters),
+     * return it as-is. If it is a pure numeric string (frontend sent a score
+     * instead of a label), convert it to the standard label using the same
+     * 5-band scale the UI uses. Returns null when value is null/blank.
+     */
+    public String resolveRatingLabel(Object value) {
+        if (value == null) return null;
+        String text = value.toString().trim();
+        if (text.isEmpty()) return null;
+
+        // Already a text label — return unchanged
+        if (!text.matches("-?\\d+(\\.\\d+)?")) {
+            return text;
+        }
+
+        // Numeric score → label
+        try {
+            double score = Double.parseDouble(text);
+            if (score >= 20) return "Critical";
+            if (score >= 15) return "Very High";
+            if (score >= 10) return "High";
+            if (score >= 5)  return "Medium";
+            return "Low";
+        } catch (NumberFormatException e) {
+            return text;
+        }
+    }
+
     public String formatEnum(Object value) {
         if (value == null) {
             return null;

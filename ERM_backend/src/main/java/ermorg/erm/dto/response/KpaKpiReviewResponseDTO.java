@@ -15,6 +15,8 @@ public class KpaKpiReviewResponseDTO {
 
     private long kpaKpiReviewId;
     private String kpa;
+    private String riskTitle;
+    private String riskSubTitle;
     private String businessObjectives;
     private String businessFunction;
     private String departmentFunction;
@@ -22,6 +24,8 @@ public class KpaKpiReviewResponseDTO {
     private String department;
     private long ownerId;
     private String ownerName;
+    private Long riskOwner;
+    private String riskOwnerName;
     private Long businessFunctionalOwner;
     private String functionalOwner;
     private String evaluationByName;
@@ -29,8 +33,12 @@ public class KpaKpiReviewResponseDTO {
     private String keyPerformanceArea;
     private String keyPerformanceParameters;
     private String keyPerformanceIndicator;
+    private String keyRiskIndicator;
+    private String keyRiskIndicatorKri;
     private String keyPerformanceIndicators;
     private String typesOfKpi;
+    private String typesOfKeyRiskIndicator;
+    private String typesOfKeyRiskIndicatorKri;
     private String performanceIndicators;
     private String stakeholderDepartments;
     private BigDecimal performanceToleranceMinValue;
@@ -78,11 +86,16 @@ public class KpaKpiReviewResponseDTO {
     private String kpiType;
     private String kraRating;
     private String riskAppetiteStatus;
+    private String riskAppetiteLevel;
     private RiskAcceptanceLevel riskAcceptanceLevel;
     private long kpiEvaluationBy;
-    private Long evaluationBy;
+    private long kriEvaluationBy;
+    private String kriEvaluationByName;
+    private String evaluationBy;
     private String evaluationByNo;
     private String kpiEvaluationFrequency;
+    private String kriEvaluationFrequency;
+    private String keyRiskEvaluationFrequency;
     private BigDecimal potentialLossPercentage;
     private Integer yearlyFrequency;
     private BigDecimal annualLossExpectancy;

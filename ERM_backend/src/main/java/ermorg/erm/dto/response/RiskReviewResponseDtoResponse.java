@@ -41,6 +41,7 @@ public class RiskReviewResponseDtoResponse {
     private String currency;
     private String riskEvaluationBy;
     private Long riskReporting;
+    private String riskReportingName;
     private String reviewType;
     private String status;
     private String riskEvaluationFrequency;
@@ -91,5 +92,17 @@ public class RiskReviewResponseDtoResponse {
 		this.nextEvaluationDate = riskReview.getNextEvaluationDate() != null ? riskReview.getNextEvaluationDate().toString() : null;
 		this.createdAt = riskReview.getCreatedAt() != null ? riskReview.getCreatedAt().toString() : null;
 		this.updatedAt = riskReview.getUpdatedAt() != null ? riskReview.getUpdatedAt().toString() : null;
+    }
+
+    /**
+     * Resolves raw IDs / numeric scores to human-readable values.
+     * Call this in every service method that returns this DTO directly.
+     */
+    public RiskReviewResponseDtoResponse resolve(ermorg.erm.mapping.FieldMapperUtils utils) {
+        this.residualRiskRating         = utils.resolveRatingLabel(this.residualRiskRating);
+        this.residualRiskRatingCriteria = utils.resolveRatingLabel(this.residualRiskRatingCriteria);
+        this.riskEvaluationBy           = utils.resolveUserFromObject(this.riskEvaluationBy);
+        this.riskReportingName          = utils.resolveUser(this.riskReporting);
+        return this;
     }
 }
