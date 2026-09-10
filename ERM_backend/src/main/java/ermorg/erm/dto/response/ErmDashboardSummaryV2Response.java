@@ -17,8 +17,20 @@ public class ErmDashboardSummaryV2Response {
 	/** Revised impact score bucketed into Catastrophic..Insignificant. */
 	private List<NamedCount> riskSummaryByImpact = new ArrayList<>();
 
-	/** Risk count grouped by residual risk rating. */
+	/** Risk assessment risk priority bucketed into Very High..Very Low. */
+	private List<NamedCount> riskSummaryPriorityBased = new ArrayList<>();
+
+	/** Risk assessment count grouped by risk treatment strategy. */
+	private List<NamedCount> riskTreatmentStrategy = new ArrayList<>();
+
+	/** Review row count grouped by residual risk rating. */
 	private List<NamedCount> riskRatingStatusOverview = new ArrayList<>();
+
+	/** Quantitative and qualitative risk counts from the review type. */
+	private List<NamedCount> qualitativeAndQuantitativeAnalysis = new ArrayList<>();
+
+	/** Risk count grouped by risk source. */
+	private List<NamedCount> riskSummaryBySource = new ArrayList<>();
 
 	/** Location (branch) against residual risk rating. */
 	private List<ErmGroupBreakdown> riskRatingByLocation = new ArrayList<>();
@@ -59,4 +71,13 @@ public class ErmDashboardSummaryV2Response {
 
 	/** Raw stored acceptance level values behind overdueEvaluations/upcomingReview. */
 	private List<NamedCount> riskAcceptanceLevelCounts = new ArrayList<>();
+
+	/** Company wide ERM maturity assessments, same data as erm-summary. */
+	private List<ErmMaturitySummaryGroup> ermMaturityCompanyWise = new ArrayList<>();
+
+	/** Department scoped ERM maturity assessments, same data as erm-summary. */
+	private List<ErmMaturitySummaryGroup> ermMaturityFunctionWise = new ArrayList<>();
+
+	/** Paginated risk register, driven by the page/size request params. */
+	private RiskRegisterPage riskRegister = new RiskRegisterPage();
 }

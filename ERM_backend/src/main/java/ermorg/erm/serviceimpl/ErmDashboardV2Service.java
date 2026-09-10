@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import ermorg.erm.constant.ErmRevisedImpactBucket;
+import ermorg.erm.constant.ErmRiskPriorityBucket;
 import ermorg.erm.constant.RiskAcceptanceLevel;
 import ermorg.erm.dto.response.ErmDashboardSummaryV2Response;
 import ermorg.erm.dto.response.ErmFinancialExposureRow;
@@ -47,15 +48,24 @@ public class ErmDashboardV2Service {
 		ErmDashboardSummaryV2Response response = new ErmDashboardSummaryV2Response();
 		response.setHighRiskKris(risks.size());
 		if (risks.isEmpty()) {
+			// The fixed bucket cards still emit their zero buckets so chart categories stay stable.
+			response.setRiskSummaryByImpact(buildImpactBuckets(risks, Map.of()));
+			response.setRiskSummaryPriorityBased(buildPriorityBuckets(risks));
+			response.setQualitativeAndQuantitativeAnalysis(buildAnalysisTypeCounts(risks, Map.of()));
 			return response;
 		}
 
-		Map<Long, RiskReview> reviewByRiskId = loadLatestReviewByRiskId(organizationId, risks, bounds);
+		ReviewData reviewData = loadReviewData(organizationId, risks, bounds);
+		Map<Long, RiskReview> reviewByRiskId = reviewData.latestByRiskId();
 
 		response.setErmRiskSummary(countBy(risks, ErmDashboardV2Service::categoryKey, Map.of()));
 		response.setRiskSummary(countBy(risks, ErmDashboardV2Service::riskRegisterTypeKey, Map.of()));
 		response.setRiskSummaryByImpact(buildImpactBuckets(risks, reviewByRiskId));
-		response.setRiskRatingStatusOverview(buildResidualRatingCounts(risks, reviewByRiskId));
+		response.setRiskSummaryPriorityBased(buildPriorityBuckets(risks));
+		response.setRiskTreatmentStrategy(buildTreatmentStrategyCounts(risks));
+		response.setRiskRatingStatusOverview(buildResidualRatingCounts(reviewData.all()));
+		response.setQualitativeAndQuantitativeAnalysis(buildAnalysisTypeCounts(risks, reviewByRiskId));
+		response.setRiskSummaryBySource(countBy(risks, ErmDashboardV2Service::riskSourceKey, Map.of()));
 
 		response.setRiskRatingByLocation(
 				buildRatingGroups(risks, reviewByRiskId, ErmDashboardV2Service::branchKey, branchLabels));
@@ -74,8 +84,11 @@ public class ErmDashboardV2Service {
 		return response;
 	}
 
-	private Map<Long, RiskReview> loadLatestReviewByRiskId(Long organizationId, List<Risk> risks,
-			ErmDashboardPeriodBounds bounds) {
+	/**
+	 * One query serves both views: the grouped cards use the latest review per risk, while the rating
+	 * status overview counts every review row in the period.
+	 */
+	private ReviewData loadReviewData(Long organizationId, List<Risk> risks, ErmDashboardPeriodBounds bounds) {
 
 		List<Long> riskIds = risks.stream().map(Risk::getId).toList();
 		List<RiskReview> reviews = riskReviewRepository.findForRiskRegister(organizationId, riskIds,
@@ -92,7 +105,10 @@ public class ErmDashboardV2Service {
 				latestByRiskId.put(riskId, review);
 			}
 		}
-		return latestByRiskId;
+		return new ReviewData(reviews, latestByRiskId);
+	}
+
+	private record ReviewData(List<RiskReview> all, Map<Long, RiskReview> latestByRiskId) {
 	}
 
 	private List<NamedCount> buildImpactBuckets(List<Risk> risks, Map<Long, RiskReview> reviewByRiskId) {
@@ -115,15 +131,72 @@ public class ErmDashboardV2Service {
 		return buckets;
 	}
 
-	private List<NamedCount> buildResidualRatingCounts(List<Risk> risks, Map<Long, RiskReview> reviewByRiskId) {
+	private List<NamedCount> buildPriorityBuckets(List<Risk> risks) {
+		Map<ErmRiskPriorityBucket, Long> counts = new EnumMap<>(ErmRiskPriorityBucket.class);
+		for (Risk risk : risks) {
+			for (RiskAssessment assessment : activeAssessments(risk)) {
+				ErmRiskPriorityBucket bucket = ErmDashboardValueNormalizer
+						.priorityBucket(assessment.getRiskPriority());
+				if (bucket != null) {
+					counts.merge(bucket, 1L, Long::sum);
+				}
+			}
+		}
+
+		List<NamedCount> buckets = new ArrayList<>();
+		for (ErmRiskPriorityBucket bucket : ErmRiskPriorityBucket.values()) {
+			buckets.add(new NamedCount(bucket.name(), counts.getOrDefault(bucket, 0L), bucket.getDisplayLabel()));
+		}
+		return buckets;
+	}
+
+	private List<NamedCount> buildTreatmentStrategyCounts(List<Risk> risks) {
 		Map<String, Long> counts = new HashMap<>();
 		for (Risk risk : risks) {
-			String rating = residualRating(risk, reviewByRiskId);
-			if (rating != null) {
-				counts.merge(rating, 1L, Long::sum);
+			for (RiskAssessment assessment : activeAssessments(risk)) {
+				if (ErmDashboardValueNormalizer.hasValue(assessment.getRiskTreatmentStrategy())) {
+					counts.merge(assessment.getRiskTreatmentStrategy().trim(), 1L, Long::sum);
+				}
 			}
 		}
 		return toNamedCounts(counts, Map.of());
+	}
+
+	/** Counts every review row in the period, so a risk reviewed twice contributes twice. */
+	private List<NamedCount> buildResidualRatingCounts(List<RiskReview> reviews) {
+		Map<String, Long> counts = new HashMap<>();
+		for (RiskReview review : reviews) {
+			String ratingKey = ErmDashboardValueNormalizer.ratingKey(review.getResidualRiskRating());
+			if (ratingKey != null) {
+				counts.merge(ratingKey, 1L, Long::sum);
+			}
+		}
+
+		List<NamedCount> namedCounts = new ArrayList<>();
+		counts.entrySet().stream()
+				.sorted(Comparator.comparing(Map.Entry::getKey, ErmDashboardV2Service::compareGroupKeys))
+				.forEach(entry -> namedCounts.add(new NamedCount(entry.getKey(), entry.getValue(),
+						ErmDashboardValueNormalizer.ratingLabel(entry.getKey()))));
+		return namedCounts;
+	}
+
+	/** Two fixed buckets from the review type; any other stored value is ignored. */
+	private List<NamedCount> buildAnalysisTypeCounts(List<Risk> risks, Map<Long, RiskReview> reviewByRiskId) {
+		long quantitative = 0;
+		long qualitative = 0;
+		for (Risk risk : risks) {
+			RiskReview review = reviewByRiskId.get(risk.getId());
+			if (review == null) {
+				continue;
+			}
+			if (ErmDashboardValueNormalizer.isQuantitative(review.getReviewType())) {
+				quantitative++;
+			} else if (ErmDashboardValueNormalizer.isQualitative(review.getReviewType())) {
+				qualitative++;
+			}
+		}
+		return List.of(new NamedCount("QUANTITATIVE", quantitative, "Quantitative"),
+				new NamedCount("QUALITATIVE", qualitative, "Qualitative"));
 	}
 
 	private List<ErmGroupBreakdown> buildRatingGroups(List<Risk> risks, Map<Long, RiskReview> reviewByRiskId,
@@ -260,13 +333,18 @@ public class ErmDashboardV2Service {
 		if (ErmDashboardValueNormalizer.hasValue(review.getReviewType())) {
 			return ErmDashboardValueNormalizer.isQuantitative(review.getReviewType());
 		}
-		if (risk.getRiskAssessments() == null) {
-			return false;
-		}
-		return risk.getRiskAssessments().stream()
-				.filter(assessment -> !assessment.getDeleted())
+		return activeAssessments(risk).stream()
 				.map(RiskAssessment::getRiskAnalysisType)
 				.anyMatch(ErmDashboardValueNormalizer::isQuantitative);
+	}
+
+	private static List<RiskAssessment> activeAssessments(Risk risk) {
+		if (risk.getRiskAssessments() == null) {
+			return List.of();
+		}
+		return risk.getRiskAssessments().stream()
+				.filter(assessment -> !Boolean.TRUE.equals(assessment.getDeleted()))
+				.toList();
 	}
 
 	private List<NamedCount> countBy(List<Risk> risks, Function<Risk, String> keyResolver,
@@ -307,6 +385,10 @@ public class ErmDashboardV2Service {
 	private static String riskRegisterTypeKey(Risk risk) {
 		return ErmDashboardValueNormalizer.hasValue(risk.getRiskRegisterType()) ? risk.getRiskRegisterType().trim()
 				: UNKNOWN;
+	}
+
+	private static String riskSourceKey(Risk risk) {
+		return ErmDashboardValueNormalizer.hasValue(risk.getRiskSource()) ? risk.getRiskSource().trim() : UNKNOWN;
 	}
 
 	private static String branchKey(Risk risk) {

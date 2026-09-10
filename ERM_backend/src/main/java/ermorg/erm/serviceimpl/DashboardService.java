@@ -338,7 +338,9 @@ public class DashboardService implements IDashboardService {
 				scopeCompanyId, functionId, applyBranchDepartmentScope, scopeByDepartment, scopeDepartmentIds);
 		response.setCardCounts(buildCardCounts(organization.getId(), risks, bounds, scopeCompanyId,
 				scopeCreatorUserId, scopedMaturities));
-		populateErmMaturitySummary(response, scopedMaturities);
+		ErmMaturitySummary maturity = buildErmMaturitySummary(scopedMaturities);
+		response.setErmMaturityCompanyWise(maturity.companyWise());
+		response.setErmMaturityFunctionWise(maturity.functionWise());
 		response.setRiskRegister(riskRegisterService.buildPage(organization.getId(), risks,
 				bounds.getStartInclusive(), bounds.getEndInclusive(), functionId, scopeByDepartment,
 				scopeDepartmentIds, page, size));
@@ -349,9 +351,11 @@ public class DashboardService implements IDashboardService {
 	@Override
 	@Transactional(readOnly = true)
 	public ErmDashboardSummaryV2Response getErmDashboardSummaryV2(int year, ErmDashboardPeriodType periodType,
-			Long companyId, Long branchId, Long functionId) throws ResourceNotFoundException {
+			Long companyId, Long branchId, Long functionId, int page, int size) throws ResourceNotFoundException {
 
 		ErmDashboardData dashboardData = loadErmDashboardData(year, periodType, companyId, branchId, functionId);
+		Organization organization = dashboardData.organization();
+		ErmDashboardPeriodBounds bounds = dashboardData.bounds();
 		List<Risk> risks = dashboardData.risks();
 
 		Map<String, String> companyLabels = resolveCompanyLabels(risks);
@@ -363,8 +367,22 @@ public class DashboardService implements IDashboardService {
 		branchLabels.put("NONE", "Unassigned");
 		ownerLabels.put("NONE", "Unassigned");
 
-		return ermDashboardV2Service.build(dashboardData.organization().getId(), risks, dashboardData.bounds(),
+		ErmDashboardSummaryV2Response response = ermDashboardV2Service.build(organization.getId(), risks, bounds,
 				companyLabels, branchLabels, functionLabels, ownerLabels);
+
+		boolean scopeByDepartment = dashboardData.applyBranchDepartmentScope()
+				&& !dashboardData.scopeDepartmentIds().isEmpty();
+		ErmMaturitySummary maturity = buildErmMaturitySummary(loadScopedMaturityAssessments(organization, bounds,
+				dashboardData.scopeCompanyId(), functionId, dashboardData.applyBranchDepartmentScope(),
+				scopeByDepartment, dashboardData.scopeDepartmentIds()));
+		response.setErmMaturityCompanyWise(maturity.companyWise());
+		response.setErmMaturityFunctionWise(maturity.functionWise());
+
+		response.setRiskRegister(riskRegisterService.buildPage(organization.getId(), risks,
+				bounds.getStartInclusive(), bounds.getEndInclusive(), functionId, scopeByDepartment,
+				dashboardData.scopeDepartmentIds(), page, size));
+
+		return response;
 	}
 
 	@Override
@@ -502,8 +520,7 @@ public class DashboardService implements IDashboardService {
 		return scoped;
 	}
 
-	private void populateErmMaturitySummary(ErmDashboardSummaryResponse response,
-			List<ERMMaturityAssessment> scopedAssessments) {
+	private ErmMaturitySummary buildErmMaturitySummary(List<ERMMaturityAssessment> scopedAssessments) {
 
 		Map<String, List<ERMMaturityAssessment>> byGroup = ErmMaturityGroupingUtil
 				.groupByErmMaturityId(scopedAssessments);
@@ -533,8 +550,11 @@ public class DashboardService implements IDashboardService {
 			}
 		});
 
-		response.setErmMaturityCompanyWise(companyWise);
-		response.setErmMaturityFunctionWise(functionWise);
+		return new ErmMaturitySummary(companyWise, functionWise);
+	}
+
+	private record ErmMaturitySummary(List<ErmMaturitySummaryGroup> companyWise,
+			List<ErmMaturitySummaryGroup> functionWise) {
 	}
 
 	private ErmMaturitySummaryGroup buildMaturitySummaryGroup(String ermMaturityId,

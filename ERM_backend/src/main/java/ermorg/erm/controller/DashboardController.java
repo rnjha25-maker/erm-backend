@@ -87,12 +87,13 @@ public class DashboardController {
 	@GetMapping("/dashboard/erm-summary-v2")
 	public GeneralResponse<ErmDashboardSummaryV2Response> getErmDashboardSummaryV2(@RequestParam int year,
 			@RequestParam String periodType, @RequestParam(required = false) Long companyId,
-			@RequestParam(required = false) Long branchId, @RequestParam(required = false) Long functionId)
+			@RequestParam(required = false) Long branchId, @RequestParam(required = false) Long functionId,
+			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size)
 			throws ResourceNotFoundException {
 
 		GeneralResponse<ErmDashboardSummaryV2Response> response = new GeneralResponse<>();
 		ErmDashboardSummaryV2Response data = dashboardService.getErmDashboardSummaryV2(year,
-				parsePeriodType(periodType), companyId, branchId, functionId);
+				parsePeriodType(periodType), companyId, branchId, functionId, page, size);
 		response.setData(data);
 		response.setStatus(ResponseStatus.SUCCESS);
 		return response;
