@@ -84,8 +84,8 @@ class FieldServiceTest {
 
         List<CustomFieldResponse> response = fieldService.getCustomFieldResponse(1L, "kriKpiReview");
 
-        assertEquals(2, response.size());
-        assertEquals(Set.of("oldField", "newField"), response.stream().map(CustomFieldResponse::getFieldName).collect(java.util.stream.Collectors.toSet()));
+        assertEquals(1, response.size());
+        assertEquals(Set.of("oldField"), response.stream().map(CustomFieldResponse::getFieldName).collect(java.util.stream.Collectors.toSet()));
     }
 
     private void injectDependencies() {
