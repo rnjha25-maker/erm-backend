@@ -10,7 +10,7 @@ import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import ermorg.erm.dto.response.CustomFieldResponse;
 import ermorg.erm.model.Category;
@@ -21,6 +21,7 @@ import ermorg.erm.model.Organization;
 import ermorg.erm.model.SystemField;
 import ermorg.erm.repository.CategoryRepository;
 import ermorg.erm.repository.CustomFieldRepository;
+import ermorg.erm.repository.FieldOptionRepository;
 import ermorg.erm.repository.ModuleRepository;
 import ermorg.erm.repository.OrgModuleRepository;
 import ermorg.erm.repository.OrganizationRepository;
@@ -37,6 +38,7 @@ class FieldServiceTest {
     private final CustomFieldRepository customFieldRepository = mock(CustomFieldRepository.class);
     private final OrgModuleRepository orgModuleRepository = mock(OrgModuleRepository.class);
     private final OrganizationRepository organizationRepository = mock(OrganizationRepository.class);
+    private final FieldOptionRepository fieldOptionRepository = mock(FieldOptionRepository.class);
 
     private final FieldService fieldService = new FieldService();
 
@@ -76,7 +78,7 @@ class FieldServiceTest {
         categoryLinkedToModule.setFields(new HashSet<>(Set.of(newField)));
 
         when(orgModuleRepository.findByOrganizationIdAndModuleId(10L, 1L)).thenReturn(List.of(orgModule));
-        when(categoryRepository.findAllByOrgAndModule(10L, 1L)).thenReturn(List.of(categoryFromOrgModule));
+        when(categoryRepository.findAllById(List.of(100L))).thenReturn(List.of(categoryFromOrgModule));
         when(categoryRepository.findAllByModuleIdAndMappedWithTableAndDeletedFalse(1L, "kriKpiReview"))
                 .thenReturn(List.of(categoryLinkedToModule));
 
@@ -87,14 +89,14 @@ class FieldServiceTest {
     }
 
     private void injectDependencies() {
-//        org.mockito.ReflectionTestUtils.setField(fieldService, "moduleRepository", moduleRepository);
-//        org.mockito.ReflectionTestUtils.setField(fieldService, "tableReposity", tableRepository);
-//        org.mockito.ReflectionTestUtils.setField(fieldService, "systemFieldRepository", systemFieldRepository);
-//        org.mockito.ReflectionTestUtils.setField(fieldService, "categoryRepository", categoryRepository);
-//        org.mockito.ReflectionTestUtils.setField(fieldService, "customFieldRepository", customFieldRepository);
-//        org.mockito.ReflectionTestUtils.setField(fieldService, "systemTableRepository", tableRepository);
-//        org.mockito.ReflectionTestUtils.setField(fieldService, "orgModuleRepository", orgModuleRepository);
-//        org.mockito.ReflectionTestUtils.setField(fieldService, "organizationRepository", organizationRepository);
+        ReflectionTestUtils.setField(fieldService, "moduleRepository", moduleRepository);
+        ReflectionTestUtils.setField(fieldService, "systemTableRepository", tableRepository);
+        ReflectionTestUtils.setField(fieldService, "systemFieldRepository", systemFieldRepository);
+        ReflectionTestUtils.setField(fieldService, "categoryRepository", categoryRepository);
+        ReflectionTestUtils.setField(fieldService, "customFieldRepository", customFieldRepository);
+        ReflectionTestUtils.setField(fieldService, "orgModuleRepository", orgModuleRepository);
+        ReflectionTestUtils.setField(fieldService, "organizationRepository", organizationRepository);
+        ReflectionTestUtils.setField(fieldService, "fieldOptionRepository", fieldOptionRepository);
     }
 
     private CustomField buildField(Long id, String fieldName, Category category) {

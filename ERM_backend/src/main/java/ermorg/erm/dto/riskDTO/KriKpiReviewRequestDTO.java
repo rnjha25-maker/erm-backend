@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+
 import ermorg.erm.constant.RiskAcceptanceLevel;
 import ermorg.erm.constant.RiskValueUnit;
 import lombok.AllArgsConstructor;
@@ -21,7 +24,11 @@ public class KriKpiReviewRequestDTO {
     private long riskId;//new
     private long riskAssessmentId;
     private long riskOwner;
+
+    @JsonAlias({"subRiskId", "riskSubIds", "riskSubs", "riskSubTitle"})
+    @JsonDeserialize(using = LongListDeserializer.class)
     private List<Long> subRiskIds = new ArrayList<>();//new
+
     private String target;
     private String keyRiskParameters;
     private String keyRiskIndicatorKri;

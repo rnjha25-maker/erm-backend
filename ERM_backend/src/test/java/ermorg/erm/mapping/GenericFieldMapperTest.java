@@ -86,12 +86,12 @@ class GenericFieldMapperTest {
                 List.of(new KpaKpiReviewStrategyConfig(fieldMapperUtils)));
 
         KpaKpiReviewResponseDTO response = new KpaKpiReviewResponseDTO();
-        response.setRiskTitle("Disaster Management Plan");
-        response.setRiskSubTitle("Risk of Natural Disaster");
+        response.setKpa("Disaster Management Plan");
+        response.setBusinessObjectives("Risk of Natural Disaster");
         response.setDepartmentName("42");
         response.setOwnerName("Karan Gupta");
-        response.setKeyRiskIndicator("Revenue Growth");
-        response.setTypesOfKeyRiskIndicator("Lagging KPI");
+        response.setKeyPerformanceIndicator("Revenue Growth");
+        response.setTypesOfKpi("Lagging KPI");
         response.setRiskAcceptanceLevel(RiskAcceptanceLevel.ACCEPTABLE_RISK);
         response.setRiskAppetiteLevel(RiskAcceptanceLevel.ACCEPTABLE_RISK.name());
         response.setRiskAppetiteStatus("Within Appetite");
