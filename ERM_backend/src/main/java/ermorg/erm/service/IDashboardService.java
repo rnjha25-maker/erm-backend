@@ -22,7 +22,7 @@ public interface IDashboardService {
 			Long branchId, Long functionId, int page, int size) throws ResourceNotFoundException;
 
 	ErmDashboardSummaryV2Response getErmDashboardSummaryV2(int year, ErmDashboardPeriodType periodType, Long companyId,
-			Long branchId, Long functionId) throws ResourceNotFoundException;
+			Long branchId, Long functionId, int page, int size) throws ResourceNotFoundException;
 
 	byte[] exportErmRiskRegisterCsv(int year, ErmDashboardPeriodType periodType, Long companyId, Long branchId,
 			Long functionId) throws ResourceNotFoundException;

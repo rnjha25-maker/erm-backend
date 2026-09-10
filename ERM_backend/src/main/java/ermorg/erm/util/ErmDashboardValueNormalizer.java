@@ -4,6 +4,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import ermorg.erm.constant.ErmRevisedImpactBucket;
+import ermorg.erm.constant.ErmRiskPriorityBucket;
 
 /**
  * Residual rating, appetite status and review type are free-text columns whose values differ between
@@ -43,6 +44,45 @@ public final class ErmDashboardValueNormalizer {
 
 	public static boolean isQuantitative(String type) {
 		return normalize(type).contains("QUANTITATIVE");
+	}
+
+	public static boolean isQualitative(String type) {
+		return normalize(type).contains("QUALITATIVE");
+	}
+
+	public static ErmRiskPriorityBucket priorityBucket(String riskPriority) {
+		return ErmRiskPriorityBucket.forValue(riskPriority);
+	}
+
+	/**
+	 * Collapses casing and spacing variants of a rating into one bucket key, so "High", "HIGH" and
+	 * "high" all become "HIGH". Returns null for blank and unassessed values.
+	 */
+	public static String ratingKey(String rating) {
+		if (!hasValue(rating)) {
+			return null;
+		}
+		String key = rating.trim().replaceAll("\\s+", " ").toUpperCase();
+		return "UNASSESSED".equals(key) ? null : key;
+	}
+
+	/** Title cased display label for a rating key: "VERY HIGH" becomes "Very High". */
+	public static String ratingLabel(String ratingKey) {
+		if (!hasValue(ratingKey)) {
+			return ratingKey;
+		}
+		StringBuilder label = new StringBuilder(ratingKey.length());
+		for (String word : ratingKey.trim().split(" ")) {
+			if (word.isEmpty()) {
+				continue;
+			}
+			if (label.length() > 0) {
+				label.append(' ');
+			}
+			label.append(Character.toUpperCase(word.charAt(0)))
+					.append(word.substring(1).toLowerCase());
+		}
+		return label.toString();
 	}
 
 	/** Handles both plain scores ("18") and range style values ("17-20"). */
