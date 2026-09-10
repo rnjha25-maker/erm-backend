@@ -263,8 +263,6 @@ public class KpaKpiReviewService {
         KpaKpiReviewResponseDTO response = new KpaKpiReviewResponseDTO();
         response.setKpaKpiReviewId(review.getId());
         response.setKpa(review.getKpa());
-        response.setRiskTitle(review.getKpa());
-        response.setRiskSubTitle(review.getBusinessObjectives());
         response.setKeyPerformanceArea(review.getKpa());
         response.setBusinessObjectives(review.getBusinessObjectives());
         // Resolve department ID → name for all department alias fields
@@ -293,23 +291,16 @@ public class KpaKpiReviewService {
         response.setTarget(resolveFirstText(review.getTarget(), review.getTargets()));
         response.setKeyPerformanceParameters(review.getKeyPerformanceParameters());
         response.setKeyPerformanceIndicator(review.getKeyPerformanceIndicator());
-        response.setKeyRiskIndicator(review.getKeyPerformanceIndicator());
-        response.setKeyRiskIndicatorKri(review.getKeyPerformanceIndicator());
         response.setKeyPerformanceIndicators(review.getKeyPerformanceIndicator());
         response.setTypesOfKpi(review.getTypesOfKpi());
-        response.setTypesOfKeyRiskIndicator(review.getTypesOfKpi());
-        response.setTypesOfKeyRiskIndicatorKri(review.getTypesOfKpi());
         response.setPerformanceIndicators(review.getPerformanceIndicators());
         response.setStakeholderDepartments(review.getStakeholderDepartments());
         response.setPerformanceToleranceMinValue(review.getPerformanceToleranceMinValue());
         response.setPerformanceToleranceMaxValue(review.getPerformanceToleranceMaxValue());
-        response.setRiskToleranceRangeMinValue(review.getPerformanceToleranceMinValue());
-        response.setRiskToleranceRangeMaxValue(review.getPerformanceToleranceMaxValue());
         response.setTargets(review.getTargets());
         response.setActivities(review.getActivities());
         response.setThresholds(review.getThresholds());
         response.setPerformanceAppetite(review.getPerformanceAppetite());
-        response.setRiskAppetite(review.getPerformanceAppetite());
         response.setEscalationMatrix(review.getEscalationMatrix());
         response.setMeasurableParameters(review.getLevelOfMeasurementLevel());
         // reporting: store both the user ID (for input re-population) and the resolved name
@@ -361,7 +352,6 @@ public class KpaKpiReviewService {
 
         if (review.getKpiEvaluationBy() != null) {
             response.setKpiEvaluationBy(review.getKpiEvaluationBy().getId());
-            response.setKriEvaluationBy(review.getKpiEvaluationBy().getId());
             if (review.getKpiEvaluationBy().getUserDetail() != null) {
                 String fn = review.getKpiEvaluationBy().getUserDetail().getFirstName() == null ? "" : review.getKpiEvaluationBy().getUserDetail().getFirstName();
                 String ln = review.getKpiEvaluationBy().getUserDetail().getLastName() == null ? "" : review.getKpiEvaluationBy().getUserDetail().getLastName();
@@ -370,13 +360,10 @@ public class KpaKpiReviewService {
             } else {
                 response.setEvaluationByName(review.getKpiEvaluationBy().getEmail());
             }
-            response.setKriEvaluationByName(response.getEvaluationByName());
             response.setEvaluationBy(response.getEvaluationByName());
             response.setEvaluationByNo(response.getEvaluationByName());
         }
         response.setKpiEvaluationFrequency(review.getKpiEvaluationFrequency());
-        response.setKriEvaluationFrequency(review.getKpiEvaluationFrequency());
-        response.setKeyRiskEvaluationFrequency(review.getKpiEvaluationFrequency());
         response.setPotentialLossPercentage(review.getPotentialLossPercentage());
         response.setYearlyFrequency(review.getYearlyFrequency());
         response.setAnnualLossExpectancy(review.getAnnualLossExpectancy());

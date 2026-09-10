@@ -125,19 +125,12 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 			return riskAssessment;
 		}
 
-		if (subRisks.size() > 1) {
-			throw new ResourceNotFoundException("Please select risk assessment for multiple sub risks.");
-		}
-
 		List<RiskAssessment> assessments = subRisks.isEmpty()
 				? riskAsessmentRepository.findLatestByOrgIdAndRiskIdWithoutSubRisk(organization.getId(), risk.getId())
 				: riskAsessmentRepository.findLatestByOrgIdAndRiskIdAndSubRiskId(
 						organization.getId(), risk.getId(), subRisks.get(0).getId());
 
-		if (assessments.isEmpty()) {
-			throw new ResourceNotFoundException("No risk assessment found for selected risk and sub risk.");
-		}
-		return assessments.get(0);
+		return assessments.isEmpty() ? null : assessments.get(0);
 	}
 
 	private void validateAssessmentBelongsToSelection(RiskAssessment riskAssessment, Risk risk, List<SubRisk> subRisks)

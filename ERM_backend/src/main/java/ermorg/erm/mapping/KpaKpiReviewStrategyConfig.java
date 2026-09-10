@@ -90,25 +90,25 @@ public class KpaKpiReviewStrategyConfig implements FieldStrategy {
         map.put(normalizeKey("targetValue"), this::displayTarget);
         map.put(normalizeKey("kpa"), KpaKpiReviewResponseDTO::getKpa);
         map.put(normalizeKey("keyPerformanceArea"), KpaKpiReviewResponseDTO::getKpa);
-        map.put(normalizeKey("riskTitle"), KpaKpiReviewResponseDTO::getRiskTitle);
-        map.put(normalizeKey("risk"), KpaKpiReviewResponseDTO::getRiskTitle);
-        map.put(normalizeKey("riskId"), KpaKpiReviewResponseDTO::getRiskTitle);
-        map.put(normalizeKey("riskSubTitle"), KpaKpiReviewResponseDTO::getRiskSubTitle);
-        map.put(normalizeKey("riskSubTitleName"), KpaKpiReviewResponseDTO::getRiskSubTitle);
+        map.put(normalizeKey("riskTitle"), KpaKpiReviewResponseDTO::getKpa);
+        map.put(normalizeKey("risk"), KpaKpiReviewResponseDTO::getKpa);
+        map.put(normalizeKey("riskId"), KpaKpiReviewResponseDTO::getKpa);
+        map.put(normalizeKey("riskSubTitle"), KpaKpiReviewResponseDTO::getBusinessObjectives);
+        map.put(normalizeKey("riskSubTitleName"), KpaKpiReviewResponseDTO::getBusinessObjectives);
         map.put(normalizeKey("kpi"), KpaKpiReviewResponseDTO::getKeyPerformanceIndicator);
         map.put(normalizeKey("keyPerformanceIndicator"), KpaKpiReviewResponseDTO::getKeyPerformanceIndicator);
         map.put(normalizeKey("keyPerformanceIndicators"), KpaKpiReviewResponseDTO::getKeyPerformanceIndicator);
-        map.put(normalizeKey("kri"), KpaKpiReviewResponseDTO::getKeyRiskIndicator);
-        map.put(normalizeKey("keyRiskIndicator"), KpaKpiReviewResponseDTO::getKeyRiskIndicator);
-        map.put(normalizeKey("keyRiskIndicatorKri"), KpaKpiReviewResponseDTO::getKeyRiskIndicator);
-        map.put(normalizeKey("typesOfKeyRiskIndicator"), KpaKpiReviewResponseDTO::getTypesOfKeyRiskIndicator);
-        map.put(normalizeKey("typesOfKeyRiskIndicatorKri"), KpaKpiReviewResponseDTO::getTypesOfKeyRiskIndicator);
-        map.put(normalizeKey("riskAppetite"), KpaKpiReviewResponseDTO::getRiskAppetite);
+        map.put(normalizeKey("kri"), KpaKpiReviewResponseDTO::getKeyPerformanceIndicator);
+        map.put(normalizeKey("keyRiskIndicator"), KpaKpiReviewResponseDTO::getKeyPerformanceIndicator);
+        map.put(normalizeKey("keyRiskIndicatorKri"), KpaKpiReviewResponseDTO::getKeyPerformanceIndicator);
+        map.put(normalizeKey("typesOfKeyRiskIndicator"), KpaKpiReviewResponseDTO::getTypesOfKpi);
+        map.put(normalizeKey("typesOfKeyRiskIndicatorKri"), KpaKpiReviewResponseDTO::getTypesOfKpi);
+        map.put(normalizeKey("riskAppetite"), KpaKpiReviewResponseDTO::getPerformanceAppetite);
         map.put(normalizeKey("riskAppetiteStatus"), KpaKpiReviewResponseDTO::getRiskAppetiteStatus);
         map.put(normalizeKey("riskAppetiteLevel"), KpaKpiReviewResponseDTO::getRiskAppetiteLevel);
         map.put(normalizeKey("riskAcceptanceLevel"), KpaKpiReviewResponseDTO::getRiskAppetiteLevel);
-        map.put(normalizeKey("riskToleranceRangeMinValue"), KpaKpiReviewResponseDTO::getRiskToleranceRangeMinValue);
-        map.put(normalizeKey("riskToleranceRangeMaxValue"), KpaKpiReviewResponseDTO::getRiskToleranceRangeMaxValue);
+        map.put(normalizeKey("riskToleranceRangeMinValue"), KpaKpiReviewResponseDTO::getPerformanceToleranceMinValue);
+        map.put(normalizeKey("riskToleranceRangeMaxValue"), KpaKpiReviewResponseDTO::getPerformanceToleranceMaxValue);
         map.put(normalizeKey("levelOfMeasurementLevel"),
                 KpaKpiReviewResponseDTO::getUnitOfMeasurement);
         map.put(normalizeKey("valueUnit"),
