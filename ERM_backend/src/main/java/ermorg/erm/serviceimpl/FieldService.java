@@ -1,7 +1,6 @@
 package ermorg.erm.serviceimpl;
 
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -98,22 +97,16 @@ public class FieldService implements IFieldService {
                 .map(ModuleOrganization::getCategoryId)
                 .collect(Collectors.toList());
 
-        Map<Long, Category> categoriesById = new LinkedHashMap<>();
-
-        categoryRepository.findAllById(categoryIds).stream()
+        List<Category> categories = categoryRepository.findAllById(categoryIds).stream()
                 .filter(cat -> !Boolean.TRUE.equals(cat.getDeleted())
                         && cat.getMappedWithTable() != null
                         && cat.getMappedWithTable().equalsIgnoreCase(tableName))
-                .forEach(cat -> categoriesById.put(cat.getId(), cat));
+                .collect(Collectors.toList());
 
-        categoryRepository.findAllByModuleIdAndMappedWithTableAndDeletedFalse(moduleId, tableName)
-                .stream()
-                .filter(cat -> !Boolean.TRUE.equals(cat.getDeleted())
-                        && cat.getMappedWithTable() != null
-                        && cat.getMappedWithTable().equalsIgnoreCase(tableName))
-                .forEach(cat -> categoriesById.putIfAbsent(cat.getId(), cat));
-
-        List<Category> categories = List.copyOf(categoriesById.values());
+        if (categories.isEmpty()) {
+            categories = categoryRepository
+                    .findAllByModuleIdAndMappedWithTableAndDeletedFalse(moduleId, tableName);
+        }
 
         if (categories.isEmpty()) {
             throw new ResourceNotFoundException("No category mapped.");
