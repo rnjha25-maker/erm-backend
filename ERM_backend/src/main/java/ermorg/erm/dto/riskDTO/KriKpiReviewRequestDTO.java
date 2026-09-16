@@ -31,15 +31,19 @@ public class KriKpiReviewRequestDTO {
 
     private String target;
     private String keyRiskParameters;
+    @JsonAlias({"keyRiskIndicator", "kri"})
     private String keyRiskIndicatorKri;
+    @JsonAlias({"typesOfKeyRiskIndicator", "typeOfKeyRiskIndicator"})
     private String typesOfKeyRiskIndicatorKri;
     private String performanceIndicators;
     private String typeOfRiskIndicator;//new
 
     private String stakeholderDepartments;
     
+    @JsonAlias({"riskToleranceMin", "riskToleranceMinimum"})
     private String riskToleranceRangeMinValue;
     
+    @JsonAlias({"riskToleranceMax", "riskToleranceMaximum"})
     private String riskToleranceRangeMaxValue;
     
     private String targets;

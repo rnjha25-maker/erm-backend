@@ -35,6 +35,8 @@ public class KpaKpiReviewStrategyConfig implements FieldStrategy {
 
         map.put(normalizeKey("businessFunctionalOwner"),
                 KpaKpiReviewResponseDTO::getOwnerName);
+        map.put(normalizeKey("businessFunctionalOwnerName"),
+                KpaKpiReviewResponseDTO::getOwnerName);
         map.put(normalizeKey("functionalOwner"),
                 KpaKpiReviewResponseDTO::getOwnerName);
         map.put(normalizeKey("functionalOwnerName"),
@@ -109,6 +111,10 @@ public class KpaKpiReviewStrategyConfig implements FieldStrategy {
         map.put(normalizeKey("riskAcceptanceLevel"), KpaKpiReviewResponseDTO::getRiskAppetiteLevel);
         map.put(normalizeKey("riskToleranceRangeMinValue"), KpaKpiReviewResponseDTO::getPerformanceToleranceMinValue);
         map.put(normalizeKey("riskToleranceRangeMaxValue"), KpaKpiReviewResponseDTO::getPerformanceToleranceMaxValue);
+        map.put(normalizeKey("riskToleranceMin"), KpaKpiReviewResponseDTO::getPerformanceToleranceMinValue);
+        map.put(normalizeKey("riskToleranceMax"), KpaKpiReviewResponseDTO::getPerformanceToleranceMaxValue);
+        map.put(normalizeKey("riskToleranceMinimum"), KpaKpiReviewResponseDTO::getPerformanceToleranceMinValue);
+        map.put(normalizeKey("riskToleranceMaximum"), KpaKpiReviewResponseDTO::getPerformanceToleranceMaxValue);
         map.put(normalizeKey("levelOfMeasurementLevel"),
                 KpaKpiReviewResponseDTO::getUnitOfMeasurement);
         map.put(normalizeKey("valueUnit"),

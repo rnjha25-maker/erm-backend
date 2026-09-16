@@ -32,13 +32,17 @@ public class KriKpiReviewResponseDTO {
 
     private String target;
     private String keyRiskParameters;
+    private String keyRiskIndicator;
     private String keyRiskIndicatorKri;
+    private String typesOfKeyRiskIndicator;
     private String typesOfKeyRiskIndicatorKri;
     private String typeOfRiskIndicator;
 
     private String performanceIndicators;
     private String stakeholderDepartments;
     private String departmentName;
+    private String riskToleranceMin;
+    private String riskToleranceMax;
     private String riskToleranceRangeMinValue;
     private String riskToleranceRangeMaxValue;
     private String targets;
@@ -79,6 +83,7 @@ public class KriKpiReviewResponseDTO {
     private String kriType;
     private String kriAppetiteStatus;
     private String riskAppetiteStatus;
+    private String riskAppetiteLevel;
     private RiskAcceptanceLevel riskAcceptanceLevel;
 
     private long kriEvaluationBy;
@@ -135,13 +140,17 @@ public class KriKpiReviewResponseDTO {
         this.target = kriKpiReview.getTarget();
         this.keyRiskParameters = kriKpiReview.getKeyRiskParameters();
         this.keyRiskIndicatorKri = kriKpiReview.getKeyRiskIndicatorKri();
+        this.keyRiskIndicator = this.keyRiskIndicatorKri;
         this.typesOfKeyRiskIndicatorKri = kriKpiReview.getTypesOfKeyRiskIndicatorKri();
+        this.typesOfKeyRiskIndicator = this.typesOfKeyRiskIndicatorKri;
         this.typeOfRiskIndicator = kriKpiReview.getTypeOfRiskIndicator();
 
         this.performanceIndicators = kriKpiReview.getPerformanceIndicators();
         this.stakeholderDepartments = kriKpiReview.getStakeholderDepartments();
         this.riskToleranceRangeMinValue = kriKpiReview.getRiskToleranceRangeMinValue();
         this.riskToleranceRangeMaxValue = kriKpiReview.getRiskToleranceRangeMaxValue();
+        this.riskToleranceMin = this.riskToleranceRangeMinValue;
+        this.riskToleranceMax = this.riskToleranceRangeMaxValue;
         this.targets = kriKpiReview.getTargets();
         this.activities = kriKpiReview.getActivities();
         this.thresholds = kriKpiReview.getThresholds();
@@ -194,6 +203,7 @@ public class KriKpiReviewResponseDTO {
         this.kriAppetiteStatus = kriKpiReview.getKriAppetiteStatus();
         this.riskAppetiteStatus = kriKpiReview.getRiskAppetiteStatus();
         this.riskAcceptanceLevel = kriKpiReview.getRiskAcceptanceLevel();
+        this.riskAppetiteLevel = this.riskAcceptanceLevel != null ? this.riskAcceptanceLevel.name() : null;
 
         if (kriKpiReview.getKriEvaluationBy() != null) {
             this.kriEvaluationBy = kriKpiReview.getKriEvaluationBy().getId();
@@ -229,6 +239,27 @@ public class KriKpiReviewResponseDTO {
                     .map(RiskAssessment::getRiskToleranceStatus)
                     .orElse("");
         }
+
+        if (this.riskAppetite == null || this.riskAppetite.isBlank()) {
+            this.riskAppetite = Optional.ofNullable(kriKpiReview.getRiskAssessment())
+                    .map(RiskAssessment::getRiskAppetite)
+                    .orElse("");
+        }
+
+        if (this.riskAppetiteStatus == null || this.riskAppetiteStatus.isBlank()) {
+            this.riskAppetiteStatus = Optional.ofNullable(kriKpiReview.getRiskAssessment())
+                    .map(RiskAssessment::getRiskAppetiteStatus)
+                    .or(() -> Optional.ofNullable(kriKpiReview.getRisk()).map(Risk::getRiskAppetiteStatus))
+                    .orElse("");
+        }
+
+        if (this.riskAcceptanceLevel == null) {
+            this.riskAcceptanceLevel = Optional.ofNullable(kriKpiReview.getRiskAssessment())
+                    .map(RiskAssessment::getRiskAcceptanceLevel)
+                    .or(() -> Optional.ofNullable(kriKpiReview.getRisk()).map(Risk::getRiskAcceptanceLevel))
+                    .orElse(null);
+        }
+        this.riskAppetiteLevel = this.riskAcceptanceLevel != null ? this.riskAcceptanceLevel.name() : this.riskAppetiteLevel;
 }
 
     private String formatUserName(ermorg.erm.model.User user) {
