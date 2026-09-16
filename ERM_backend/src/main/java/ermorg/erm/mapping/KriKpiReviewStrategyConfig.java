@@ -73,12 +73,22 @@ public class KriKpiReviewStrategyConfig implements FieldStrategy {
         map.put(normalizeKey("kri"), KriKpiReviewResponseDTO::getKeyRiskIndicatorKri);
         map.put(normalizeKey("keyRiskIndicator"), KriKpiReviewResponseDTO::getKeyRiskIndicatorKri);
         map.put(normalizeKey("keyRiskIndicatorKri"), KriKpiReviewResponseDTO::getKeyRiskIndicatorKri);
+        map.put(normalizeKey("typesOfKeyRiskIndicator"), KriKpiReviewResponseDTO::getTypesOfKeyRiskIndicatorKri);
+        map.put(normalizeKey("typesOfKeyRiskIndicatorKri"), KriKpiReviewResponseDTO::getTypesOfKeyRiskIndicatorKri);
+        map.put(normalizeKey("typeOfKeyRiskIndicator"), KriKpiReviewResponseDTO::getTypesOfKeyRiskIndicatorKri);
         map.put(normalizeKey("riskAppetite"), KriKpiReviewResponseDTO::getRiskAppetite);
         map.put(normalizeKey("riskAppetiteStatus"), KriKpiReviewResponseDTO::getRiskAppetiteStatus);
         map.put(normalizeKey("riskAppetiteLevel"),
                 r -> r.getRiskAcceptanceLevel() != null ? r.getRiskAcceptanceLevel().name() : null);
         map.put(normalizeKey("riskAcceptanceLevel"),
                 r -> r.getRiskAcceptanceLevel() != null ? r.getRiskAcceptanceLevel().name() : null);
+        map.put(normalizeKey("riskToleranceMin"), KriKpiReviewResponseDTO::getRiskToleranceRangeMinValue);
+        map.put(normalizeKey("riskToleranceMax"), KriKpiReviewResponseDTO::getRiskToleranceRangeMaxValue);
+        map.put(normalizeKey("riskToleranceRangeMinValue"), KriKpiReviewResponseDTO::getRiskToleranceRangeMinValue);
+        map.put(normalizeKey("riskToleranceRangeMaxValue"), KriKpiReviewResponseDTO::getRiskToleranceRangeMaxValue);
+        map.put(normalizeKey("riskToleranceMinimum"), KriKpiReviewResponseDTO::getRiskToleranceRangeMinValue);
+        map.put(normalizeKey("riskToleranceMaximum"), KriKpiReviewResponseDTO::getRiskToleranceRangeMaxValue);
+        map.put(normalizeKey("kriEvaluationFrequency"), KriKpiReviewResponseDTO::getKriEvaluationFrequency);
         map.put(normalizeKey("valueUnit"),
                 KriKpiReviewResponseDTO::getUnitOfMeasurement);
         map.put(normalizeKey("unitOfMeasurement"),

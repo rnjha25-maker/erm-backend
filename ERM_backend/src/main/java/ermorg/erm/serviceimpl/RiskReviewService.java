@@ -146,7 +146,7 @@ public class RiskReviewService implements IRiskReviewService {
 			throw new ResourceNotFoundException("No record found.");
 		}
 		
-		List<CustomResponse> response = customResponseMapper.map("riskReview", 1l, new RiskReviewResponseDtoResponse(riskRivew), false);
+		List<CustomResponse> response = customResponseMapper.map("riskReview", 1l, new RiskReviewResponseDtoResponse(riskRivew).resolve(fieldMapperUtils), false);
 		return response;
 	}
 

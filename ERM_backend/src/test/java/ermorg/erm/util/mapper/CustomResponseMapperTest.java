@@ -15,11 +15,29 @@ import ermorg.erm.dto.response.CustomFieldResponse;
 import ermorg.erm.dto.response.CustomResponse;
 import ermorg.erm.mapping.GenericFieldMapper;
 import ermorg.erm.mapping.FieldMapperUtils;
+import ermorg.erm.model.CustomField;
+import ermorg.erm.model.SystemField;
 import ermorg.erm.service.DepartmentRepository;
 import ermorg.erm.service.IFieldService;
 import ermorg.erm.service.IUserService;
 
 class CustomResponseMapperTest {
+
+    @Test
+    void customFieldResponseShouldPreferMappedWithOverSystemFieldName() {
+        CustomField customField = new CustomField();
+        customField.setFieldName("Risk Title");
+        customField.setFieldType("Input Field");
+        customField.setMappedWith("riskTitle");
+
+        SystemField systemField = new SystemField();
+        systemField.setField("riskId");
+        customField.setSystemField(systemField);
+
+        CustomFieldResponse response = new CustomFieldResponse(customField);
+
+        assertThat(response.getSystemFieldName()).isEqualTo("riskTitle");
+    }
 
     @Test
     void shouldResolveValueBySystemFieldKeyWhenDisplayNameDiffers() throws Exception {

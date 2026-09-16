@@ -46,8 +46,8 @@ public class RiskReviewStrategyConfig implements FieldStrategy {
         map.put(normalizeKey("riskToleranceStatus"), RiskReviewResponseDtoResponse::getRiskToleranceStatus);
         map.put(normalizeKey("riskAppetiteStatus"),  RiskReviewResponseDtoResponse::getRiskAppetiteStatus);
         map.put(normalizeKey("residualRiskRating"), r -> fieldMapperUtils.resolveRatingLabel(r.getResidualRiskRating()));
-        map.put(normalizeKey("residualRiskRatingCriteria"), r -> fieldMapperUtils.resolveRatingLabel(r.getResidualRiskRating()));
-        map.put(normalizeKey("residualRiskCriteria"), r -> fieldMapperUtils.resolveRatingLabel(r.getResidualRiskRating()));
+        map.put(normalizeKey("residualRiskRatingCriteria"), r -> fieldMapperUtils.resolveRatingLabel(r.getResidualRiskRatingCriteria()));
+        map.put(normalizeKey("residualRiskCriteria"), r -> fieldMapperUtils.resolveRatingLabel(r.getResidualRiskRatingCriteria()));
         map.put(normalizeKey("riskRating"), r -> fieldMapperUtils.resolveRatingLabel(r.getResidualRiskRating()));
         map.put(normalizeKey("2riskacceptancelevel"), RiskReviewResponseDtoResponse::getRiskAcceptanceLevel);
         map.put(normalizeKey("valueUnit"),

@@ -32,7 +32,9 @@ public class CustomFieldResponse {
         this.fieldName      = customField.getFieldName();
         this.fieldType      = customField.getFieldType();
         this.required       = customField.getRequired();
-        this.systemFieldName = customField.getSystemField().getField();
+        this.systemFieldName = customField.getMappedWith() != null && !customField.getMappedWith().isBlank()
+                ? customField.getMappedWith()
+                : customField.getSystemField().getField();
         this.fieldBehavior  = customField.getFieldBehavior();
         this.showGridColumn = customField.getShowGridColumn();
         this.showInView     = customField.getShowInView();

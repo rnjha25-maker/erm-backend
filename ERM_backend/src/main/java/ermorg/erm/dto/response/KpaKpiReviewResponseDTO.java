@@ -27,6 +27,7 @@ public class KpaKpiReviewResponseDTO {
     private Long riskOwner;
     private String riskOwnerName;
     private Long businessFunctionalOwner;
+    private String businessFunctionalOwnerName;
     private String functionalOwner;
     private String evaluationByName;
     private String target;

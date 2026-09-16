@@ -81,7 +81,7 @@ public class GenericFieldMapper {
             return null;
         }
 
-        for (String key : keysFor(config)) {
+        for (String key : strategyKeysFor(config)) {
             Function<Object, Object> fn = strategies.get(key);
             if (fn != null) {
                 return fn;
@@ -89,6 +89,14 @@ public class GenericFieldMapper {
         }
 
         return null;
+    }
+
+    private Set<String> strategyKeysFor(CustomFieldConfig config) {
+        Set<String> keys = new LinkedHashSet<>();
+        addKey(keys, CustomFieldConfig.normalizeKey(config.getFieldName()));
+        addKey(keys, config.normalizedKey());
+        addKey(keys, CustomFieldConfig.normalizeKey(config.getSystemFieldName()));
+        return keys;
     }
 
     private Set<String> keysFor(CustomFieldConfig config) {

@@ -87,11 +87,19 @@ public class FieldMapperUtils {
         // Numeric score → label
         try {
             double score = Double.parseDouble(text);
+            if (score <= 5 && score == Math.rint(score)) {
+                int weight = (int) score;
+                if (weight >= 5) return "Critical";
+                if (weight == 4) return "High";
+                if (weight == 3) return "Medium";
+                if (weight == 2) return "Low";
+                return "Very Low";
+            }
             if (score >= 20) return "Critical";
-            if (score >= 15) return "Very High";
-            if (score >= 10) return "High";
-            if (score >= 5)  return "Medium";
-            return "Low";
+            if (score >= 15) return "High";
+            if (score >= 10) return "Medium";
+            if (score >= 5)  return "Low";
+            return "Very Low";
         } catch (NumberFormatException e) {
             return text;
         }
