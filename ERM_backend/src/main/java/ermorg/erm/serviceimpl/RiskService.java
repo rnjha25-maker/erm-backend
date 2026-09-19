@@ -131,6 +131,9 @@ public class RiskService implements IRiskService {
 		validateRequiredId(request.getRiskOwnerId(), "Please select risk owner.");
 		validateRequiredId(request.getRiskChampionId(), "Please select risk champion.");
 		validateRequiredId(request.getBranchId(), "Please select branch.");
+		if (request.getBusinessVertical() <= 0) {
+			throw new ResourceNotFoundException("Please select a valid business vertical.");
+		}
 		Risk risk = isExistingId(request.getRiskId())
 				? Optional.ofNullable(riskRepository.getRisksByOrgIdAndRiskId(organization.getId(), request.getRiskId()))
 						.orElseThrow(() -> new ResourceNotFoundException("Risk not found."))
@@ -723,11 +726,12 @@ public class RiskService implements IRiskService {
 	}
 
 	private String resolveBusinessVerticalName(Long verticalId) {
+		if (verticalId == null || verticalId <= 0) return "Not specified";
 		return resolveOrganizationLookupName(
 				String.format("http://%s/business-vertical/%d", commandOrganizationServiceId, verticalId),
 				"businessVerticalName",
 				"verticalName",
-				verticalId.toString());
+				"Unavailable");
 	}
 
 	private String resolveOrganizationLookupName(String url, String preferredNameField, String fallbackNameField,

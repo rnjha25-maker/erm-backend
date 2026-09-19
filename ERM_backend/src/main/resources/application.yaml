@@ -1,6 +1,14 @@
 spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 12MB
   profiles:
     active: qa
+
+server:
+  tomcat:
+    max-swallow-size: 12MB
 
 approval:
   escalation:

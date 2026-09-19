@@ -162,12 +162,7 @@ public class KriKpiReviewResponseDTO {
             this.reporting = kriKpiReview.getReporting().getId();
             this.reportingName = formatUserName(kriKpiReview.getReporting());
         }
-        // Prefer enum label from valueUnit when present; fallback to legacy unitOfMeasurement string
-        if (kriKpiReview.getValueUnit() != null) {
-            this.unitOfMeasurement = kriKpiReview.getValueUnit().getLabel();
-        } else {
-            this.unitOfMeasurement = kriKpiReview.getUnitOfMeasurement();
-        }
+        this.unitOfMeasurement = kriKpiReview.getUnitOfMeasurement();
 
         this.reportingFrequency = kriKpiReview.getReportingFrequency();
         this.currency = kriKpiReview.getCurrency();
@@ -212,14 +207,14 @@ public class KriKpiReviewResponseDTO {
 
         this.kriEvaluationFrequency = kriKpiReview.getKriEvaluationFrequency();
 
-        this.dueDate = kriKpiReview.getDueDate() != null ? kriKpiReview.getDueDate().toString() : null;
-        this.actualDate = kriKpiReview.getActualDate() != null ? kriKpiReview.getActualDate().toString() : null;
+        this.dueDate = isoDate(kriKpiReview.getDueDate());
+        this.actualDate = isoDate(kriKpiReview.getActualDate());
         this.lastKriEvaluationDate = kriKpiReview.getLastKriEvaluationDate() != null
-                ? kriKpiReview.getLastKriEvaluationDate().toString()
+                ? isoDate(kriKpiReview.getLastKriEvaluationDate())
                 : null;
 
         this.nextEvaluationDate = kriKpiReview.getNextEvaluationDate() != null
-                ? kriKpiReview.getNextEvaluationDate().toString()
+                ? isoDate(kriKpiReview.getNextEvaluationDate())
                 : null;
 
         this.status = kriKpiReview.getStatus();
@@ -261,6 +256,10 @@ public class KriKpiReviewResponseDTO {
         }
         this.riskAppetiteLevel = this.riskAcceptanceLevel != null ? this.riskAcceptanceLevel.name() : this.riskAppetiteLevel;
 }
+
+    private static String isoDate(java.util.Date date) {
+        return date == null ? null : java.time.Instant.ofEpochMilli(date.getTime()).toString();
+    }
 
     private String formatUserName(ermorg.erm.model.User user) {
         if (user == null) {

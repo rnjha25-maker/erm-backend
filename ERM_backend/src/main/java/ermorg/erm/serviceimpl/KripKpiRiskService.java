@@ -101,6 +101,10 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 				 .collect(Collectors.toList());
 		
 		createMapper().map(request, kriKpiReview);
+		kriKpiReview.setLevelOfMeasurementLevel(request.getMeasurableParameters());
+		String lastEvaluation = request.getLastKriEvaluationDate();
+		kriKpiReview.setLastKriEvaluationDate(lastEvaluation == null || lastEvaluation.isBlank()
+				? null : java.util.Date.from(java.time.Instant.parse(lastEvaluation)));
 		kriKpiReview.setOrganization(organization);
 		kriKpiReview.setCompany(company);
 		kriKpiReview.setRiskOwner(owner);
@@ -174,6 +178,7 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 				.setMatchingStrategy(MatchingStrategies.STRICT)
 				.setPreferNestedProperties(false);
 		mapper.typeMap(KriKpiReviewRequestDTO.class, KriKpiReview.class).addMappings(mapping -> {
+			mapping.skip(KriKpiReview::setLastKriEvaluationDate);
 			mapping.skip(KriKpiReview::setRisk);
 			mapping.skip(KriKpiReview::setRiskAssessment);
 			mapping.skip(KriKpiReview::setRiskOwner);
@@ -221,8 +226,16 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 
 		List<List<CustomResponse>> responseList = new ArrayList<>();
 		for (KriKpiReview kriKpiReview : kriKpiReviewlist) {
-			List<CustomResponse> customResponse = customResponseMapper.map("kriKpiReview", 1l,
-					toResponse(kriKpiReview), true);
+			List<CustomResponse> customResponse = new ArrayList<>(customResponseMapper.map("kriKpiReview", 1l,
+					toResponse(kriKpiReview), true));
+			// A record's identity must survive even when its ID is not a configured grid column.
+			customResponse.removeIf(field -> field.getFieldName() != null
+					&& field.getFieldName().replaceAll("\\s+", "").equalsIgnoreCase("kriId"));
+			CustomResponse identity = new CustomResponse();
+			identity.setFieldName("KRI ID");
+			identity.setFieldType("number");
+			identity.setValue(kriKpiReview.getId().toString());
+			customResponse.add(identity);
 			responseList.add(customResponse);
 		}
 

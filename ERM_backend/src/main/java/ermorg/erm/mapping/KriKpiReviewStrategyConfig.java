@@ -52,7 +52,7 @@ public class KriKpiReviewStrategyConfig implements FieldStrategy {
         map.put(normalizeKey("departmentName"),
                 r -> fieldMapperUtils.resolveDepartmentFromObject(r.getDepartmentName()));
         map.put(normalizeKey("stakeholderDepartments"),
-                r -> fieldMapperUtils.resolveDepartmentFromObject(r.getDepartmentName()));
+                r -> fieldMapperUtils.resolveDepartmentFromObject(r.getStakeholderDepartments()));
         map.put(normalizeKey("reporting"),
                 KriKpiReviewResponseDTO::getReportingName);
         map.put(normalizeKey("reportingName"),
@@ -90,7 +90,7 @@ public class KriKpiReviewStrategyConfig implements FieldStrategy {
         map.put(normalizeKey("riskToleranceMaximum"), KriKpiReviewResponseDTO::getRiskToleranceRangeMaxValue);
         map.put(normalizeKey("kriEvaluationFrequency"), KriKpiReviewResponseDTO::getKriEvaluationFrequency);
         map.put(normalizeKey("valueUnit"),
-                KriKpiReviewResponseDTO::getUnitOfMeasurement);
+                r -> r.getValueUnit() == null ? null : r.getValueUnit().getLabel());
         map.put(normalizeKey("unitOfMeasurement"),
                 KriKpiReviewResponseDTO::getUnitOfMeasurement);
         map.put(normalizeKey("levelOfMeasurementLevel"),

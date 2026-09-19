@@ -117,7 +117,10 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 		riskResponseTreatment.setRiskAcceptanceLevel(request.getRiskAcceptanceLevel());
 		riskResponseTreatment.setEvidenceRequire(request.getEvidenceRequire());
 		riskResponseTreatment.setSupportingEvidence(request.getSupportingEvidence());
-		riskResponseTreatment.setSupportingEvidenceDocument(request.getSupportingEvidenceDocument());
+		// Evidence removal is explicit through deleteEvidence; ordinary form saves omit this field.
+		if (request.getSupportingEvidenceDocument() != null) {
+			riskResponseTreatment.setSupportingEvidenceDocument(request.getSupportingEvidenceDocument());
+		}
 		riskResponseTreatment.setControlEvaluationBy(request.getControlEvaluationBy());
 		riskResponseTreatment.setRiskReporting(riskReporting);
 		riskResponseTreatment.setControlStatus(request.getControlStatus());
@@ -186,6 +189,9 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 		if (file == null || file.isEmpty()) {
 			throw new ResourceNotFoundException("Please select a file to upload.");
 		}
+		if (file.getSize() > 10L * 1024 * 1024) {
+			throw new org.springframework.web.multipart.MaxUploadSizeExceededException(10L * 1024 * 1024);
+		}
 		RiskResponseTreatment riskResponseTreatment = riskResponseTreatmentRepository.findById(riskTreatmentId)
 				.filter(r -> !Boolean.TRUE.equals(r.getDeleted()))
 				.orElseThrow(() -> new ResourceNotFoundException("Risk response treatment not found."));
@@ -246,6 +252,14 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 		request.put("contentType", file.getContentType() == null ? "application/octet-stream" : file.getContentType());
 		request.put("purpose", purpose == null || purpose.isBlank() ? "risk-response-treatment" : purpose);
 		request.put("fileContent", Base64.getEncoder().encodeToString(file.getBytes()));
+		Organization organization = OrganizationContext.getOrganization();
+		Company company = CompanyContext.getCompany();
+		if (organization != null) {
+			request.put("organizationId", organization.getId());
+		}
+		if (company != null) {
+			request.put("companyId", company.getId());
+		}
 
 		try {
 			Map<String, Object> response = restTemplate.postForObject(storageUrl("/upload"), request, Map.class);
