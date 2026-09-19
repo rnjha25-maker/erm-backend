@@ -21,6 +21,14 @@ import io.swagger.v3.oas.annotations.Hidden;
 @Slf4j
 @ControllerAdvice(name = "ermGlobalExceptionHandler")
 public class GlobalExceptionHandler {
+	@ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+	public ResponseEntity<GeneralResponse<Object>> handleUploadTooLarge(
+			org.springframework.web.multipart.MaxUploadSizeExceededException ex) {
+		GeneralResponse<Object> response = new GeneralResponse<>();
+		response.setStatus(ResponseStatus.FAILED);
+		response.setMessage("File size exceeds the allowed limit of 10MB.");
+		return new ResponseEntity<>(response, HttpStatus.PAYLOAD_TOO_LARGE);
+	}
 	
 	@ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
 	public ResponseEntity<GeneralResponse<Map<String, String>>> handleValidationExceptions(

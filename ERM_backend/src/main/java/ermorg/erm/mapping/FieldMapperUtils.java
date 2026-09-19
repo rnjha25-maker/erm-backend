@@ -105,6 +105,23 @@ public class FieldMapperUtils {
         }
     }
 
+    /** Score bands used by Risk Review; distinct from the 1-5 rating weights. */
+    public String resolveResidualRating(String rating, String scoreText) {
+        if (rating != null && !rating.isBlank()) return resolveRatingLabel(rating);
+        if (scoreText == null || scoreText.isBlank()) return null;
+        try {
+            double score = Double.parseDouble(scoreText.trim());
+            if (!Double.isFinite(score) || score <= 0) return null;
+            if (score > 200) return "Critical";
+            if (score > 150) return "High";
+            if (score > 100) return "Medium";
+            if (score > 50) return "Low";
+            return "Very Low";
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
     public String formatEnum(Object value) {
         if (value == null) {
             return null;

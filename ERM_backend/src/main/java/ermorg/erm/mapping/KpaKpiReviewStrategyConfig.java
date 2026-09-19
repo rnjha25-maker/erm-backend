@@ -118,7 +118,7 @@ public class KpaKpiReviewStrategyConfig implements FieldStrategy {
         map.put(normalizeKey("levelOfMeasurementLevel"),
                 KpaKpiReviewResponseDTO::getUnitOfMeasurement);
         map.put(normalizeKey("valueUnit"),
-                KpaKpiReviewResponseDTO::getUnitOfMeasurement);
+                r -> r.getValueUnit() != null ? r.getValueUnit().getLabel() : null);
         map.put(normalizeKey("unitOfMeasurement"),
                 KpaKpiReviewResponseDTO::getUnitOfMeasurement);
         map.put(normalizeKey("currency"), KpaKpiReviewResponseDTO::getCurrency);

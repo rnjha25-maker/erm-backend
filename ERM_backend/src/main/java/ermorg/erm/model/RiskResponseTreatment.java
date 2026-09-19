@@ -82,6 +82,7 @@ public class RiskResponseTreatment extends BaseModel {
 	private String supportingEvidence;
 
 	@Column(name = "supporting_evidence_document", length = 36, columnDefinition = "CHAR(36)")
+	@org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.CHAR)
 	private UUID supportingEvidenceDocument;
 
 	@Column(name = "control_evaluation_by")

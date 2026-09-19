@@ -72,8 +72,8 @@ public class RiskReviewService implements IRiskReviewService {
 			}
 			
 			createMapper().map(request, riskReview);
-			riskReview.setResidualRiskRating(resolveFirstText(
-					request.getResidualRiskRating(), request.getResidualRiskRatingCriteria()));
+			riskReview.setResidualRiskRating(fieldMapperUtils.resolveResidualRating(resolveFirstText(
+					request.getResidualRiskRating(), request.getResidualRiskRatingCriteria()), request.getResidualRiskScoreRange()));
 			
 			// Ensure new entities have id = null (ModelMapper might have copied the ID)
 			if (request.getRiskReviewId() == null || request.getRiskReviewId() == 0) {
