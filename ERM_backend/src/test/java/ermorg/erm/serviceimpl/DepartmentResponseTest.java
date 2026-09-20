@@ -12,6 +12,21 @@ import ermorg.erm.service.DepartmentRepository;
 import ermorg.erm.service.IUserService;
 
 class DepartmentResponseTest {
+    @Test void kpaRawResponseKeepsOwnerIdentityNameAndMeasurementSeparate() {
+        var service = new KpaKpiReviewService();
+        ReflectionTestUtils.setField(service, "fieldMapperUtils", new FieldMapperUtils(mock(IUserService.class), mock(DepartmentRepository.class)));
+        var owner = new User(); owner.setId(14679L);
+        var detail = new UserDetail(); detail.setFirstName("Karan"); detail.setLastName("Gupta"); owner.setUserDetail(detail);
+        var entity = new KpaKpiReview(); entity.setId(96564L); entity.setOwner(owner);
+        entity.setValueUnit(ermorg.erm.constant.RiskValueUnit.CRORES); entity.setLevelOfMeasurementLevel("Count");
+        var dto = service.toResponse(entity);
+        assertThat(dto.getBusinessFunctionalOwner()).isEqualTo(14679L);
+        assertThat(dto.getBusinessFunctionalOwnerName()).isEqualTo("Karan Gupta");
+        assertThat(dto.getFunctionalOwner()).isEqualTo("Karan Gupta");
+        assertThat(dto.getUnitOfMeasurement()).isEqualTo("Count");
+        assertThat(dto.getValueUnit()).isEqualTo(ermorg.erm.constant.RiskValueUnit.CRORES);
+    }
+
     @Test void kriRetainsDepartmentIdAndResolvesNameIndependentlyOfStakeholder() {
         var repository = mock(DepartmentRepository.class);
         var department = new Department(); department.setName("Legal & Compliance"); department.setDeleted(false);
