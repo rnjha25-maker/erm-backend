@@ -244,6 +244,7 @@ public class KriKpiReviewResponseDTO {
         if (this.riskAppetiteStatus == null || this.riskAppetiteStatus.isBlank()) {
             this.riskAppetiteStatus = Optional.ofNullable(kriKpiReview.getRiskAssessment())
                     .map(RiskAssessment::getRiskAppetiteStatus)
+                    .filter(value -> !value.isBlank())
                     .or(() -> Optional.ofNullable(kriKpiReview.getRisk()).map(Risk::getRiskAppetiteStatus))
                     .orElse("");
         }

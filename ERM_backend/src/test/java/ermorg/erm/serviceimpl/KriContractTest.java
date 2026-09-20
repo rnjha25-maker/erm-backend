@@ -81,11 +81,13 @@ class KriContractTest {
         request.setRiskToleranceRangeMinValue("10"); request.setRiskToleranceRangeMaxValue("20");
         request.setUnitOfMeasurement("Ratios"); request.setCurrency("GBP");
         request.setMeasurableParameters("Emissions ratio");
+        request.setRiskAppetiteStatus("Within Risk Appetite");
         request.setLastKriEvaluationDate("2026-09-16T17:10:05Z");
         OrganizationContext.setOrganization(org);
         try {
             var saved = service.save(request);
             var loaded = service.get(saved.getKriId());
+            assertThat(loaded.getRiskAppetiteStatus()).isEqualTo("Within Risk Appetite");
             assertThat(loaded.getTarget()).isEqualTo("15");
             assertThat(loaded.getTargets()).isEqualTo("16");
             assertThat(loaded.getTargetValue()).isEqualTo("17");
@@ -99,10 +101,24 @@ class KriContractTest {
             assertThat(loaded.getMeasurableParameters()).isEqualTo("Emissions ratio");
             assertThat(Instant.parse(loaded.getLastKriEvaluationDate())).isEqualTo(Instant.parse("2026-09-16T17:10:05Z"));
             request.setKriId(96105L); request.setTarget("19");
+            request.setRiskAppetiteStatus("Risk Tolerance Breached");
             service.save(request);
+            assertThat(service.get(96105L).getRiskAppetiteStatus()).isEqualTo("Risk Tolerance Breached");
             assertThat(service.get(96105L).getTarget()).isEqualTo("19");
             assertThat(service.get(96105L).getReportingName()).isEqualTo("Priya Sharma");
         } finally { OrganizationContext.clear(); }
+    }
+
+    @Test
+    void blankAssessmentAppetiteStatusFallsBackToRiskWithoutReplacingExplicitKriStatus() {
+        var risk = new Risk(); risk.setId(1L); risk.setRiskAppetiteStatus("Within Risk Appetite");
+        var assessment = new RiskAssessment(); assessment.setId(2L); assessment.setRiskAppetiteStatus("  ");
+        var kri = new KriKpiReview(); kri.setId(3L); kri.setRisk(risk); kri.setRiskAssessment(assessment);
+        assertThat(new KriKpiReviewResponseDTO(kri).getRiskAppetiteStatus()).isEqualTo("Within Risk Appetite");
+        kri.setRiskAppetiteStatus("Risk Tolerance Breached");
+        assertThat(new KriKpiReviewResponseDTO(kri).getRiskAppetiteStatus()).isEqualTo("Risk Tolerance Breached");
+        kri.setRiskAppetiteStatus(null); risk.setRiskAppetiteStatus(null); assessment.setRiskAppetiteStatus(null);
+        assertThat(new KriKpiReviewResponseDTO(kri).getRiskAppetiteStatus()).isEmpty();
     }
 
     @Test
