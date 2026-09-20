@@ -8,7 +8,19 @@ COPY . .
 
 RUN test -n "${MODULE_PATH}"
 RUN mvn -pl "${MODULE_PATH}" -am clean package -DskipTests
-RUN cp "$(find "${MODULE_PATH}/target" -maxdepth 1 -type f -name '*.jar' ! -name '*.jar.original' | head -n 1)" /tmp/app.jar
+RUN set -eu; \
+    set -- "${MODULE_PATH}"/target/*-exec.jar; \
+    if [ ! -f "$1" ]; then \
+        set -- "${MODULE_PATH}"/target/*.jar; \
+    fi; \
+    if [ "$#" -ne 1 ] || [ ! -f "$1" ]; then \
+        echo "Expected exactly one executable JAR for ${MODULE_PATH}" >&2; exit 1; \
+    fi; \
+    cp "$1" /tmp/app.jar; \
+    mkdir -p /tmp/jar-manifest; \
+    cd /tmp/jar-manifest; \
+    jar xf /tmp/app.jar META-INF/MANIFEST.MF; \
+    grep -q '^Main-Class: ' META-INF/MANIFEST.MF
 
 FROM eclipse-temurin:17-jre
 
