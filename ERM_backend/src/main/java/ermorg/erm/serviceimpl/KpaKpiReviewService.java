@@ -317,8 +317,7 @@ public class KpaKpiReviewService {
         }
         response.setReporting(response.getReportingName());
         response.setReportingFrequency(review.getReportingFrequency());
-        // Prefer enum label (valueUnit) for display; fall back to levelOfMeasurementLevel column if enum not set
-        response.setUnitOfMeasurement(review.getValueUnit() != null ? review.getValueUnit().getLabel() : review.getLevelOfMeasurementLevel());
+        response.setUnitOfMeasurement(review.getLevelOfMeasurementLevel());
         response.setCurrency(review.getCurrency());
         response.setValueUnit(review.getValueUnit());
         // departmentName — resolve ID → name using the department repository
