@@ -51,6 +51,13 @@ public class GenericFieldMapper {
             if (config == null) continue;
 
             Function<Object, Object> fn = findStrategy(strategies, config);
+            // Legacy KRI metadata labels riskAppetite as "Risk Appetite Status".
+            // Honor that explicit binding rather than selecting the distinct status property.
+            if (moduleType == ModuleType.KRI_KPI_REVIEW
+                    && "riskappetitestatus".equals(CustomFieldConfig.normalizeKey(config.getFieldName()))
+                    && "riskappetite".equals(config.normalizedKey())) {
+                fn = strategies.get("riskappetite");
+            }
 
             Object value = (fn != null) ? safeApply(fn, source) : null;
             if (value == null) {

@@ -237,6 +237,23 @@ class GenericFieldMapperTest {
                 .containsEntry("reporting", "Reporter");
     }
 
+    @Test
+    void kriAppetiteStatusColumnHonorsConfiguredLegacyFieldWithoutConflatingValues() {
+        var utils = new FieldMapperUtils(mock(IUserService.class), mock(DepartmentRepository.class));
+        var mapper = new GenericFieldMapper(List.of(new KriKpiReviewStrategyConfig(utils)));
+        var dto = new KriKpiReviewResponseDTO();
+        dto.setRiskAppetite("Risk Appetite Breached but within Risk Tolerance");
+        dto.setRiskAppetiteStatus("");
+        var legacy = config("Risk Appetite Status", "riskAppetite");
+        assertThat(mapper.mapFields(dto, List.of(legacy), ModuleType.KRI_KPI_REVIEW))
+            .containsEntry("Risk Appetite Status", "Risk Appetite Breached but within Risk Tolerance");
+        dto.setRiskAppetiteStatus("Within Risk Appetite");
+        assertThat(mapper.mapFields(dto, List.of(legacy), ModuleType.KRI_KPI_REVIEW))
+            .containsEntry("Risk Appetite Status", "Risk Appetite Breached but within Risk Tolerance");
+        assertThat(mapper.mapFields(dto, List.of(config("Risk Appetite Status", "riskAppetiteStatus")), ModuleType.KRI_KPI_REVIEW))
+            .containsEntry("Risk Appetite Status", "Within Risk Appetite");
+    }
+
     private CustomFieldConfig config(String fieldName, String systemFieldName) {
         CustomFieldConfig config = new CustomFieldConfig();
         config.setFieldName(fieldName);
