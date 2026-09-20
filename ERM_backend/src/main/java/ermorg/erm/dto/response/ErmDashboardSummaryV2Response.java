@@ -77,7 +77,4 @@ public class ErmDashboardSummaryV2Response {
 
 	/** Department scoped ERM maturity assessments, same data as erm-summary. */
 	private List<ErmMaturitySummaryGroup> ermMaturityFunctionWise = new ArrayList<>();
-
-	/** Paginated risk register, driven by the page/size request params. */
-	private RiskRegisterPage riskRegister = new RiskRegisterPage();
 }
