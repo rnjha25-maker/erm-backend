@@ -40,6 +40,7 @@ import ermorg.erm.dto.response.ErmOwnerRatingGroup;
 import ermorg.erm.dto.response.ErmRatingHierarchyGroup;
 import ermorg.erm.dto.response.NamedCount;
 import ermorg.erm.dto.response.OrgAdminDashboardDto;
+import ermorg.erm.dto.response.RiskRegisterPage;
 import ermorg.erm.dto.response.RiskResponse;
 import ermorg.erm.exception.ResourceNotFoundException;
 import ermorg.erm.model.Branch;
@@ -243,7 +244,7 @@ public class DashboardService implements IDashboardService {
 	@Override
 	@Transactional(readOnly = true)
 	public ErmDashboardSummaryResponse getErmDashboardSummary(int year, ErmDashboardPeriodType periodType, Long companyId,
-			Long branchId, Long functionId, int page, int size) throws ResourceNotFoundException {
+			Long branchId, Long functionId) throws ResourceNotFoundException {
 
 		ErmDashboardData dashboardData = loadErmDashboardData(year, periodType, companyId, branchId, functionId);
 		Organization organization = dashboardData.organization();
@@ -341,9 +342,6 @@ public class DashboardService implements IDashboardService {
 		ErmMaturitySummary maturity = buildErmMaturitySummary(scopedMaturities);
 		response.setErmMaturityCompanyWise(maturity.companyWise());
 		response.setErmMaturityFunctionWise(maturity.functionWise());
-		response.setRiskRegister(riskRegisterService.buildPage(organization.getId(), risks,
-				bounds.getStartInclusive(), bounds.getEndInclusive(), functionId, scopeByDepartment,
-				scopeDepartmentIds, page, size));
 
 		return response;
 	}
@@ -351,7 +349,7 @@ public class DashboardService implements IDashboardService {
 	@Override
 	@Transactional(readOnly = true)
 	public ErmDashboardSummaryV2Response getErmDashboardSummaryV2(int year, ErmDashboardPeriodType periodType,
-			Long companyId, Long branchId, Long functionId, int page, int size) throws ResourceNotFoundException {
+			Long companyId, Long branchId, Long functionId) throws ResourceNotFoundException {
 
 		ErmDashboardData dashboardData = loadErmDashboardData(year, periodType, companyId, branchId, functionId);
 		Organization organization = dashboardData.organization();
@@ -378,11 +376,19 @@ public class DashboardService implements IDashboardService {
 		response.setErmMaturityCompanyWise(maturity.companyWise());
 		response.setErmMaturityFunctionWise(maturity.functionWise());
 
-		response.setRiskRegister(riskRegisterService.buildPage(organization.getId(), risks,
-				bounds.getStartInclusive(), bounds.getEndInclusive(), functionId, scopeByDepartment,
-				dashboardData.scopeDepartmentIds(), page, size));
-
 		return response;
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public RiskRegisterPage getErmRiskRegister(int year, ErmDashboardPeriodType periodType, Long companyId,
+			Long branchId, Long functionId, int page, int size) throws ResourceNotFoundException {
+
+		ErmDashboardData data = loadErmDashboardData(year, periodType, companyId, branchId, functionId);
+		boolean scopeByDepartment = data.applyBranchDepartmentScope() && !data.scopeDepartmentIds().isEmpty();
+		return riskRegisterService.buildPage(data.organization().getId(), data.risks(),
+				data.bounds().getStartInclusive(), data.bounds().getEndInclusive(), functionId, scopeByDepartment,
+				data.scopeDepartmentIds(), page, size);
 	}
 
 	@Override

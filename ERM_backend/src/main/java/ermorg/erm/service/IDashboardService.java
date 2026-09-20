@@ -8,6 +8,7 @@ import ermorg.erm.dto.response.CompanyAdminDashboardDto;
 import ermorg.erm.dto.response.ErmDashboardSummaryResponse;
 import ermorg.erm.dto.response.ErmDashboardSummaryV2Response;
 import ermorg.erm.dto.response.OrgAdminDashboardDto;
+import ermorg.erm.dto.response.RiskRegisterPage;
 import ermorg.erm.exception.ResourceNotFoundException;
 
 public interface IDashboardService {
@@ -19,10 +20,13 @@ public interface IDashboardService {
 	CompanyAdminDashboardDto getCompanyAdminDashboardData(String period, Pageable pageable) throws ResourceNotFoundException;
 
 	ErmDashboardSummaryResponse getErmDashboardSummary(int year, ErmDashboardPeriodType periodType, Long companyId,
-			Long branchId, Long functionId, int page, int size) throws ResourceNotFoundException;
+			Long branchId, Long functionId) throws ResourceNotFoundException;
 
 	ErmDashboardSummaryV2Response getErmDashboardSummaryV2(int year, ErmDashboardPeriodType periodType, Long companyId,
-			Long branchId, Long functionId, int page, int size) throws ResourceNotFoundException;
+			Long branchId, Long functionId) throws ResourceNotFoundException;
+
+	RiskRegisterPage getErmRiskRegister(int year, ErmDashboardPeriodType periodType, Long companyId, Long branchId,
+			Long functionId, int page, int size) throws ResourceNotFoundException;
 
 	byte[] exportErmRiskRegisterCsv(int year, ErmDashboardPeriodType periodType, Long companyId, Long branchId,
 			Long functionId) throws ResourceNotFoundException;

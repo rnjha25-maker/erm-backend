@@ -39,6 +39,4 @@ public class ErmDashboardSummaryResponse {
 	private List<ErmMaturitySummaryGroup> ermMaturityCompanyWise = new ArrayList<>();
 
 	private List<ErmMaturitySummaryGroup> ermMaturityFunctionWise = new ArrayList<>();
-
-	private RiskRegisterPage riskRegister = new RiskRegisterPage();
 }
