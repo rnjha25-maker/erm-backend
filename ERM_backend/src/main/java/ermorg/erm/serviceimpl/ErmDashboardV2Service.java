@@ -40,6 +40,8 @@ public class ErmDashboardV2Service {
 
 	private final RiskReviewRepository riskReviewRepository;
 
+	private final ErmRiskHeatmapBuilder ermRiskHeatmapBuilder;
+
 	@Transactional(readOnly = true)
 	public ErmDashboardSummaryV2Response build(Long organizationId, List<Risk> risks,
 			ErmDashboardPeriodBounds bounds, Map<String, String> companyLabels, Map<String, String> branchLabels,
@@ -52,6 +54,7 @@ public class ErmDashboardV2Service {
 			response.setRiskSummaryByImpact(buildImpactBuckets(risks, Map.of()));
 			response.setRiskSummaryPriorityBased(buildPriorityBuckets(risks));
 			response.setQualitativeAndQuantitativeAnalysis(buildAnalysisTypeCounts(risks, Map.of()));
+			response.setRiskHeatmap(ermRiskHeatmapBuilder.buildEmpty());
 			return response;
 		}
 
@@ -79,6 +82,7 @@ public class ErmDashboardV2Service {
 				buildCompanyRatingGroups(risks, reviewByRiskId, companyLabels));
 
 		response.setFinancialExposureByRisk(buildFinancialExposure(risks, reviewByRiskId));
+		response.setRiskHeatmap(ermRiskHeatmapBuilder.build(risks, reviewByRiskId, ownerLabels));
 
 		populateDerivedCounts(response, risks, reviewByRiskId);
 		return response;

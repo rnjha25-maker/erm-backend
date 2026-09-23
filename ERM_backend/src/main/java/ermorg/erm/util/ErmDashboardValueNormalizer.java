@@ -1,5 +1,6 @@
 package ermorg.erm.util;
 
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -89,6 +90,29 @@ public final class ErmDashboardValueNormalizer {
 	public static ErmRevisedImpactBucket impactBucket(String reviseImpactScore) {
 		Integer score = firstInteger(reviseImpactScore);
 		return score == null ? null : ErmRevisedImpactBucket.forScore(score);
+	}
+
+	/**
+	 * Matches a stored value against candidate keywords, preferring the longest keyword that matches.
+	 * Declaration order therefore carries no meaning: "VERYLOW" wins over "LOW" and "LESSLIKELY" over
+	 * "LIKELY" regardless of how the candidates are ordered.
+	 */
+	public static <T> T matchLongestKeyword(String value, T[] candidates, Function<T, String[]> keywordsOf) {
+		String normalized = normalize(value);
+		if (normalized.isEmpty()) {
+			return null;
+		}
+		T match = null;
+		int matchedLength = -1;
+		for (T candidate : candidates) {
+			for (String keyword : keywordsOf.apply(candidate)) {
+				if (keyword.length() > matchedLength && normalized.contains(keyword)) {
+					match = candidate;
+					matchedLength = keyword.length();
+				}
+			}
+		}
+		return match;
 	}
 
 	public static Integer firstInteger(String value) {
