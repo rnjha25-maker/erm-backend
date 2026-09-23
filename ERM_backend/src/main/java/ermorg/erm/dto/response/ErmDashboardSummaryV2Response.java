@@ -50,6 +50,9 @@ public class ErmDashboardSummaryV2Response {
 	/** Quantitative risks only: risk title with annual loss expectancy. */
 	private List<ErmFinancialExposureRow> financialExposureByRisk = new ArrayList<>();
 
+	/** Likelihood by impact grid, coloured by residual risk rating, with velocity as an overlay. */
+	private ErmRiskHeatmap riskHeatmap = new ErmRiskHeatmap();
+
 	/** Total number of risks in scope. */
 	private long highRiskKris;
 

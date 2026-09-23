@@ -22,6 +22,24 @@ public enum ErmRevisedImpactBucket {
 		return displayLabel;
 	}
 
+	public int getMinScore() {
+		return minScore;
+	}
+
+	public int getMaxScore() {
+		return maxScore;
+	}
+
+	/** Heatmap impact axis position, 5 being the most severe band. */
+	public int getPosition() {
+		return values().length - ordinal();
+	}
+
+	/** Band midpoint, used when a stored impact is a label rather than a score. */
+	public int getMidpointScore() {
+		return (minScore + maxScore) / 2;
+	}
+
 	/** Returns null for scores outside 5-25, which are not reported. */
 	public static ErmRevisedImpactBucket forScore(int score) {
 		for (ErmRevisedImpactBucket bucket : values()) {
