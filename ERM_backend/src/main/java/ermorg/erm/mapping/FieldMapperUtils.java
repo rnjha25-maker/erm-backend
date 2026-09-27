@@ -105,6 +105,14 @@ public class FieldMapperUtils {
         }
     }
 
+    /** Assessment metadata also stores inherent rating weights in the legacy criteria field. */
+    public String resolveAssessmentRating(String rating, Long criteria) {
+        if (rating != null && !rating.isBlank()) return resolveRatingLabel(rating);
+        if (criteria != null && criteria >= 1 && criteria <= 5) return resolveRatingLabel(criteria);
+        // An empty display value prevents reflective mapping from exposing an invalid weight.
+        return "";
+    }
+
     /** Score bands used by Risk Review; distinct from the 1-5 rating weights. */
     public String resolveResidualRating(String rating, String scoreText) {
         if (rating != null && !rating.isBlank()) return resolveRatingLabel(rating);

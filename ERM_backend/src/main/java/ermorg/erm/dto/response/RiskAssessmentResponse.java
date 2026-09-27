@@ -96,7 +96,7 @@ public class RiskAssessmentResponse {
      * Call this in every service method that returns this DTO directly.
      */
     public RiskAssessmentResponse resolve(ermorg.erm.mapping.FieldMapperUtils utils) {
-        this.riskRating       = utils.resolveRatingLabel(this.riskRating);
+        this.riskRating       = utils.resolveAssessmentRating(this.riskRating, this.residualRiskRatingCriteria);
         this.riskAssessmentBy = utils.resolveUserFromObject(this.riskAssessmentBy);
         this.riskReporting    = utils.resolveUserFromObject(this.riskReporting);
         return this;
