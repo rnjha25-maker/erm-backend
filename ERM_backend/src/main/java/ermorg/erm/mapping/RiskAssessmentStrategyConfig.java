@@ -40,11 +40,11 @@ public class RiskAssessmentStrategyConfig implements FieldStrategy {
         map.put(normalizeKey("riskTitle"),  RiskAssessmentResponse::getRiskTitle);
         map.put(normalizeKey("subRiskIds"), RiskAssessmentResponse::getSubRiskName);
         map.put(normalizeKey("riskId"),     RiskAssessmentResponse::getRiskTitle);
-        map.put(normalizeKey("inherentRiskRating"), r -> fieldMapperUtils.resolveRatingLabel(r.getRiskRating()));
-        map.put(normalizeKey("inherentRiskRatingWeightage"), r -> fieldMapperUtils.resolveRatingLabel(r.getRiskRating()));
+        map.put(normalizeKey("inherentRiskRating"), r -> fieldMapperUtils.resolveAssessmentRating(r.getRiskRating(), r.getResidualRiskRatingCriteria()));
+        map.put(normalizeKey("inherentRiskRatingWeightage"), r -> fieldMapperUtils.resolveAssessmentRating(r.getRiskRating(), r.getResidualRiskRatingCriteria()));
         map.put(normalizeKey("residualRiskRatingCriteria"), r -> fieldMapperUtils.resolveRatingLabel(r.getResidualRiskRatingCriteria()));
         map.put(normalizeKey("residualRiskRating"), r -> fieldMapperUtils.resolveRatingLabel(r.getResidualRiskRatingCriteria()));
-        map.put(normalizeKey("riskRating"), r -> fieldMapperUtils.resolveRatingLabel(r.getRiskRating()));
+        map.put(normalizeKey("riskRating"), r -> fieldMapperUtils.resolveAssessmentRating(r.getRiskRating(), r.getResidualRiskRatingCriteria()));
         map.put(normalizeKey("valueUnit"),
                 RiskAssessmentResponse::getUnitOfMeasurement);
         map.put(normalizeKey("unitOfMeasurement"),

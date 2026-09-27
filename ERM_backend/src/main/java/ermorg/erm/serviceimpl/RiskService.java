@@ -512,7 +512,8 @@ public class RiskService implements IRiskService {
 	    ensureField(customResponses, "Likelihood", response.getLikelihood());
 	    ensureField(customResponses, "Velocity", response.getVelocity());
 	    ensureField(customResponses, "Gross Impact Score", response.getGrossImpactScore());
-	    ensureField(customResponses, "Risk Rating", response.getRiskRating());
+	    ensureField(customResponses, "Risk Rating", fieldMapperUtils.resolveAssessmentRating(
+	            response.getRiskRating(), response.getResidualRiskRatingCriteria()));
 
 	    return customResponses;
 	}
