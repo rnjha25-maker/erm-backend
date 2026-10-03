@@ -24,6 +24,7 @@ public interface IRiskService {
 	RiskResponse addRisk(RiskDTO request) throws ResourceNotFoundException;
 	RiskResponse getRisk(Long id) throws ResourceNotFoundException;
 	void deleteRisk(Long id) throws ResourceNotFoundException;
+	void deleteRiskAssessment(Long id) throws ResourceNotFoundException;
 	//List<List<CustomResponse>> getAllRisks() throws ResourceNotFoundException;
 	RiskResponse addRiskAssessment(RiskAsessmentDto request) throws ResourceNotFoundException;
 	List<CustomResponse> getRiskView(Long riskId) throws ResourceNotFoundException;

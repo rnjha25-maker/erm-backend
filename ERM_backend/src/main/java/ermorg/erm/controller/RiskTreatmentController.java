@@ -34,6 +34,15 @@ public class RiskTreatmentController {
 	@Autowired
 	private IRiskTreatmentService riskTreatmentService;
 	
+	@DeleteMapping("/delete/{id}")
+	public GeneralResponse<Void> delete(@PathVariable("id") Long id) throws ResourceNotFoundException {
+		riskTreatmentService.delete(id);
+		GeneralResponse<Void> response = new GeneralResponse<>();
+		response.setMessage("Risk response treatment deleted.");
+		response.setStatus(ResponseStatus.SUCCESS);
+		return response;
+	}
+
 	@PostMapping("/save")
 	public GeneralResponse<RiskResponseTreatmentResponse> save(@RequestBody RiskResponseTreatmentDto riskResponseTreatmentDto) throws ResourceNotFoundException {
 		GeneralResponse<RiskResponseTreatmentResponse> response = new GeneralResponse<>();
