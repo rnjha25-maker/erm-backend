@@ -14,6 +14,8 @@ import ermorg.erm.exception.ResourceNotFoundException;
 
 public interface IRiskTreatmentService {
 
+	void delete(Long id) throws ResourceNotFoundException;
+
 	public RiskResponseTreatmentResponse save(RiskResponseTreatmentDto request) throws ResourceNotFoundException;
 
 	public RiskResponseTreatmentResponse getRiskTreatment(Long id) throws ResourceNotFoundException;

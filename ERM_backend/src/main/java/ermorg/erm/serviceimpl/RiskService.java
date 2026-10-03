@@ -67,6 +67,28 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class RiskService implements IRiskService {
 
+	@Override
+	@Transactional
+	public void deleteRiskAssessment(Long id) throws ResourceNotFoundException {
+		Organization organization = OrganizationContext.getOrganization();
+		Company company = CompanyContext.getCompany();
+		if (organization == null || organization.getId() == null
+				|| company == null || company.getId() == null) {
+			throw new ResourceNotFoundException("Organization and company context required.");
+		}
+		if (id == null || id <= 0) {
+			throw new ResourceNotFoundException("Risk assessment not found.");
+		}
+		RiskAssessment assessment = riskAsessmentRepository
+				.findByIdAndOrganizationIdAndDeletedFalse(id, organization.getId())
+				.filter(record -> record.getCompany() != null
+						&& Objects.equals(record.getCompany().getId(), company.getId()))
+				.orElseThrow(() -> new ResourceNotFoundException("Risk assessment not found."));
+		// Preserve the parent risk, sub-risk and historical references.
+		assessment.setDeleted(true);
+		riskAsessmentRepository.save(assessment);
+	}
+
 	@Autowired
 	private RiskRepository riskRepository;
 

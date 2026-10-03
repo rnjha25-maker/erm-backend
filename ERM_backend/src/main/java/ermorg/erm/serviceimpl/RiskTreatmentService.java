@@ -16,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.client.RestClientException;
@@ -47,6 +48,29 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Slf4j
 public class RiskTreatmentService implements IRiskTreatmentService {
+
+	@Override
+	@Transactional
+	public void delete(Long id) throws ResourceNotFoundException {
+		Organization organization = OrganizationContext.getOrganization();
+		Company company = CompanyContext.getCompany();
+		if (organization == null || organization.getId() == null
+				|| company == null || company.getId() == null) {
+			throw new ResourceNotFoundException("Organization and company context required.");
+		}
+		if (id == null || id <= 0) {
+			throw new ResourceNotFoundException("Risk response treatment not found.");
+		}
+		RiskResponseTreatment treatment = riskResponseTreatmentRepository
+				.getOrgRiskResponseTreatment(organization.getId(), id);
+		if (treatment == null || treatment.getCompany() == null
+				|| !java.util.Objects.equals(treatment.getCompany().getId(), company.getId())) {
+			throw new ResourceNotFoundException("Risk response treatment not found.");
+		}
+		// Record deletion does not delete shared sub-risks or evidence from storage.
+		treatment.setDeleted(true);
+		riskResponseTreatmentRepository.save(treatment);
+	}
 
 	@Autowired
 	private RiskRepository riskRepository;

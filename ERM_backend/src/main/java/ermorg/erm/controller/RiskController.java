@@ -105,6 +105,15 @@ public class RiskController {
 		return response;
 	}
 
+	@DeleteMapping("/delete-assessment/{id}")
+	public GeneralResponse<Void> deleteRiskAssessment(@PathVariable("id") Long id) throws ResourceNotFoundException {
+		riskService.deleteRiskAssessment(id);
+		GeneralResponse<Void> response = new GeneralResponse<>();
+		response.setMessage("Risk assessment deleted.");
+		response.setStatus(ResponseStatus.SUCCESS);
+		return response;
+	}
+
 	@GetMapping("/all-risk-dropdown")
 	public GeneralResponse<Page<AllRiskDropdownResponse>> getAllRiskDropdown(
 			@PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable)
