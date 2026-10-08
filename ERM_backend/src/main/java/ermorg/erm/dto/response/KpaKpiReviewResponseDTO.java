@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class KpaKpiReviewResponseDTO {
+    private Integer reportingYear;
+    private ermorg.erm.dashboard.ChartPeriod.YearType reportingYearType;
 
     private long kpaKpiReviewId;
     private String kpa;

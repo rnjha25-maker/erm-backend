@@ -35,6 +35,8 @@ import ermorg.erm.util.OrganizationContext;
 
 @Component
 public class ApprovalSourceRecordValidator {
+    @org.springframework.beans.factory.annotation.Autowired
+    private ermorg.erm.evaluation.PeriodEvaluationService periodEvaluations;
 
 	private final RiskRepository riskRepository;
 	private final SubRiskRepository subRiskRepository;
@@ -79,6 +81,11 @@ public class ApprovalSourceRecordValidator {
 		}
 
 		String module = normalize(sourceModule);
+        if ("periodevaluation".equals(module)) {
+            if(periodEvaluations==null)throw new ResourceNotFoundException("Period evaluation service unavailable.");
+            periodEvaluations.assertApprovalSource(recordId);
+            return;
+        }
 		boolean exists = validators().getOrDefault(module, id -> false).apply(recordId);
 		if (!exists) {
 			throw new ResourceNotFoundException("Source record not found for module " + sourceModule + ".");
