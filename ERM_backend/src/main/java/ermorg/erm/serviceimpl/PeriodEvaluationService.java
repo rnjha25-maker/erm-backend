@@ -1,6 +1,8 @@
-package ermorg.erm.evaluation;
+package ermorg.erm.serviceimpl;
+import ermorg.erm.evaluation.*;
 
 import java.time.LocalDate;
+import ermorg.erm.dto.request.*;
 import java.util.*;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -24,18 +26,6 @@ public class PeriodEvaluationService {
     public PeriodEvaluationService(NamedParameterJdbcTemplate jdbc,ObjectMapper json,ChartScope.Resolver scopes) {
         this.jdbc=jdbc;this.json=json;this.scopes=scopes;
     }
-    @io.swagger.v3.oas.annotations.media.Schema(name="StartPeriodEvaluation",example="{\"module\":\"REVIEW\",\"sourceId\":123,\"year\":2026,\"yearType\":\"FINANCIAL\",\"frequency\":\"QUARTERLY\",\"periodNumber\":2}")
-    public record Start(EvaluationModule module,
-        @io.swagger.v3.oas.annotations.media.Schema(description="Original category record ID, never a prior evaluation ID",minimum="1") long sourceId,
-        @io.swagger.v3.oas.annotations.media.Schema(description="Starting year; FINANCIAL 2026 means April 2026-March 2027",minimum="1900",maximum="2200") int year,
-        ChartPeriod.YearType yearType,ChartPeriod.Frequency frequency,
-        @io.swagger.v3.oas.annotations.media.Schema(description="1-12 for Monthly, 1-4 for Quarterly",minimum="1",maximum="12") int periodNumber) {}
-    @io.swagger.v3.oas.annotations.media.Schema(name="EditPeriodEvaluation",example="{\"revision\":0,\"values\":{\"review_type\":\"Quantitative\",\"annual_loss_expectancy\":50,\"currency\":\"INR\",\"value_unit\":\"CRORES\"}}")
-    public record Edit(@io.swagger.v3.oas.annotations.media.Schema(description="Latest revision from GET; stale writes return 409",minimum="0") long revision,
-        @io.swagger.v3.oas.annotations.media.Schema(description="Allowed snake_case scalar fields from editableFields; omitted keys retained, null clears") Map<String,JsonNode> values) {}
-    @io.swagger.v3.oas.annotations.media.Schema(name="CompletePeriodEvaluation",example="{\"revision\":1,\"effectiveDate\":\"2026-08-15\"}")
-    public record Complete(long revision,@io.swagger.v3.oas.annotations.media.Schema(description="Evaluation date within the selected period, ISO YYYY-MM-DD") LocalDate effectiveDate) {}
-
     private ChartScope scope() throws ResourceNotFoundException {
         if(CompanyContext.getCompany()==null||CompanyContext.getCompany().getId()==null)
             throw new IllegalArgumentException("Company context is required.");
@@ -75,7 +65,7 @@ public class PeriodEvaluationService {
         response.put("evidence",jdbc.queryForList("SELECT document_id,inherited,description FROM period_evaluation_evidence WHERE evaluation_id=:id ORDER BY document_id",new MapSqlParameterSource("id",row.get("id"))));
         return response;
     }
-    public Map<String,Object> start(Start request) throws ResourceNotFoundException {
+    public Map<String,Object> start(StartPeriodEvaluationRequest request) throws ResourceNotFoundException {
         if(request==null||request.module()==null||request.sourceId()<=0)throw new IllegalArgumentException("module and positive sourceId required.");
         var period=EvaluationPeriod.of(request.year(),request.yearType(),request.frequency(),request.periodNumber());
         var module=request.module();var scope=scope();
@@ -147,7 +137,7 @@ public class PeriodEvaluationService {
             jdbc.update("INSERT INTO period_evaluation_evidence(evaluation_id,document_id,inherited,description) VALUES(:id,:document,true,:description)",new MapSqlParameterSource("id",id).addValue("document",source.get("supporting_evidence_document").toString()).addValue("description",source.get("supporting_evidence_artifacts_description")));
         return get(id);
     }
-    public Map<String,Object> edit(long id,Edit request) throws ResourceNotFoundException {
+    public Map<String,Object> edit(long id,UpdatePeriodEvaluationRequest request) throws ResourceNotFoundException {
         var row=row(id,true);draft(row,request.revision());
         if(request.values()==null||request.values().isEmpty())throw new IllegalArgumentException("Evaluation values required.");
         ObjectNode values=(ObjectNode)parse(row.get("evaluation_values"));
@@ -173,7 +163,7 @@ public class PeriodEvaluationService {
             if(field.equals("yearly_frequency")&&value.decimalValue().stripTrailingZeros().scale()>0)throw new IllegalArgumentException("Yearly frequency must be an integer.");
         }
     }
-    public Map<String,Object> complete(long id,Complete request) throws ResourceNotFoundException {
+    public Map<String,Object> complete(long id,CompletePeriodEvaluationRequest request) throws ResourceNotFoundException {
         var row=row(id,true);draft(row,request.revision());
         EvaluationPeriod.of(((Number)row.get("reporting_year")).intValue(),ChartPeriod.YearType.valueOf(row.get("year_type").toString()),ChartPeriod.Frequency.valueOf(row.get("frequency").toString()),((Number)row.get("period_number")).intValue()).validateDate(request.effectiveDate());
         var values=parse(row.get("evaluation_values"));var module=EvaluationModule.valueOf(row.get("module").toString());

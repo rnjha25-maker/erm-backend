@@ -5,9 +5,62 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      environment:
+        description: Deployment target (select the source branch using "Use workflow from")
+        required: true
+        type: choice
+        default: staging
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: read
+
+# Serialize the entire build/deploy sequence for each destination.
+concurrency:
+  group: ec2-${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'production' }}
+  cancel-in-progress: false
+
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.release.outputs.image_tag }}
+      target: ${{ steps.release.outputs.target }}
+      secret_prefix: ${{ steps.release.outputs.secret_prefix }}
+    steps:
+      - name: Validate branch and select release
+        id: release
+        env:
+          TARGET: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'production' }}
+        run: |
+          set -euo pipefail
+          if [[ "$TARGET" != staging && "$TARGET" != production ]]; then
+            echo "Unsupported deployment target" >&2
+            exit 1
+          fi
+          if [[ "$GITHUB_REF" != refs/heads/* ]]; then
+            echo "Select a branch, not a tag" >&2
+            exit 1
+          fi
+          if [[ "$TARGET" == production && "$GITHUB_REF" != refs/heads/main ]]; then
+            echo "Feature branches can deploy only to staging" >&2
+            exit 1
+          fi
+          echo "target=$TARGET" >> "$GITHUB_OUTPUT"
+          echo "image_tag=sha-${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+          if [[ "$TARGET" == staging ]]; then
+            echo "secret_prefix=STAGING_" >> "$GITHUB_OUTPUT"
+          else
+            echo "secret_prefix=" >> "$GITHUB_OUTPUT"
+          fi
+
   build-and-push:
+    needs: validate
+    environment: ${{ needs.validate.outputs.target }}
     runs-on: ubuntu-latest
 
     steps:
@@ -20,6 +73,9 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
+
+      - name: Test backend contracts without shared database access
+        run: mvn -B -pl ERM_backend '-Dtest=*,!ErmApplicationTests' test
 
       - name: Build with Maven
         run: mvn clean package -DskipTests
@@ -41,7 +97,7 @@ jobs:
           file: ./Dockerfile
           build-args: MODULE_PATH=discovery-server
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-discovery-server:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-discovery-server:${{ needs.validate.outputs.image_tag }}
 
       - name: Build and push erm-api-gateway
         uses: docker/build-push-action@v5
@@ -50,7 +106,7 @@ jobs:
           file: ./Dockerfile
           build-args: MODULE_PATH=erm-api-gateway
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-api-gateway:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-api-gateway:${{ needs.validate.outputs.image_tag }}
 
       - name: Build and push erm-backend
         uses: docker/build-push-action@v5
@@ -59,7 +115,7 @@ jobs:
           file: ./Dockerfile
           build-args: MODULE_PATH=ERM_backend
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-backend:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-backend:${{ needs.validate.outputs.image_tag }}
 
       - name: Build and push erm-command-organization
         uses: docker/build-push-action@v5
@@ -68,7 +124,7 @@ jobs:
           file: ./Dockerfile
           build-args: MODULE_PATH=command/erm-command-organization
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-command-organization:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-command-organization:${{ needs.validate.outputs.image_tag }}
 
       - name: Build and push org-setup-command
         uses: docker/build-push-action@v5
@@ -77,7 +133,7 @@ jobs:
           file: ./Dockerfile
           build-args: MODULE_PATH=command/org-setup-command
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-org-setup-command:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-org-setup-command:${{ needs.validate.outputs.image_tag }}
 
       - name: Build and push user-setup-command
         uses: docker/build-push-action@v5
@@ -86,7 +142,7 @@ jobs:
           file: ./Dockerfile
           build-args: MODULE_PATH=command/user-command
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-user-setup:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-user-setup:${{ needs.validate.outputs.image_tag }}
 
       - name: Build and push storage
         uses: docker/build-push-action@v5
@@ -95,7 +151,7 @@ jobs:
           file: ./Dockerfile
           build-args: MODULE_PATH=command/storage
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-storage:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-storage:${{ needs.validate.outputs.image_tag }}
 
       - name: Build and push erm-query-organization
         uses: docker/build-push-action@v5
@@ -104,7 +160,7 @@ jobs:
           file: ./Dockerfile
           build-args: MODULE_PATH=query/erm-query-organization
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-query-organization:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-query-organization:${{ needs.validate.outputs.image_tag }}
 
       - name: Build and push user-query
         uses: docker/build-push-action@v5
@@ -113,49 +169,78 @@ jobs:
           file: ./Dockerfile
           build-args: MODULE_PATH=query/user-query
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-user-query:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-user-query:${{ needs.validate.outputs.image_tag }}
 
   # ====================== DEPLOY JOB ======================
   deploy:
-    needs: build-and-push
+    needs: [validate, build-and-push]
+    environment: ${{ needs.validate.outputs.target }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check deployment configuration
+        env:
+          TARGET_HOST: ${{ secrets[format('{0}EC2_HOST', needs.validate.outputs.secret_prefix)] }}
+          TARGET_USER: ${{ secrets[format('{0}EC2_USER', needs.validate.outputs.secret_prefix)] }}
+          TARGET_KEY: ${{ secrets[format('{0}EC2_SSH_KEY', needs.validate.outputs.secret_prefix)] }}
+          TARGET_DIR: ${{ secrets[format('{0}EC2_APP_DIR', needs.validate.outputs.secret_prefix)] }}
+          TARGET_DB: ${{ secrets[format('{0}AWS_RDS_ENDPOINT', needs.validate.outputs.secret_prefix)] }}
+          TARGET_DB_USER: ${{ secrets[format('{0}AWS_RDS_USERNAME', needs.validate.outputs.secret_prefix)] }}
+          TARGET_DB_PASSWORD: ${{ secrets[format('{0}AWS_RDS_PASSWORD', needs.validate.outputs.secret_prefix)] }}
+          TARGET_REDIS: ${{ secrets[format('{0}AWS_REDIS_ENDPOINT', needs.validate.outputs.secret_prefix)] }}
+          TARGET_AWS_KEY: ${{ secrets[format('{0}AWS_ACCESS_KEY_ID', needs.validate.outputs.secret_prefix)] }}
+          TARGET_AWS_SECRET: ${{ secrets[format('{0}AWS_SECRET_ACCESS_KEY', needs.validate.outputs.secret_prefix)] }}
+          TARGET_AWS_REGION: ${{ secrets[format('{0}AWS_REGION', needs.validate.outputs.secret_prefix)] }}
+          PRODUCTION_HOST: ${{ secrets.EC2_HOST }}
+          TARGET: ${{ needs.validate.outputs.target }}
+        run: |
+          set -euo pipefail
+          for name in TARGET_HOST TARGET_USER TARGET_KEY TARGET_DIR TARGET_DB TARGET_DB_USER TARGET_DB_PASSWORD TARGET_REDIS TARGET_AWS_KEY TARGET_AWS_SECRET TARGET_AWS_REGION; do
+            if [[ -z "${!name}" ]]; then
+              echo "Missing deployment setting: $name" >&2
+              exit 1
+            fi
+          done
+          if [[ "$TARGET" == staging && "$TARGET_HOST" == "$PRODUCTION_HOST" ]]; then
+            echo "Use a separate staging host: Compose uses fixed container names and ports" >&2
+            exit 1
+          fi
+
       - name: Copy docker-compose to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
+          host: ${{ secrets[format('{0}EC2_HOST', needs.validate.outputs.secret_prefix)] }}
+          username: ${{ secrets[format('{0}EC2_USER', needs.validate.outputs.secret_prefix)] }}
+          key: ${{ secrets[format('{0}EC2_SSH_KEY', needs.validate.outputs.secret_prefix)] }}
           source: docker-compose.ec2.yml
-          target: ${{ secrets.EC2_APP_DIR }}
+          target: ${{ secrets[format('{0}EC2_APP_DIR', needs.validate.outputs.secret_prefix)] }}
           overwrite: true
 
       - name: Deploy to EC2 (Very Safe Staggered)
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
+          host: ${{ secrets[format('{0}EC2_HOST', needs.validate.outputs.secret_prefix)] }}
+          username: ${{ secrets[format('{0}EC2_USER', needs.validate.outputs.secret_prefix)] }}
+          key: ${{ secrets[format('{0}EC2_SSH_KEY', needs.validate.outputs.secret_prefix)] }}
           script: |
             set -e
-            cd "${{ secrets.EC2_APP_DIR }}"
+            cd "${{ secrets[format('{0}EC2_APP_DIR', needs.validate.outputs.secret_prefix)] }}"
             export COMPOSE_PARALLEL_LIMIT=1
 
             echo "=== Creating .env file ==="
             cat > .env << 'EOF'
             DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}
-            IMAGE_TAG=latest
-            AWS_RDS_ENDPOINT=${{ secrets.AWS_RDS_ENDPOINT }}
-            AWS_RDS_USERNAME=${{ secrets.AWS_RDS_USERNAME }}
-            AWS_RDS_PASSWORD=${{ secrets.AWS_RDS_PASSWORD }}
-            AWS_REDIS_ENDPOINT=${{ secrets.AWS_REDIS_ENDPOINT }}
-            AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
-            AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}   
-            AWS_REGION: ${{secrets.AWS_REGION}}
+            IMAGE_TAG=${{ needs.validate.outputs.image_tag }}
+            AWS_RDS_ENDPOINT=${{ secrets[format('{0}AWS_RDS_ENDPOINT', needs.validate.outputs.secret_prefix)] }}
+            AWS_RDS_USERNAME=${{ secrets[format('{0}AWS_RDS_USERNAME', needs.validate.outputs.secret_prefix)] }}
+            AWS_RDS_PASSWORD=${{ secrets[format('{0}AWS_RDS_PASSWORD', needs.validate.outputs.secret_prefix)] }}
+            AWS_REDIS_ENDPOINT=${{ secrets[format('{0}AWS_REDIS_ENDPOINT', needs.validate.outputs.secret_prefix)] }}
+            AWS_ACCESS_KEY_ID=${{secrets[format('{0}AWS_ACCESS_KEY_ID', needs.validate.outputs.secret_prefix)]}}
+            AWS_SECRET_ACCESS_KEY=${{secrets[format('{0}AWS_SECRET_ACCESS_KEY', needs.validate.outputs.secret_prefix)]}}
+            AWS_REGION=${{secrets[format('{0}AWS_REGION', needs.validate.outputs.secret_prefix)]}}
             EOF
 
             # Detect docker compose command
@@ -165,10 +250,6 @@ jobs:
               DC="docker compose"
             fi
 
-            echo "=== Reclaiming only unused Docker resources ==="
-            docker container prune -f || true
-            docker image prune -f || true
-            docker builder prune -f || true
 
             echo "=== Pulling fresh images ==="
             $DC -f docker-compose.ec2.yml pull
@@ -192,10 +273,8 @@ jobs:
             sleep 10
 
             $DC -f docker-compose.ec2.yml up -d --no-deps erm-backend
-            sleep 20  
+            sleep 20
 
-            echo "=== Cleaning dangling images after rollout ==="
-            docker image prune -f || true
 
             echo "Deployment completed successfully."
             echo "Container Status:"

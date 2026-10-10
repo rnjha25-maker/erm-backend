@@ -1,4 +1,5 @@
-package ermorg.erm.dashboard;
+package ermorg.erm.repository;
+import ermorg.erm.dashboard.*;
 
 import java.util.*;
 import org.springframework.jdbc.core.namedparam.*;

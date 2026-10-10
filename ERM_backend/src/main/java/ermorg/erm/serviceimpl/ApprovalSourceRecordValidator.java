@@ -36,7 +36,7 @@ import ermorg.erm.util.OrganizationContext;
 @Component
 public class ApprovalSourceRecordValidator {
     @org.springframework.beans.factory.annotation.Autowired
-    private ermorg.erm.evaluation.PeriodEvaluationService periodEvaluations;
+    private ermorg.erm.serviceimpl.PeriodEvaluationService periodEvaluations;
 
 	private final RiskRepository riskRepository;
 	private final SubRiskRepository subRiskRepository;

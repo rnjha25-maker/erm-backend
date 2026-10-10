@@ -1,4 +1,8 @@
 package ermorg.erm.evaluation;
+import ermorg.erm.dto.request.*;
+import ermorg.erm.serviceimpl.PeriodEvaluationService;
+import ermorg.erm.serviceimpl.DashboardChartService;
+import ermorg.erm.repository.DashboardChartRepository;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -45,11 +49,11 @@ class PeriodEvaluationMySqlTest {
         jdbc.update("INSERT INTO approval(id,organization_id,company_id,deleted,source_module,source_record_id,status) VALUES(400,10,20,false,'riskReview','200','APPROVED')");
     }
     @AfterEach void close(){CompanyContext.clear();OrganizationContext.clear();UserContext.clear();if(source!=null)source.destroy();}
-    PeriodEvaluationService.Start start(int quarter){return new PeriodEvaluationService.Start(EvaluationModule.REVIEW,200,2026,YearType.CALENDAR,Frequency.QUARTERLY,quarter);}
+    StartPeriodEvaluationRequest start(int quarter){return new StartPeriodEvaluationRequest(EvaluationModule.REVIEW,200,2026,YearType.CALENDAR,Frequency.QUARTERLY,quarter);}
     long id(Map<String,Object> result){return ((Number)result.get("id")).longValue();}
     void finish(long id,long revision,String date) throws Exception {
-        service.edit(id,new PeriodEvaluationService.Edit(revision,Map.of("review_type",json.valueToTree("Quantitative"),"annual_loss_expectancy",json.valueToTree(50),"currency",json.valueToTree("INR"),"value_unit",json.valueToTree("CRORES"))));
-        service.complete(id,new PeriodEvaluationService.Complete(revision+1,LocalDate.parse(date)));
+        service.edit(id,new UpdatePeriodEvaluationRequest(revision,Map.of("review_type",json.valueToTree("Quantitative"),"annual_loss_expectancy",json.valueToTree(50),"currency",json.valueToTree("INR"),"value_unit",json.valueToTree("CRORES"))));
+        service.complete(id,new CompletePeriodEvaluationRequest(revision+1,LocalDate.parse(date)));
     }
     @Test void nextPeriodPreservesBaselineLinksApprovalAndCompletedValues() throws Exception {
         var first=service.start(start(1));long firstId=id(first);
@@ -58,7 +62,7 @@ class PeriodEvaluationMySqlTest {
         var second=service.start(start(2));
         assertThat(second.get("previous_evaluation_id")).isEqualTo(firstId);
         assertThat(((JsonNode)second.get("evaluation_values")).isEmpty()).isTrue();
-        assertThatThrownBy(()->service.edit(firstId,new PeriodEvaluationService.Edit(2,Map.of("status",json.valueToTree("changed"))))).hasMessageContaining("immutable");
+        assertThatThrownBy(()->service.edit(firstId,new UpdatePeriodEvaluationRequest(2,Map.of("status",json.valueToTree("changed"))))).hasMessageContaining("immutable");
         jdbc.update("UPDATE risk_reviews SET annual_loss_expectancy=999 WHERE id=200");
         assertThat(((JsonNode)service.get(firstId).get("source_snapshot")).path("record").path("annual_loss_expectancy").asDouble()).isEqualTo(100);
         assertThat(jdbc.queryForObject("SELECT risk_review_id FROM sub_risk WHERE id=300",Long.class)).isEqualTo(200);
@@ -69,11 +73,11 @@ class PeriodEvaluationMySqlTest {
     @Test void duplicateStaleUnsafeAndOutOfPeriodUpdatesFailWithoutChangingHistory() throws Exception {
         long id=id(service.start(start(1)));
         assertThatThrownBy(()->service.start(start(1))).hasMessageContaining("draft");
-        assertThatThrownBy(()->service.edit(id,new PeriodEvaluationService.Edit(0,Map.of("risk_id",json.valueToTree(999))))).isInstanceOf(IllegalArgumentException.class);
-        service.edit(id,new PeriodEvaluationService.Edit(0,Map.of("review_type",json.valueToTree("Qualitative"),"residual_risk_rating",json.valueToTree("Low"))));
-        assertThatThrownBy(()->service.edit(id,new PeriodEvaluationService.Edit(0,Map.of("status",json.valueToTree("x"))))).hasMessageContaining("reload");
-        assertThatThrownBy(()->service.complete(id,new PeriodEvaluationService.Complete(1,LocalDate.of(2026,4,1)))).isInstanceOf(IllegalArgumentException.class);
-        service.complete(id,new PeriodEvaluationService.Complete(1,LocalDate.of(2026,3,31)));
+        assertThatThrownBy(()->service.edit(id,new UpdatePeriodEvaluationRequest(0,Map.of("risk_id",json.valueToTree(999))))).isInstanceOf(IllegalArgumentException.class);
+        service.edit(id,new UpdatePeriodEvaluationRequest(0,Map.of("review_type",json.valueToTree("Qualitative"),"residual_risk_rating",json.valueToTree("Low"))));
+        assertThatThrownBy(()->service.edit(id,new UpdatePeriodEvaluationRequest(0,Map.of("status",json.valueToTree("x"))))).hasMessageContaining("reload");
+        assertThatThrownBy(()->service.complete(id,new CompletePeriodEvaluationRequest(1,LocalDate.of(2026,4,1)))).isInstanceOf(IllegalArgumentException.class);
+        service.complete(id,new CompletePeriodEvaluationRequest(1,LocalDate.of(2026,3,31)));
         assertThatThrownBy(()->service.start(start(1))).hasMessageContaining("overlaps");
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM period_evaluation",Long.class)).isEqualTo(1);
     }
@@ -83,23 +87,23 @@ class PeriodEvaluationMySqlTest {
         assertThatThrownBy(()->service.get(id)).hasMessageContaining("not found");
         when(resolver.resolve(20L,null,null)).thenReturn(new ChartScope(10L,20L,99L,null,null,false,null,null));
         assertThatThrownBy(()->service.get(id)).hasMessageContaining("outside user scope");
-        assertThatThrownBy(()->service.edit(id,new PeriodEvaluationService.Edit(0,Map.of("status",json.valueToTree("x"))))).hasMessageContaining("outside user scope");
+        assertThatThrownBy(()->service.edit(id,new UpdatePeriodEvaluationRequest(0,Map.of("status",json.valueToTree("x"))))).hasMessageContaining("outside user scope");
         // Assignment grants read-only access to the specific evaluation, never draft editing.
         var user=new User();user.setId(99L);UserContext.seetUser(user);
         jdbc.update("INSERT INTO approval(id,organization_id,company_id,deleted,source_module,source_record_id,status,approver_id) VALUES(401,10,20,false,'periodEvaluation',?,'PENDING',99)",Long.toString(id));
         assertThat(service.get(id).get("id")).isEqualTo(id);
-        assertThatThrownBy(()->service.edit(id,new PeriodEvaluationService.Edit(0,Map.of("status",json.valueToTree("x"))))).hasMessageContaining("outside user scope");
+        assertThatThrownBy(()->service.edit(id,new UpdatePeriodEvaluationRequest(0,Map.of("status",json.valueToTree("x"))))).hasMessageContaining("outside user scope");
     }
     @Test void evidenceReferencesAndControlChildrenRemainWithOriginalRecords() throws Exception {
         String document="dc615167-19a8-460f-aea0-2e3bf21b1e34";
         jdbc.update("INSERT INTO risk_risponse_treatment(id,risk_id,organization_id,company_id,deleted,created_by_id,supporting_evidence_document) VALUES(201,100,10,20,false,30,?)",document);
         jdbc.update("INSERT INTO risk_controls(id,risk_id,organization_id,company_id,deleted,created_by_id,control_title) VALUES(202,100,10,20,false,30,'Control')");
         jdbc.update("INSERT INTO risk_sub_control(id,risk_control_id,organization_id,company_id,deleted,sub_control_title) VALUES(303,202,10,20,false,'Subcontrol')");
-        var treatment=service.start(new PeriodEvaluationService.Start(EvaluationModule.TREATMENT,201,2026,YearType.CALENDAR,Frequency.QUARTERLY,1));
+        var treatment=service.start(new StartPeriodEvaluationRequest(EvaluationModule.TREATMENT,201,2026,YearType.CALENDAR,Frequency.QUARTERLY,1));
         assertThat((List<?>)treatment.get("evidence")).hasSize(1);assertThat(service.retainsDocument(document)).isTrue();
         assertThatThrownBy(()->service.guardTreatmentEvidenceDeletion(201,document)).hasMessageContaining("retained in evaluation history");
         assertThatThrownBy(()->service.guardTreatmentEvidenceDeletion(201,"aa615167-19a8-460f-aea0-2e3bf21b1e34")).hasMessageContaining("not associated");
-        var control=service.start(new PeriodEvaluationService.Start(EvaluationModule.CONTROL,202,2026,YearType.CALENDAR,Frequency.QUARTERLY,1));
+        var control=service.start(new StartPeriodEvaluationRequest(EvaluationModule.CONTROL,202,2026,YearType.CALENDAR,Frequency.QUARTERLY,1));
         assertThat(((JsonNode)control.get("source_snapshot")).path("subControls")).hasSize(1);
         assertThat(jdbc.queryForObject("SELECT risk_control_id FROM risk_sub_control WHERE id=303",Long.class)).isEqualTo(202);
     }
@@ -137,10 +141,10 @@ class PeriodEvaluationMySqlTest {
         var charts=new DashboardChartService(new DashboardChartRepository(new NamedParameterJdbcTemplate(source)),resolver);
         for(EvaluationModule module:List.of(EvaluationModule.KRI,EvaluationModule.KPI)) {
             long original=module==EvaluationModule.KRI?201:202;
-            var request=new PeriodEvaluationService.Start(module,original,2026,YearType.CALENDAR,Frequency.QUARTERLY,2);
+            var request=new StartPeriodEvaluationRequest(module,original,2026,YearType.CALENDAR,Frequency.QUARTERLY,2);
             long id=id(service.start(request));
-            service.edit(id,new PeriodEvaluationService.Edit(0,Map.of("actual_value",json.valueToTree(80))));
-            service.complete(id,new PeriodEvaluationService.Complete(1,LocalDate.of(2026,5,1)));
+            service.edit(id,new UpdatePeriodEvaluationRequest(0,Map.of("actual_value",json.valueToTree(80))));
+            service.complete(id,new CompletePeriodEvaluationRequest(1,LocalDate.of(2026,5,1)));
             assertThat(jdbc.queryForObject("SELECT q2 FROM "+module.table+" WHERE id="+original,String.class)).isNull();
             jdbc.update("UPDATE "+module.table+" SET target_value=999,q1=888 WHERE id="+original);
             var series=charts.performance(ChartPeriod.of(2026,YearType.CALENDAR,null),Indicator.valueOf(module.name()),Frequency.QUARTERLY,20L,null,null,0,20).series().get(0);

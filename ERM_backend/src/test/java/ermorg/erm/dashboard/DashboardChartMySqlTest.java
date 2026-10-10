@@ -1,4 +1,5 @@
 package ermorg.erm.dashboard;
+import ermorg.erm.repository.DashboardChartRepository;
 
 import static org.assertj.core.api.Assertions.*;
 import java.util.*;

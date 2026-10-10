@@ -1,4 +1,6 @@
 package ermorg.erm.controller;
+import ermorg.erm.dto.request.*;
+import ermorg.erm.serviceimpl.PeriodEvaluationService;
 
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.*;
@@ -21,7 +23,7 @@ public class PeriodEvaluationController {
     public PeriodEvaluationController(PeriodEvaluationService service){this.service=service;}
     @PostMapping("/start")
     @io.swagger.v3.oas.annotations.Operation(summary="Start a period draft",description="sourceId is the original category ID. MONTHLY uses periods 1-12; QUARTERLY uses 1-4. FINANCIAL year starts in April. Starting a draft sends no approval notification.")
-    public GeneralResponse<?> start(@RequestBody PeriodEvaluationService.Start request) throws ResourceNotFoundException {return ok(service.start(request));}
+    public GeneralResponse<?> start(@RequestBody StartPeriodEvaluationRequest request) throws ResourceNotFoundException {return ok(service.start(request));}
     @GetMapping("/{id}")
     @io.swagger.v3.oas.annotations.Operation(summary="Read evaluation and frozen source snapshot",description="Returns revision, state, source_snapshot, evaluation_values, editableFields and evidence manifest inside data.")
     public GeneralResponse<?> get(@PathVariable long id) throws ResourceNotFoundException{return ok(service.get(id));}
@@ -31,10 +33,10 @@ public class PeriodEvaluationController {
             @RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size) throws ResourceNotFoundException {return ok(service.history(module,sourceId,page,size));}
     @PatchMapping("/{id}")
     @io.swagger.v3.oas.annotations.Operation(summary="Merge draft values",description="Send latest revision and allowed snake_case fields in values. Omitted values are retained; explicit null clears a draft field. Use editableFields from GET. Completed records cannot be changed.")
-    public GeneralResponse<?> edit(@PathVariable long id,@RequestBody PeriodEvaluationService.Edit request) throws ResourceNotFoundException {return ok(service.edit(id,request));}
+    public GeneralResponse<?> edit(@PathVariable long id,@RequestBody UpdatePeriodEvaluationRequest request) throws ResourceNotFoundException {return ok(service.edit(id,request));}
     @PostMapping("/{id}/complete")
     @io.swagger.v3.oas.annotations.Operation(summary="Complete and lock an evaluation",description="effectiveDate must lie within the selected period. COMPLETED is not APPROVED. Approval is requested separately via /approvals with sourceModule periodEvaluation.")
-    public GeneralResponse<?> complete(@PathVariable long id,@RequestBody PeriodEvaluationService.Complete request) throws ResourceNotFoundException {return ok(service.complete(id,request));}
+    public GeneralResponse<?> complete(@PathVariable long id,@RequestBody CompletePeriodEvaluationRequest request) throws ResourceNotFoundException {return ok(service.complete(id,request));}
     @PostMapping(value="/{id}/evidence",consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
     @io.swagger.v3.oas.annotations.Operation(summary="Append evidence to draft",description="Multipart file, latest revision and optional description. Maximum 10MB. Returns refreshed evaluation/revision; no automatic retry after ambiguous network failure.")
     public GeneralResponse<?> upload(@PathVariable long id,@RequestParam long revision,@RequestParam MultipartFile file,@RequestParam(required=false) String description) throws ResourceNotFoundException {return ok(service.uploadEvidence(id,revision,file,description));}

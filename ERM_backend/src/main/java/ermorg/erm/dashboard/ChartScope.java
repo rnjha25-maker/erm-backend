@@ -36,9 +36,11 @@ public record ChartScope(Long organizationId, Long companyId, Long creatorId,
                     throw new ResourceNotFoundException("Company outside user scope.");
                 companyId = assigned;
             }
+            var assignedBranches = ErmDashboardRoleResolver.resolveAssignedBranchIds(user);
+            var assignedDepartments = ErmDashboardRoleResolver.resolveAssignedDepartmentIds(user);
             return new ChartScope(orgId, companyId, creator, branchId, departmentId, restricted,
-                user.getBranch() == null ? null : user.getBranch().getId(),
-                user.getDepartment() == null ? null : user.getDepartment().getId());
+                assignedBranches.isEmpty() ? null : assignedBranches.get(0),
+                assignedDepartments.isEmpty() ? null : assignedDepartments.get(0));
         }
     }
 }

@@ -1,4 +1,5 @@
-package ermorg.erm.dashboard;
+package ermorg.erm.repository;
+import ermorg.erm.dashboard.*;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;

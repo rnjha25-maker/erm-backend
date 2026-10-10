@@ -18,8 +18,8 @@ import org.springframework.context.annotation.*;
 import org.springdoc.core.configuration.SpringDocConfiguration;
 import org.springdoc.core.properties.SpringDocConfigProperties;
 import org.springdoc.webmvc.core.configuration.*;
-import ermorg.erm.dashboard.DashboardChartService;
-import ermorg.erm.evaluation.PeriodEvaluationService;
+import ermorg.erm.serviceimpl.DashboardChartService;
+import ermorg.erm.serviceimpl.PeriodEvaluationService;
 import ermorg.erm.config.PeriodWorkflowOpenApiConfiguration;
 import ermorg.erm.controller.exceptionHandler.GlobalExceptionHandler;
 
