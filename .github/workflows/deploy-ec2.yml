@@ -5,22 +5,13 @@ on:
     branches:
       - main
   workflow_dispatch:
-    inputs:
-      environment:
-        description: Deployment target (select the source branch using "Use workflow from")
-        required: true
-        type: choice
-        default: staging
-        options:
-          - staging
-          - production
 
 permissions:
   contents: read
 
-# Serialize the entire build/deploy sequence for each destination.
+# All branches deploy to the same EC2 destination; serialize manual and main runs.
 concurrency:
-  group: ec2-${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'production' }}
+  group: ec2-shared-deployment
   cancel-in-progress: false
 
 
@@ -29,38 +20,25 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ steps.release.outputs.image_tag }}
-      target: ${{ steps.release.outputs.target }}
-      secret_prefix: ${{ steps.release.outputs.secret_prefix }}
     steps:
       - name: Validate branch and select release
         id: release
         env:
-          TARGET: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'production' }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
-          if [[ "$TARGET" != staging && "$TARGET" != production ]]; then
-            echo "Unsupported deployment target" >&2
-            exit 1
-          fi
           if [[ "$GITHUB_REF" != refs/heads/* ]]; then
             echo "Select a branch, not a tag" >&2
             exit 1
           fi
-          if [[ "$TARGET" == production && "$GITHUB_REF" != refs/heads/main ]]; then
-            echo "Feature branches can deploy only to staging" >&2
+          if [[ "$EVENT_NAME" != workflow_dispatch && !( "$EVENT_NAME" == push && "$GITHUB_REF" == refs/heads/main ) ]]; then
+            echo "Only manual branch runs or pushes to main can deploy" >&2
             exit 1
           fi
-          echo "target=$TARGET" >> "$GITHUB_OUTPUT"
           echo "image_tag=sha-${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
-          if [[ "$TARGET" == staging ]]; then
-            echo "secret_prefix=STAGING_" >> "$GITHUB_OUTPUT"
-          else
-            echo "secret_prefix=" >> "$GITHUB_OUTPUT"
-          fi
 
   build-and-push:
     needs: validate
-    environment: ${{ needs.validate.outputs.target }}
     runs-on: ubuntu-latest
 
     steps:
@@ -174,7 +152,6 @@ jobs:
   # ====================== DEPLOY JOB ======================
   deploy:
     needs: [validate, build-and-push]
-    environment: ${{ needs.validate.outputs.target }}
     runs-on: ubuntu-latest
 
     steps:
@@ -183,19 +160,17 @@ jobs:
 
       - name: Check deployment configuration
         env:
-          TARGET_HOST: ${{ secrets[format('{0}EC2_HOST', needs.validate.outputs.secret_prefix)] }}
-          TARGET_USER: ${{ secrets[format('{0}EC2_USER', needs.validate.outputs.secret_prefix)] }}
-          TARGET_KEY: ${{ secrets[format('{0}EC2_SSH_KEY', needs.validate.outputs.secret_prefix)] }}
-          TARGET_DIR: ${{ secrets[format('{0}EC2_APP_DIR', needs.validate.outputs.secret_prefix)] }}
-          TARGET_DB: ${{ secrets[format('{0}AWS_RDS_ENDPOINT', needs.validate.outputs.secret_prefix)] }}
-          TARGET_DB_USER: ${{ secrets[format('{0}AWS_RDS_USERNAME', needs.validate.outputs.secret_prefix)] }}
-          TARGET_DB_PASSWORD: ${{ secrets[format('{0}AWS_RDS_PASSWORD', needs.validate.outputs.secret_prefix)] }}
-          TARGET_REDIS: ${{ secrets[format('{0}AWS_REDIS_ENDPOINT', needs.validate.outputs.secret_prefix)] }}
-          TARGET_AWS_KEY: ${{ secrets[format('{0}AWS_ACCESS_KEY_ID', needs.validate.outputs.secret_prefix)] }}
-          TARGET_AWS_SECRET: ${{ secrets[format('{0}AWS_SECRET_ACCESS_KEY', needs.validate.outputs.secret_prefix)] }}
-          TARGET_AWS_REGION: ${{ secrets[format('{0}AWS_REGION', needs.validate.outputs.secret_prefix)] }}
-          PRODUCTION_HOST: ${{ secrets.EC2_HOST }}
-          TARGET: ${{ needs.validate.outputs.target }}
+          TARGET_HOST: ${{ secrets.EC2_HOST }}
+          TARGET_USER: ${{ secrets.EC2_USER }}
+          TARGET_KEY: ${{ secrets.EC2_SSH_KEY }}
+          TARGET_DIR: ${{ secrets.EC2_APP_DIR }}
+          TARGET_DB: ${{ secrets.AWS_RDS_ENDPOINT }}
+          TARGET_DB_USER: ${{ secrets.AWS_RDS_USERNAME }}
+          TARGET_DB_PASSWORD: ${{ secrets.AWS_RDS_PASSWORD }}
+          TARGET_REDIS: ${{ secrets.AWS_REDIS_ENDPOINT }}
+          TARGET_AWS_KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          TARGET_AWS_SECRET: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          TARGET_AWS_REGION: ${{ secrets.AWS_REGION }}
         run: |
           set -euo pipefail
           for name in TARGET_HOST TARGET_USER TARGET_KEY TARGET_DIR TARGET_DB TARGET_DB_USER TARGET_DB_PASSWORD TARGET_REDIS TARGET_AWS_KEY TARGET_AWS_SECRET TARGET_AWS_REGION; do
@@ -204,43 +179,39 @@ jobs:
               exit 1
             fi
           done
-          if [[ "$TARGET" == staging && "$TARGET_HOST" == "$PRODUCTION_HOST" ]]; then
-            echo "Use a separate staging host: Compose uses fixed container names and ports" >&2
-            exit 1
-          fi
 
       - name: Copy docker-compose to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets[format('{0}EC2_HOST', needs.validate.outputs.secret_prefix)] }}
-          username: ${{ secrets[format('{0}EC2_USER', needs.validate.outputs.secret_prefix)] }}
-          key: ${{ secrets[format('{0}EC2_SSH_KEY', needs.validate.outputs.secret_prefix)] }}
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
           source: docker-compose.ec2.yml
-          target: ${{ secrets[format('{0}EC2_APP_DIR', needs.validate.outputs.secret_prefix)] }}
+          target: ${{ secrets.EC2_APP_DIR }}
           overwrite: true
 
-      - name: Deploy to EC2 (Very Safe Staggered)
+      - name: Deploy to existing EC2 (staggered)
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets[format('{0}EC2_HOST', needs.validate.outputs.secret_prefix)] }}
-          username: ${{ secrets[format('{0}EC2_USER', needs.validate.outputs.secret_prefix)] }}
-          key: ${{ secrets[format('{0}EC2_SSH_KEY', needs.validate.outputs.secret_prefix)] }}
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -e
-            cd "${{ secrets[format('{0}EC2_APP_DIR', needs.validate.outputs.secret_prefix)] }}"
+            cd "${{ secrets.EC2_APP_DIR }}"
             export COMPOSE_PARALLEL_LIMIT=1
 
             echo "=== Creating .env file ==="
             cat > .env << 'EOF'
             DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}
             IMAGE_TAG=${{ needs.validate.outputs.image_tag }}
-            AWS_RDS_ENDPOINT=${{ secrets[format('{0}AWS_RDS_ENDPOINT', needs.validate.outputs.secret_prefix)] }}
-            AWS_RDS_USERNAME=${{ secrets[format('{0}AWS_RDS_USERNAME', needs.validate.outputs.secret_prefix)] }}
-            AWS_RDS_PASSWORD=${{ secrets[format('{0}AWS_RDS_PASSWORD', needs.validate.outputs.secret_prefix)] }}
-            AWS_REDIS_ENDPOINT=${{ secrets[format('{0}AWS_REDIS_ENDPOINT', needs.validate.outputs.secret_prefix)] }}
-            AWS_ACCESS_KEY_ID=${{secrets[format('{0}AWS_ACCESS_KEY_ID', needs.validate.outputs.secret_prefix)]}}
-            AWS_SECRET_ACCESS_KEY=${{secrets[format('{0}AWS_SECRET_ACCESS_KEY', needs.validate.outputs.secret_prefix)]}}
-            AWS_REGION=${{secrets[format('{0}AWS_REGION', needs.validate.outputs.secret_prefix)]}}
+            AWS_RDS_ENDPOINT=${{ secrets.AWS_RDS_ENDPOINT }}
+            AWS_RDS_USERNAME=${{ secrets.AWS_RDS_USERNAME }}
+            AWS_RDS_PASSWORD=${{ secrets.AWS_RDS_PASSWORD }}
+            AWS_REDIS_ENDPOINT=${{ secrets.AWS_REDIS_ENDPOINT }}
+            AWS_ACCESS_KEY_ID=${{secrets.AWS_ACCESS_KEY_ID}}
+            AWS_SECRET_ACCESS_KEY=${{secrets.AWS_SECRET_ACCESS_KEY}}
+            AWS_REGION=${{secrets.AWS_REGION}}
             EOF
 
             # Detect docker compose command

@@ -1,68 +1,51 @@
-# Manual branch deployment
+# Manual branch deployment using existing repository secrets
 
-The EC2 workflow supports testing a branch before merging it into `main`.
-No deployment is triggered by editing this workflow locally.
+Manual branch runs and automatic `main` runs deploy to the same existing EC2 server,
+application directory, database, Redis and storage configuration. A manual feature-branch
+run replaces the running application. This is not an isolated staging environment.
 
-## One-time GitHub setup
+## Run a branch
 
-1. Make the workflow available on the repository's default branch so that GitHub
-   displays **Run workflow**. The selected feature branch must also contain this
-   updated workflow. Publish the branch before selecting it.
-2. Create GitHub environments named `staging` and `production`. Restrict production
-   deployment branches to `main`; configure required reviewers as appropriate.
-3. Configure a separate staging EC2 host. The Compose file uses fixed container names
-   and ports, so a different directory on the production host is not sufficient.
-4. Configure these staging secrets (repository secrets or the staging environment):
-   - `STAGING_EC2_HOST`, `STAGING_EC2_USER`, `STAGING_EC2_SSH_KEY`, `STAGING_EC2_APP_DIR`
-   - `STAGING_AWS_RDS_ENDPOINT`, `STAGING_AWS_RDS_USERNAME`, `STAGING_AWS_RDS_PASSWORD`
-   - `STAGING_AWS_REDIS_ENDPOINT`
-   - `STAGING_AWS_ACCESS_KEY_ID`, `STAGING_AWS_SECRET_ACCESS_KEY`, `STAGING_AWS_REGION`
-5. Retain the existing unprefixed production secrets and shared
-   `DOCKER_HUB_USERNAME` / `DOCKER_HUB_TOKEN` secrets. Staging secrets do not fall back
-   to production secrets. Keep staging database/storage resources separate and apply
-   the required schema migrations to the actual staging database before deployment.
+1. Commit and push the branch with the updated workflow.
+2. Open Actions → Deploy To EC2 → Run workflow.
+3. Select the branch under **Use workflow from**, for example `feature/dashboard-changes`.
+4. Start a new run. There is no staging/production input.
+5. Verify application health and business behaviour on the existing application URL.
+6. After testing, merge into `main`; a push to `main` deploys automatically.
 
-The workflow validates required deployment settings before copying files to EC2.
-The host must have Docker/Compose installed, access to the selected registry images,
-and network connectivity to its configured database, Redis and storage resources.
-Existing application storage/bucket configuration must also be reviewed for staging;
-different AWS credentials alone do not prove that buckets are isolated.
+Feature-branch pushes do not deploy automatically. Tags and non-dispatch/non-main-push
+runs are rejected. Re-running an old failed run uses its old workflow revision; start a
+new run from the updated branch instead. The workflow must be present on the default
+branch for GitHub's Run workflow UI to be available.
 
-## Test a feature branch
+## Existing secrets
 
-1. Open **Actions → Deploy To EC2 → Run workflow**.
-2. Under **Use workflow from**, select `dashboard-fixes` (or another feature branch).
-3. Select environment **staging**, which is the manual-run default.
-4. Run the workflow and check the test, build and deployment jobs.
-5. Verify application health and business flows against the staging URL. The deployment
-   script starts containers in sequence; container startup is not an application-health
-   or business acceptance test.
-6. After testing/review, merge into `main`. A push to `main` retains the existing automatic
-   production deployment behaviour. Production can also be run manually from `main`.
+Both paths use the same unprefixed repository secrets:
 
-Feature branches cannot target production through the workflow's branch guard. GitHub
-environment branch policies are the enforcement boundary against edits to the workflow
-itself; only trusted repository branches should receive deployment secrets.
+- `EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`, `EC2_APP_DIR`
+- `DOCKER_HUB_USERNAME`, `DOCKER_HUB_TOKEN`
+- `AWS_RDS_ENDPOINT`, `AWS_RDS_USERNAME`, `AWS_RDS_PASSWORD`
+- `AWS_REDIS_ENDPOINT`
+- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`
 
-## Release consistency and rollback
+No `STAGING_*` secrets or GitHub environments are required. This workflow reads secrets,
+not the GitHub Variables tab. Secret values must not be printed in logs. Only trusted
+repository branches should be deployed because their code runs with deployment access.
 
-Every image is tagged with commit SHA, workflow run ID and run attempt. Deployment uses
-the same tag for all services; feature builds never overwrite `latest`. Concurrent runs
-for the same target are serialized without interrupting an active deployment. GitHub may
-replace an older pending run with a newer pending run; this is not a FIFO queue.
+## Release consistency
 
-Automatic host-wide Docker pruning was removed to preserve previous images for rollback.
-Monitor disk usage and manage retention separately. To roll back, restore a known-good
-image tag in the target's `.env` and redeploy the matching Compose version. This does not
-roll back database migrations. Manual scripts that rely on `latest` must instead use
-the release tag from the successful workflow run.
+All images use a commit SHA/run ID/run attempt tag; deployment uses that exact tag.
+All manual and automatic runs share one concurrency group for the single EC2 destination.
+An active run is not cancelled. GitHub may replace an older pending run with a newer one.
 
-## Test scope
+Host-wide Docker pruning remains disabled to retain rollback images. Monitor disk usage.
+To roll back, restore the known-good image tag and matching Compose configuration; this
+does not undo database changes. Legacy manual scripts must use the release tag rather
+than assume `latest` was updated.
 
-The workflow runs backend tests before publishing images. The default application-context
-test is excluded because its default configuration points at a shared QA database.
-Opt-in database tests are not enabled in GitHub's runner by this change; run them against
-the disposable local MySQL fixture separately. Never enable them against shared data.
+## Validation and deployment limits
 
-No migrations, merges or deployments are performed automatically by the new manual-run
-option beyond the selected build/deploy workflow itself.
+Backend tests run before image publication. The default QA-connected application-context
+test is excluded and opt-in local database tests are not enabled on the GitHub runner.
+Deployment starts containers in sequence but does not establish application health.
+Migrations must be applied separately when needed; do not rerun already-applied scripts.
