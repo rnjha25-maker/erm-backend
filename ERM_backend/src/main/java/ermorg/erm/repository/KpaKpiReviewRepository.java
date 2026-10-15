@@ -60,4 +60,19 @@ public interface KpaKpiReviewRepository extends JpaRepository<KpaKpiReview, Long
             @Param("companyIds") List<Long> companyIds,
             @Param("startDate") Date startDate,
             @Param("endDate") Date endDate);
+
+    @Query("""
+            SELECT COUNT(k) FROM KpaKpiReview k
+            WHERE k.organization.id = :orgId
+              AND k.deleted = false
+              AND k.createdAt BETWEEN :startDate AND :endDate
+              AND (:scopeCompanyId IS NULL OR k.company.id = :scopeCompanyId)
+              AND (:scopeCreatorUserId IS NULL OR (k.createdBy IS NOT NULL AND k.createdBy.id = :scopeCreatorUserId))
+            """)
+    long countForErmDashboard(
+            @Param("orgId") Long orgId,
+            @Param("startDate") Date startDate,
+            @Param("endDate") Date endDate,
+            @Param("scopeCompanyId") Long scopeCompanyId,
+            @Param("scopeCreatorUserId") Long scopeCreatorUserId);
 }

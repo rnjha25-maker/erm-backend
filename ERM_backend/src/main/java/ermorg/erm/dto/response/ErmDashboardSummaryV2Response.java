@@ -1,0 +1,83 @@
+package ermorg.erm.dto.response;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import lombok.Data;
+
+@Data
+public class ErmDashboardSummaryV2Response {
+
+	/** Risk count grouped by risk category. */
+	private List<NamedCount> ermRiskSummary = new ArrayList<>();
+
+	/** Risk count grouped by risk register type. */
+	private List<NamedCount> riskSummary = new ArrayList<>();
+
+	/** Revised impact score bucketed into Catastrophic..Insignificant. */
+	private List<NamedCount> riskSummaryByImpact = new ArrayList<>();
+
+	/** Risk assessment risk priority bucketed into Very High..Very Low. */
+	private List<NamedCount> riskSummaryPriorityBased = new ArrayList<>();
+
+	/** Risk assessment count grouped by risk treatment strategy. */
+	private List<NamedCount> riskTreatmentStrategy = new ArrayList<>();
+
+	/** Review row count grouped by residual risk rating. */
+	private List<NamedCount> riskRatingStatusOverview = new ArrayList<>();
+
+	/** Quantitative and qualitative risk counts from the review type. */
+	private List<NamedCount> qualitativeAndQuantitativeAnalysis = new ArrayList<>();
+
+	/** Risk count grouped by risk source. */
+	private List<NamedCount> riskSummaryBySource = new ArrayList<>();
+
+	/** Location (branch) against residual risk rating. */
+	private List<ErmGroupBreakdown> riskRatingByLocation = new ArrayList<>();
+
+	/** Department against residual risk rating. */
+	private List<ErmGroupBreakdown> functionWiseRiskRatingSummary = new ArrayList<>();
+
+	/** Risk category against residual risk rating. */
+	private List<ErmGroupBreakdown> riskRatingBycategory = new ArrayList<>();
+
+	/** Risk owner against residual risk rating. */
+	private List<ErmGroupBreakdown> riskRatingByOwner = new ArrayList<>();
+
+	/** Company against residual risk rating; total is the company's full risk count. */
+	private List<ErmGroupBreakdown> riskRatingByGroupCompany = new ArrayList<>();
+
+	/** Quantitative risks only: risk title with annual loss expectancy. */
+	private List<ErmFinancialExposureRow> financialExposureByRisk = new ArrayList<>();
+
+	/** Likelihood by impact grid, coloured by residual risk rating, with velocity as an overlay. */
+	private ErmRiskHeatmap riskHeatmap = new ErmRiskHeatmap();
+
+	/** Total number of risks in scope. */
+	private long highRiskKris;
+
+	/** Number of risks rated Critical. */
+	private long totalKris;
+
+	private long withinRiskAppetite;
+
+	private long riskToleranceBreached;
+
+	/** Number of acceptable risks (legacy key, relabelled in the UI). */
+	private long overdueEvaluations;
+
+	/** Number of unacceptable risks (legacy key, relabelled in the UI). */
+	private long upcomingReview;
+
+	/** Raw stored appetite status values behind withinRiskAppetite/riskToleranceBreached. */
+	private List<NamedCount> riskAppetiteStatusCounts = new ArrayList<>();
+
+	/** Raw stored acceptance level values behind overdueEvaluations/upcomingReview. */
+	private List<NamedCount> riskAcceptanceLevelCounts = new ArrayList<>();
+
+	/** Company wide ERM maturity assessments, same data as erm-summary. */
+	private List<ErmMaturitySummaryGroup> ermMaturityCompanyWise = new ArrayList<>();
+
+	/** Department scoped ERM maturity assessments, same data as erm-summary. */
+	private List<ErmMaturitySummaryGroup> ermMaturityFunctionWise = new ArrayList<>();
+}
