@@ -57,6 +57,17 @@ public class ApprovalService implements IApprovalService {
 				.filter(user -> !Boolean.TRUE.equals(user.getDeleted()))
 				.orElseThrow(() -> new ResourceNotFoundException("Submitter not found."));
 		assertAuthorizedToCreate(submitter);
+        if(request.getSourceModule()!=null && "periodevaluation".equals(request.getSourceModule().replaceAll("[^a-zA-Z0-9]", "").toLowerCase(java.util.Locale.ROOT))) {
+            request.setSourceModule("periodEvaluation");
+            var organization=OrganizationContext.getOrganization();var company=CompanyContext.getCompany();
+            if(organization==null||company==null||approver.getOrganization()==null||submitter.getOrganization()==null
+                ||approver.getCompany()==null||submitter.getCompany()==null
+                ||!Objects.equals(organization.getId(),approver.getOrganization().getId())
+                ||!Objects.equals(organization.getId(),submitter.getOrganization().getId())
+                ||!Objects.equals(company.getId(),approver.getCompany().getId())
+                ||!Objects.equals(company.getId(),submitter.getCompany().getId()))
+                throw new ResourceNotFoundException("Evaluation approver and submitter must belong to the selected company.");
+        }
 		if (sourceRecordValidator != null) {
 			sourceRecordValidator.validate(request.getSourceModule(), request.getSourceRecordId());
 		}
