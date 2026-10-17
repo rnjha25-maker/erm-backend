@@ -30,6 +30,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 			@Param("roleName") String roleName);
 
 	@Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.roles r LEFT JOIN FETCH r.roleType LEFT JOIN FETCH u.company "
+			+ "LEFT JOIN FETCH u.organization LEFT JOIN FETCH u.userDetail ud LEFT JOIN FETCH ud.organization "
 			+ "LEFT JOIN FETCH u.branch LEFT JOIN FETCH u.department WHERE u.id = :id AND (u.deleted IS NULL OR u.deleted = false)")
 	Optional<User> findActiveByIdWithRolesAndCompany(@Param("id") Long id);
 

@@ -38,6 +38,39 @@ class ChartScopeTest {
     @Test void basicUserIsCreatorRestricted() throws Exception {
         role("BASIC_USER");assertThat(resolver.resolve(null,null,null).creatorId()).isEqualTo(30L);
     }
+    void profileOrganization(Long id) {
+        UserDetail detail = new UserDetail();
+        if (id != null) { Organization organization = new Organization(); organization.setId(id); detail.setOrganization(organization); }
+        user.setUserDetail(detail);
+    }
+    @Test void legacyProfileOrganizationAcceptedWithoutLosingCompanyScope() throws Exception {
+        role("COMPANY_ADMIN");user.setOrganization(null);profileOrganization(10L);
+        var scope = resolver.resolve(null,null,null);
+        assertThat(scope.organizationId()).isEqualTo(10L);
+        assertThat(scope.companyId()).isEqualTo(20L);
+        assertThatThrownBy(()->resolver.resolve(21L,null,null)).hasMessageContaining("outside user scope");
+    }
+    @Test void matchingBothOrganizationLinksAccepted() throws Exception {
+        role("ORG_ADMIN");profileOrganization(10L);
+        assertThat(resolver.resolve(null,null,null).organizationId()).isEqualTo(10L);
+    }
+    @Test void otherProfileOrganizationStillRejected() {
+        role("ORG_ADMIN");user.setOrganization(null);profileOrganization(11L);
+        assertThatThrownBy(()->resolver.resolve(null,null,null)).hasMessageContaining("outside the organization");
+    }
+    @Test void conflictingLinksRejectedEvenIfDirectLinkMatches() {
+        role("ORG_ADMIN");profileOrganization(11L);
+        assertThatThrownBy(()->resolver.resolve(null,null,null)).hasMessageContaining("outside the organization");
+    }
+    @Test void profileCannotOverrideDifferentDirectOrganization() {
+        role("ORG_ADMIN");profileOrganization(10L);
+        Organization other = new Organization();other.setId(11L);user.setOrganization(other);
+        assertThatThrownBy(()->resolver.resolve(null,null,null)).hasMessageContaining("outside the organization");
+    }
+    @Test void absentOrganizationLinksStillRejected() {
+        role("ORG_ADMIN");user.setOrganization(null);profileOrganization(null);
+        assertThatThrownBy(()->resolver.resolve(null,null,null)).hasMessageContaining("outside the organization");
+    }
     @Test void advancedWithoutAssignmentsFailsClosed() throws Exception {
         role("ADVANCED_USER");var scope=resolver.resolve(null,null,null);
         var repository=new DashboardChartRepository(null);

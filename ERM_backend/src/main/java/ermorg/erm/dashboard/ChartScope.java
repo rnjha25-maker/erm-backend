@@ -21,7 +21,14 @@ public record ChartScope(Long organizationId, Long companyId, Long creatorId,
             Long orgId = OrganizationContext.getOrganization().getId();
             User user = users.findActiveByIdWithRolesAndCompany(UserContext.getUser().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found."));
-            if (orgId == null || user.getOrganization() == null || !Objects.equals(orgId, user.getOrganization().getId()))
+            // Login resolves the organization from UserDetail for legacy users whose
+            // direct organization link is absent. Never accept conflicting links.
+            Long directOrgId = user.getOrganization() == null ? null : user.getOrganization().getId();
+            Long profileOrgId = user.getUserDetail() == null || user.getUserDetail().getOrganization() == null
+                ? null : user.getUserDetail().getOrganization().getId();
+            Long assignedOrgId = directOrgId != null ? directOrgId : profileOrgId;
+            if (orgId == null || !Objects.equals(orgId, assignedOrgId)
+                    || (directOrgId != null && profileOrgId != null && !Objects.equals(directOrgId, profileOrgId)))
                 throw new ResourceNotFoundException("User is outside the organization.");
             for (Long id : new Long[]{companyId, branchId, departmentId})
                 if (id != null && id <= 0) throw new IllegalArgumentException("Filter IDs must be positive.");
