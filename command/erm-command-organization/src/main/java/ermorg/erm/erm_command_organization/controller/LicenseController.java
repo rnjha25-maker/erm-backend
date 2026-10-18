@@ -15,7 +15,7 @@ import ermorg.erm.erm_command_organization.dto.responseDTO.ResponseStatus;
 import ermorg.erm.erm_command_organization.model.License;
 import ermorg.erm.erm_command_organization.repository.OrganizationRepository;
 import ermorg.erm.erm_command_organization.service.ILicenseService;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import org.springframework.web.bind.annotation.RequestBody;
 import lombok.RequiredArgsConstructor;
 
 @RestController
