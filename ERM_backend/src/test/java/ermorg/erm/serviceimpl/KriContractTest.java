@@ -83,10 +83,16 @@ class KriContractTest {
         request.setMeasurableParameters("Emissions ratio");
         request.setRiskAppetiteStatus("Within Risk Appetite");
         request.setLastKriEvaluationDate("2026-09-16T17:10:05Z");
+        request.setReportingYear(2026);
+        request.setReportingYearType(ermorg.erm.dashboard.ChartPeriod.YearType.FINANCIAL);
+        request.setReportingFrequency("Monthly");
+        request.setKriEvaluationFrequency("Monthly");
         OrganizationContext.setOrganization(org);
         try {
             var saved = service.save(request);
             var loaded = service.get(saved.getKriId());
+            assertThat(loaded.getReportingYear()).isEqualTo(2026);
+            assertThat(loaded.getReportingYearType()).isEqualTo(ermorg.erm.dashboard.ChartPeriod.YearType.FINANCIAL);
             assertThat(loaded.getRiskAppetiteStatus()).isEqualTo("Within Risk Appetite");
             assertThat(loaded.getTarget()).isEqualTo("15");
             assertThat(loaded.getTargets()).isEqualTo("16");
@@ -101,10 +107,12 @@ class KriContractTest {
             assertThat(loaded.getMeasurableParameters()).isEqualTo("Emissions ratio");
             assertThat(Instant.parse(loaded.getLastKriEvaluationDate())).isEqualTo(Instant.parse("2026-09-16T17:10:05Z"));
             request.setKriId(96105L); request.setTarget("19");
+            request.setReportingYear(null);request.setReportingYearType(null);
             request.setRiskAppetiteStatus("Risk Tolerance Breached");
             service.save(request);
             assertThat(service.get(96105L).getRiskAppetiteStatus()).isEqualTo("Risk Tolerance Breached");
             assertThat(service.get(96105L).getTarget()).isEqualTo("19");
+            assertThat(service.get(96105L).getReportingYear()).isEqualTo(2026);
             assertThat(service.get(96105L).getReportingName()).isEqualTo("Priya Sharma");
         } finally { OrganizationContext.clear(); }
     }
