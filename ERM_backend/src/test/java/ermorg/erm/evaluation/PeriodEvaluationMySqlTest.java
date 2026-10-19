@@ -28,7 +28,7 @@ class PeriodEvaluationMySqlTest {
     @BeforeEach void setup() throws Exception {
         source=new SingleConnectionDataSource("jdbc:mysql://127.0.0.1:3308/erm_chart_verification","root","",true);
         jdbc=new JdbcTemplate(source);
-        for(String table:List.of("risk","risk_controls","risk_risponse_treatment","risk_reviews","sub_risk","risk_sub_control","control_tags","approval","kri_kpi_reviews","kpa_kpi_review","user"))
+        for(String table:List.of("risk","risk_controls","risk_risponse_treatment","risk_reviews","sub_risk","risk_sub_control","control_tags","approval","kri_kpi_reviews","kpa_kpi_review","user","user_detail"))
             jdbc.execute("CREATE TEMPORARY TABLE "+table+" LIKE erm_verification."+table);
         for(String table:List.of("kri_kpi_reviews","kpa_kpi_review"))jdbc.execute("ALTER TABLE "+table+" ADD reporting_year INT NULL,ADD reporting_year_type VARCHAR(20) NULL");
         String migration=Files.readString(Path.of("../database/period-evaluation.sql"))

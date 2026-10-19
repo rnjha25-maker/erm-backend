@@ -30,6 +30,12 @@ public class DashboardChartService {
             Long company, Long branch, Long department, int page, int size) throws ResourceNotFoundException {
         validatePage(page,size);
         ChartScope scope=scopes.resolve(company,branch,department);
+        return performanceForScope(period,indicator,frequency,scope,page,size);
+    }
+    // Reuse the same chart implementation after the combined endpoint resolves scope once.
+    PerformanceResponse performanceForScope(ChartPeriod period,ChartPeriod.Indicator indicator,ChartPeriod.Frequency frequency,
+            ChartScope scope,int page,int size) {
+        validatePage(page,size);
         List<Map<String,Object>> rows = repository.performance(scope,period,indicator,frequency,page,size);
         rows=rows.stream().map(row->(Map<String,Object>)new LinkedHashMap<String,Object>(row)).toList();
         var visible=rows.subList(0,Math.min(size,rows.size()));
