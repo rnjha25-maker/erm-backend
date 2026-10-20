@@ -27,6 +27,12 @@ import lombok.Setter;
 @Getter
 @Setter
 public class KriKpiReview extends BaseModel {
+    @Column(name = "reporting_year")
+    private Integer reportingYear;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reporting_year_type", length = 20)
+    private ermorg.erm.dashboard.ChartPeriod.YearType reportingYearType;
 
 	
 	@ManyToOne(fetch = FetchType.LAZY)

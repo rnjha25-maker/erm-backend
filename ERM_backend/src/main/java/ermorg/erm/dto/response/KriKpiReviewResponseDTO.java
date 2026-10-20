@@ -17,6 +17,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class KriKpiReviewResponseDTO {
+    private Integer reportingYear;
+    private ermorg.erm.dashboard.ChartPeriod.YearType reportingYearType;
 
     private long kriId;
     private String businessObjectives;
@@ -138,6 +140,8 @@ public class KriKpiReviewResponseDTO {
         }
 
         this.target = kriKpiReview.getTarget();
+        this.reportingYear = kriKpiReview.getReportingYear();
+        this.reportingYearType = kriKpiReview.getReportingYearType();
         this.keyRiskParameters = kriKpiReview.getKeyRiskParameters();
         this.keyRiskIndicatorKri = kriKpiReview.getKeyRiskIndicatorKri();
         this.keyRiskIndicator = this.keyRiskIndicatorKri;

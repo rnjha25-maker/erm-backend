@@ -48,6 +48,8 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Slf4j
 public class RiskTreatmentService implements IRiskTreatmentService {
+    @Autowired(required = false)
+    private PeriodEvaluationService periodEvaluations;
 
 	@Override
 	@Transactional
@@ -251,7 +253,9 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 		return downloadDocument(documentId);
 	}
 	
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
 	public void deleteEvidence(Long riskTreatmentId, String documentId) throws ResourceNotFoundException {
+        if(periodEvaluations!=null)periodEvaluations.guardTreatmentEvidenceDeletion(riskTreatmentId,documentId);
 		RiskResponseTreatment riskResponseTreatment = riskResponseTreatmentRepository.findById(riskTreatmentId)
 				.filter(r -> !Boolean.TRUE.equals(r.getDeleted()))
 				.orElseThrow(() -> new ResourceNotFoundException("Risk response treatment not found."));
@@ -286,7 +290,7 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 		}
 
 		try {
-			Map<String, Object> response = restTemplate.postForObject(storageUrl("/upload"), request, Map.class);
+			Map<String, Object> response = storageClient().upload(request);
 			return extractData(response);
 		} catch (RestClientException ex) {
 			log.error("Supporting evidence upload failed.", ex);
@@ -297,7 +301,7 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 	@SuppressWarnings("unchecked")
 	private Map<String, Object> downloadDocument(String documentId) throws ResourceNotFoundException {
 		try {
-			Map<String, Object> response = restTemplate.getForObject(storageUrl("/download/" + documentId), Map.class);
+			Map<String, Object> response = storageClient().download(documentId);
 			return extractData(response);
 		} catch (RestClientException ex) {
 			log.error("Supporting evidence fetch failed for documentId: {}", documentId, ex);
@@ -307,7 +311,7 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 
 	private void deleteDocument(String documentId) throws ResourceNotFoundException {
 		try {
-			restTemplate.delete(storageUrl("/delete/" + documentId));
+			storageClient().delete(documentId);
 		} catch (RestClientException ex) {
 			log.error("Supporting evidence delete failed for documentId: {}", documentId, ex);
 			throw new ResourceNotFoundException("Supporting evidence document not found.");
@@ -316,7 +320,7 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 
 	@SuppressWarnings("unchecked")
 	private Map<String, Object> extractData(Map<String, Object> response) throws ResourceNotFoundException {
-		Object data = response == null ? null : response.get("data");
+		Object data = ermorg.erm.util.StorageDocumentClient.dataOrNull(response);
 		if (data instanceof Map<?, ?> map) {
 			return (Map<String, Object>) map;
 		}
@@ -331,8 +335,8 @@ public class RiskTreatmentService implements IRiskTreatmentService {
 		return documentId;
 	}
 
-	private String storageUrl(String path) {
-		return storageServiceUrl.replaceAll("/+$", "") + path;
+	private ermorg.erm.util.StorageDocumentClient storageClient() {
+		return new ermorg.erm.util.StorageDocumentClient(restTemplate, storageServiceUrl);
 	}
 
 	private String stringValue(Object value) {
