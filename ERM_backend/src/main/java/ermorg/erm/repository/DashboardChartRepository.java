@@ -35,7 +35,9 @@ public class DashboardChartRepository {
         boolean kri = indicator == ChartPeriod.Indicator.KRI;
         String from = kri
             ? " FROM kri_kpi_reviews k JOIN risk r ON r.id=k.risk_id AND r.deleted=false AND r.organization_id=k.organization_id AND r.company_id=k.company_id"
-            : " FROM kpa_kpi_review k LEFT JOIN user u ON u.id=k.owner_id AND u.deleted=false AND u.organization_id=k.organization_id AND u.company_id=k.company_id";
+            : " FROM kpa_kpi_review k LEFT JOIN user u ON u.id=k.owner_id AND u.deleted=false AND u.company_id=k.company_id"
+                + " AND (u.organization_id=k.organization_id OR (u.organization_id IS NULL AND EXISTS"
+                + " (SELECT 1 FROM user_detail owner_profile WHERE owner_profile.id=u.user_detail_id AND owner_profile.organization_id=k.organization_id)))";
         Filter f = filter(scope, "k.organization_id", "k.company_id", "k.created_by_id",
             kri ? "r.branch_id" : "u.branch_id", "k.business_function");
         // A performance row is an annual entry, even when only one quarter is requested.
@@ -87,7 +89,8 @@ public class DashboardChartRepository {
 
     public List<Map<String,Object>> performanceHistory(ChartScope scope,ChartPeriod period,ChartPeriod.Indicator indicator,ChartPeriod.Frequency frequency,List<Long> ids) {
         if(ids.isEmpty())return List.of();
-        return jdbc.queryForList("SELECT source_id,period_number,period_start,evaluation_values,source_snapshot FROM period_evaluation WHERE organization_id=:org AND company_id=:company AND module=:module AND source_id IN (:ids) AND reporting_year=:year AND year_type=:yearType AND frequency=:frequency AND state='COMPLETED' ORDER BY period_start,id",
+        // IDs come from the scoped performance query; a null company means all permitted companies.
+        return jdbc.queryForList("SELECT source_id,period_number,period_start,evaluation_values,source_snapshot FROM period_evaluation WHERE organization_id=:org AND (:company IS NULL OR company_id=:company) AND module=:module AND source_id IN (:ids) AND reporting_year=:year AND year_type=:yearType AND frequency=:frequency AND state='COMPLETED' ORDER BY period_start,id",
             new MapSqlParameterSource("org",scope.organizationId()).addValue("company",scope.companyId()).addValue("module",indicator.name())
                 .addValue("ids",ids).addValue("year",period.year()).addValue("yearType",period.yearType().name()).addValue("frequency",frequency.name()));
     }

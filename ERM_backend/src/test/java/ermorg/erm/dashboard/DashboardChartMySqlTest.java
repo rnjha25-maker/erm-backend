@@ -23,7 +23,7 @@ class DashboardChartMySqlTest {
         source=new SingleConnectionDataSource("jdbc:mysql://127.0.0.1:3308/erm_chart_verification","root","",true);
         jdbc=new JdbcTemplate(source);
         // LIKE validates the repository against the real Hibernate-created local schema.
-        for(String table:List.of("risk","risk_assessment","risk_reviews","kri_kpi_reviews","kpa_kpi_review","user"))
+        for(String table:List.of("risk","risk_assessment","risk_reviews","kri_kpi_reviews","kpa_kpi_review","user","user_detail"))
             jdbc.execute("CREATE TEMPORARY TABLE "+table+" LIKE erm_verification."+table);
         for(String table:List.of("kri_kpi_reviews","kpa_kpi_review"))
             jdbc.execute("ALTER TABLE "+table+" ADD COLUMN reporting_year INT NULL, ADD COLUMN reporting_year_type VARCHAR(20) NULL");
@@ -32,6 +32,25 @@ class DashboardChartMySqlTest {
         risk(1,10,20,false);risk(2,10,20,false);risk(3,11,20,false);risk(4,10,21,false);risk(5,10,20,true);
     }
     @AfterEach void close() { if(source!=null) source.destroy(); }
+    @Test void kpiBranchFilterAcceptsLegacyProfileOrganizationButRejectsDifferentOrganization() {
+        jdbc.update("INSERT INTO user_detail(id,organization_id) VALUES(300,10)");
+        jdbc.update("INSERT INTO user(id,deleted,organization_id,company_id,branch_id,user_detail_id) VALUES(30,false,NULL,20,40,300)");
+        jdbc.update("INSERT INTO kpa_kpi_review(id,kpa,key_performance_indicator,owner_id,kpi_evaluation_by,organization_id,company_id,is_deleted,created_at,reporting_frequency,status,target_value,q1,business_function) VALUES(1,'KRA','KPI',30,30,10,20,false,'2026-02-01','Quarterly','Active',100,22,'50')");
+        var branch=new ChartScope(10L,20L,null,40L,50L,false,null,null);
+        assertThat(repository.performance(branch,annual,Indicator.KPI,Frequency.QUARTERLY,0,20)).hasSize(1);
+        jdbc.update("UPDATE user_detail SET organization_id=11 WHERE id=300");
+        assertThat(repository.performance(branch,annual,Indicator.KPI,Frequency.QUARTERLY,0,20)).isEmpty();
+        jdbc.update("UPDATE user_detail SET organization_id=10 WHERE id=300");
+        jdbc.update("UPDATE user SET organization_id=11 WHERE id=30");
+        assertThat(repository.performance(branch,annual,Indicator.KPI,Frequency.QUARTERLY,0,20)).isEmpty();
+    }
+    @Test void organizationWidePerformanceHistoryStillRespectsTenantAndSelectedSourceIds() {
+        jdbc.update("INSERT INTO period_evaluation(id,module,source_id,organization_id,company_id,state,reporting_year,year_type,frequency,period_number,period_start,evaluation_values,source_snapshot) VALUES(1,'KRI',100,10,20,'COMPLETED',2026,'CALENDAR','MONTHLY',1,'2026-01-01','{}','{}'),(2,'KRI',101,10,21,'COMPLETED',2026,'CALENDAR','MONTHLY',1,'2026-01-01','{}','{}'),(3,'KRI',100,11,20,'COMPLETED',2026,'CALENDAR','MONTHLY',1,'2026-01-01','{}','{}'),(4,'KRI',999,10,20,'COMPLETED',2026,'CALENDAR','MONTHLY',1,'2026-01-01','{}','{}')");
+        var all=new ChartScope(10L,null,null,null,null,false,null,null);
+        assertThat(repository.performanceHistory(all,annual,Indicator.KRI,Frequency.MONTHLY,List.of(100L,101L))).hasSize(2);
+        assertThat(repository.performanceHistory(scope,annual,Indicator.KRI,Frequency.MONTHLY,List.of(100L,101L))).hasSize(1);
+        assertThat(repository.performanceHistory(all,annual,Indicator.KRI,Frequency.MONTHLY,List.of())).isEmpty();
+    }
     void risk(long id,long org,long company,boolean deleted) {
         jdbc.update("INSERT INTO risk(id,organization_id,company_id,deleted,created_at,branch_id,business_function,created_by_id,risk_title) VALUES(?,?,?,?, '2025-01-01',40,50,30,?)",id,org,company,deleted,"Risk "+id);
     }
