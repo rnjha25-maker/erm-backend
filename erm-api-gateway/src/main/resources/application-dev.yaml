@@ -106,7 +106,7 @@ logging:
   level:
     org.springframework.security: DEBUG
 allowed:
- origins: http://localhost:5173, http://localhost:5174, http://localhost:5175,http://localhost:4200,erm-demo-theme.s3-website-us-east-1.amazonaws.com
+ origins: http://localhost:5173, http://localhost:5174, http://localhost:5175,http://localhost:4200,http://erm-demo-theme.s3-website-us-east-1.amazonaws.com
 
     
     
