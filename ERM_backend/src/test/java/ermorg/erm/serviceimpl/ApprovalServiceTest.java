@@ -49,6 +49,9 @@ class ApprovalServiceTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private NotificationPersistenceService notificationPersistenceService;
+
     @InjectMocks
     private ApprovalService approvalService;
 

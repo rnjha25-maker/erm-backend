@@ -88,9 +88,9 @@ public class ApprovalService implements IApprovalService {
 		approval.setTriggerType(request.getTriggerType() == null ? WorkflowTriggerType.AUTOMATIC : request.getTriggerType());
 		approval.setStatus(ApprovalStatus.PENDING);
 		Approval saved = approvalRepository.save(approval);
-		notificationService.sendApprovalSubmitted(saved);
+		sendNotificationSafely("submission", saved, () -> notificationService.sendApprovalSubmitted(saved));
 		if (saved.getTriggerType() == WorkflowTriggerType.AUTOMATIC) {
-			notificationService.sendApprovalAssigned(saved);
+			sendNotificationSafely("assignment", saved, () -> notificationService.sendApprovalAssigned(saved));
 		}
 		log.info(
 				"Audit: Approval Created approvalId={} module={} recordId={} requesterId={} approverId={} decision={} timestamp={} triggerType={}",
@@ -125,7 +125,7 @@ public class ApprovalService implements IApprovalService {
 		approval.setNotifiedAt(decisionAt);
 		approval.setClosedAt(decisionAt);
 		Approval saved = approvalRepository.save(approval);
-		notificationService.sendApprovalDecision(saved);
+		sendNotificationSafely("decision", saved, () -> notificationService.sendApprovalDecision(saved));
 		log.info(
 				"Audit: Approval {} approvalId={} module={} recordId={} requesterId={} approverId={} decision={} timestamp={}",
 				saved.getStatus() == ApprovalStatus.APPROVED ? "Approved" : "Rejected", saved.getId(),
@@ -152,7 +152,7 @@ public class ApprovalService implements IApprovalService {
 		approval.setTriggeredBy(UserContext.getUser());
 		approval.setTriggeredAt(new Date());
 		Approval saved = approvalRepository.save(approval);
-		notificationService.sendApprovalAssigned(saved);
+		sendNotificationSafely("assignment", saved, () -> notificationService.sendApprovalAssigned(saved));
 		log.info("Manual approval triggered id={} triggeredById={}", saved.getId(),
 				saved.getTriggeredBy() != null ? saved.getTriggeredBy().getId() : null);
 		return new ApprovalResponse(saved);
@@ -169,7 +169,7 @@ public class ApprovalService implements IApprovalService {
 		approval.setEscalatedAt(new Date());
 		approval.setEscalationSource(WorkflowTriggerType.MANUAL);
 		Approval saved = approvalRepository.save(approval);
-		notificationService.sendEscalation(saved);
+		sendNotificationSafely("escalation", saved, () -> notificationService.sendEscalation(saved));
 		log.info("Manually escalated approval {} to level {}", saved.getId(), saved.getEscalationLevel());
 		return new ApprovalResponse(saved);
 	}
@@ -181,7 +181,7 @@ public class ApprovalService implements IApprovalService {
 		assertPending(approval);
 		assertAuthorizedForWorkflowAction(approval);
 
-		notificationService.sendReminder(approval);
+		sendNotificationSafely("reminder", approval, () -> notificationService.sendReminder(approval));
 		approval.setReminderNotifiedAt(new Date());
 		approvalRepository.save(approval);
 		log.info("Approval reminder sent id={} approverId={}", approval.getId(),
@@ -298,6 +298,14 @@ public class ApprovalService implements IApprovalService {
 			throw new ResourceNotFoundException("User not found.");
 		}
 		return user;
+	}
+
+	private void sendNotificationSafely(String action, Approval approval, Runnable notificationAction) {
+		try {
+			notificationAction.run();
+		} catch (RuntimeException ex) {
+			log.error("Approval {} persisted but {} notification failed: {}", approval.getId(), action, ex.getMessage());
+		}
 	}
 
 	private void validateCreateRequest(ApprovalRequest request) throws ResourceNotFoundException {

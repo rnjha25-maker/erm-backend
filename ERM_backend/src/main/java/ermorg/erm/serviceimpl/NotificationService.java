@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import ermorg.erm.constant.NotificationChannel;
 import ermorg.erm.constant.NotificationStatus;
@@ -39,15 +41,18 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final ObjectProvider<JavaMailSender> mailSenderProvider;
+    private final NotificationPersistenceService notificationPersistenceService;
 
     @Value("${approval.notifications.enabled:false}")
     private boolean notificationsEnabled;
 
     public NotificationService(NotificationRepository notificationRepository, UserRepository userRepository,
-            ObjectProvider<JavaMailSender> mailSenderProvider) {
+            ObjectProvider<JavaMailSender> mailSenderProvider,
+            NotificationPersistenceService notificationPersistenceService) {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
         this.mailSenderProvider = mailSenderProvider;
+        this.notificationPersistenceService = notificationPersistenceService;
     }
 
     public List<NotificationResponse> getMyNotifications() throws ResourceNotFoundException {
@@ -136,7 +141,7 @@ public class NotificationService {
                 notification.setFailureReason(ex.getMessage());
                 log.warn("Approval notification failed for user {}: {}", recipient.getId(), ex.getMessage());
             }
-            notificationRepository.save(notification);
+            notificationPersistenceService.save(notification);
         }
     }
 
