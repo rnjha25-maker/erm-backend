@@ -6,8 +6,39 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+# All branches deploy to the same EC2 destination; serialize manual and main runs.
+concurrency:
+  group: ec2-shared-deployment
+  cancel-in-progress: false
+
+
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.release.outputs.image_tag }}
+    steps:
+      - name: Validate branch and select release
+        id: release
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" != refs/heads/* ]]; then
+            echo "Select a branch, not a tag" >&2
+            exit 1
+          fi
+          if [[ "$EVENT_NAME" != workflow_dispatch && !( "$EVENT_NAME" == push && "$GITHUB_REF" == refs/heads/main ) ]]; then
+            echo "Only manual branch runs or pushes to main can deploy" >&2
+            exit 1
+          fi
+          echo "image_tag=sha-${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+
   build-and-push:
+    needs: validate
     runs-on: ubuntu-latest
 
     steps:
@@ -20,6 +51,9 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
+
+      - name: Test backend contracts without shared database access
+        run: mvn -B -pl ERM_backend '-Dtest=*,!ErmApplicationTests' test
 
       - name: Build with Maven
         run: mvn clean package -DskipTests
@@ -41,7 +75,7 @@ jobs:
           file: ./Dockerfile
           build-args: MODULE_PATH=discovery-server
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-discovery-server:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-discovery-server:${{ needs.validate.outputs.image_tag }}
 
       - name: Build and push erm-api-gateway
         uses: docker/build-push-action@v5
@@ -50,7 +84,7 @@ jobs:
           file: ./Dockerfile
           build-args: MODULE_PATH=erm-api-gateway
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-api-gateway:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-api-gateway:${{ needs.validate.outputs.image_tag }}
 
       - name: Build and push erm-backend
         uses: docker/build-push-action@v5
@@ -59,7 +93,7 @@ jobs:
           file: ./Dockerfile
           build-args: MODULE_PATH=ERM_backend
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-backend:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-backend:${{ needs.validate.outputs.image_tag }}
 
       - name: Build and push erm-command-organization
         uses: docker/build-push-action@v5
@@ -68,7 +102,7 @@ jobs:
           file: ./Dockerfile
           build-args: MODULE_PATH=command/erm-command-organization
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-command-organization:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-command-organization:${{ needs.validate.outputs.image_tag }}
 
       - name: Build and push org-setup-command
         uses: docker/build-push-action@v5
@@ -77,7 +111,7 @@ jobs:
           file: ./Dockerfile
           build-args: MODULE_PATH=command/org-setup-command
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-org-setup-command:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-org-setup-command:${{ needs.validate.outputs.image_tag }}
 
       - name: Build and push user-setup-command
         uses: docker/build-push-action@v5
@@ -86,7 +120,7 @@ jobs:
           file: ./Dockerfile
           build-args: MODULE_PATH=command/user-command
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-user-setup:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-user-setup:${{ needs.validate.outputs.image_tag }}
 
       - name: Build and push storage
         uses: docker/build-push-action@v5
@@ -95,7 +129,7 @@ jobs:
           file: ./Dockerfile
           build-args: MODULE_PATH=command/storage
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-storage:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-storage:${{ needs.validate.outputs.image_tag }}
 
       - name: Build and push erm-query-organization
         uses: docker/build-push-action@v5
@@ -104,7 +138,7 @@ jobs:
           file: ./Dockerfile
           build-args: MODULE_PATH=query/erm-query-organization
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-query-organization:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-query-organization:${{ needs.validate.outputs.image_tag }}
 
       - name: Build and push user-query
         uses: docker/build-push-action@v5
@@ -113,16 +147,38 @@ jobs:
           file: ./Dockerfile
           build-args: MODULE_PATH=query/user-query
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-user-query:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/erm-user-query:${{ needs.validate.outputs.image_tag }}
 
   # ====================== DEPLOY JOB ======================
   deploy:
-    needs: build-and-push
+    needs: [validate, build-and-push]
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Check deployment configuration
+        env:
+          TARGET_HOST: ${{ secrets.EC2_HOST }}
+          TARGET_USER: ${{ secrets.EC2_USER }}
+          TARGET_KEY: ${{ secrets.EC2_SSH_KEY }}
+          TARGET_DIR: ${{ secrets.EC2_APP_DIR }}
+          TARGET_DB: ${{ secrets.AWS_RDS_ENDPOINT }}
+          TARGET_DB_USER: ${{ secrets.AWS_RDS_USERNAME }}
+          TARGET_DB_PASSWORD: ${{ secrets.AWS_RDS_PASSWORD }}
+          TARGET_REDIS: ${{ secrets.AWS_REDIS_ENDPOINT }}
+          TARGET_AWS_KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          TARGET_AWS_SECRET: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          TARGET_AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          set -euo pipefail
+          for name in TARGET_HOST TARGET_USER TARGET_KEY TARGET_DIR TARGET_DB TARGET_DB_USER TARGET_DB_PASSWORD TARGET_REDIS TARGET_AWS_KEY TARGET_AWS_SECRET TARGET_AWS_REGION; do
+            if [[ -z "${!name}" ]]; then
+              echo "Missing deployment setting: $name" >&2
+              exit 1
+            fi
+          done
 
       - name: Copy docker-compose to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -134,7 +190,7 @@ jobs:
           target: ${{ secrets.EC2_APP_DIR }}
           overwrite: true
 
-      - name: Deploy to EC2 (Very Safe Staggered)
+      - name: Deploy to existing EC2 (staggered)
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -148,14 +204,14 @@ jobs:
             echo "=== Creating .env file ==="
             cat > .env << 'EOF'
             DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}
-            IMAGE_TAG=latest
+            IMAGE_TAG=${{ needs.validate.outputs.image_tag }}
             AWS_RDS_ENDPOINT=${{ secrets.AWS_RDS_ENDPOINT }}
             AWS_RDS_USERNAME=${{ secrets.AWS_RDS_USERNAME }}
             AWS_RDS_PASSWORD=${{ secrets.AWS_RDS_PASSWORD }}
             AWS_REDIS_ENDPOINT=${{ secrets.AWS_REDIS_ENDPOINT }}
-            AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
-            AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}   
-            AWS_REGION: ${{secrets.AWS_REGION}}
+            AWS_ACCESS_KEY_ID=${{secrets.AWS_ACCESS_KEY_ID}}
+            AWS_SECRET_ACCESS_KEY=${{secrets.AWS_SECRET_ACCESS_KEY}}
+            AWS_REGION=${{secrets.AWS_REGION}}
             EOF
 
             # Detect docker compose command
@@ -165,10 +221,6 @@ jobs:
               DC="docker compose"
             fi
 
-            echo "=== Reclaiming only unused Docker resources ==="
-            docker container prune -f || true
-            docker image prune -f || true
-            docker builder prune -f || true
 
             echo "=== Pulling fresh images ==="
             $DC -f docker-compose.ec2.yml pull
@@ -192,10 +244,8 @@ jobs:
             sleep 10
 
             $DC -f docker-compose.ec2.yml up -d --no-deps erm-backend
-            sleep 20  
+            sleep 20
 
-            echo "=== Cleaning dangling images after rollout ==="
-            docker image prune -f || true
 
             echo "Deployment completed successfully."
             echo "Container Status:"
