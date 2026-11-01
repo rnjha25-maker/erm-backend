@@ -75,4 +75,20 @@ public interface KpaKpiReviewRepository extends JpaRepository<KpaKpiReview, Long
             @Param("endDate") Date endDate,
             @Param("scopeCompanyId") Long scopeCompanyId,
             @Param("scopeCreatorUserId") Long scopeCreatorUserId);
+
+    @Query("SELECT COUNT(k) FROM KpaKpiReview k WHERE k.organization.id = :orgId AND k.deleted = false "
+            + "AND k.createdAt BETWEEN :startDate AND :endDate "
+            + "AND (:scopeCompanyId IS NULL OR k.company.id = :scopeCompanyId) "
+            + "AND (:scopeCreatorUserId IS NULL OR (k.createdBy IS NOT NULL AND k.createdBy.id = :scopeCreatorUserId)) "
+            + "AND (:applyAssignedScope = false OR k.owner.branch.id IN :branchIds "
+            + "OR k.businessFunction IN :departmentIds)")
+    long countForErmDashboardScoped(
+            @Param("orgId") Long orgId,
+            @Param("startDate") Date startDate,
+            @Param("endDate") Date endDate,
+            @Param("scopeCompanyId") Long scopeCompanyId,
+            @Param("scopeCreatorUserId") Long scopeCreatorUserId,
+            @Param("applyAssignedScope") boolean applyAssignedScope,
+            @Param("branchIds") List<Long> branchIds,
+            @Param("departmentIds") List<String> departmentIds);
 }

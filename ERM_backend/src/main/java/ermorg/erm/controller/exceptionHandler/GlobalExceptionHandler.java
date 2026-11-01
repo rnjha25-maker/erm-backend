@@ -70,6 +70,15 @@ public class GlobalExceptionHandler {
 		log.error(ex.getMessage());
 		return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
 	}
+
+	@ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+	public ResponseEntity<GeneralResponse<Object>> handleResponseStatusException(
+			org.springframework.web.server.ResponseStatusException ex) {
+		GeneralResponse<Object> response = new GeneralResponse<>();
+		response.setMessage(ex.getReason());
+		response.setStatus(ResponseStatus.FAILED);
+		return ResponseEntity.status(ex.getStatusCode()).body(response);
+	}
 	
 	@ExceptionHandler(IllegalArgumentException.class)
 	public ResponseEntity<GeneralResponse<Object>> handleIllegalArgument(IllegalArgumentException ex) {

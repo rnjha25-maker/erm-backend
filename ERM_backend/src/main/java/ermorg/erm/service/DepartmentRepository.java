@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import java.util.List;
 
 import ermorg.erm.model.Department;
 
@@ -17,4 +18,8 @@ public interface DepartmentRepository extends JpaRepository<Department, Long> {
 	
 	@Query("SELECT COUNT(d) FROM Department d WHERE d.organization.id = :orgId AND d.createdAt BETWEEN :startDate AND :endDate AND d.deleted = false")
 	public Long totalDepartments(@Param("orgId") Long orgId, @Param("startDate") Date startDate, @Param("endDate") Date endDate);
+
+	@Query("SELECT d.id FROM Department d WHERE d.organization.id = :orgId AND d.branch.id IN :branchIds AND d.deleted = false")
+	List<Long> findActiveIdsByOrganizationAndBranchIds(@Param("orgId") Long orgId,
+			@Param("branchIds") List<Long> branchIds);
 }

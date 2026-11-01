@@ -35,6 +35,8 @@ public record ChartScope(Long organizationId, Long companyId, Long creatorId,
             ErmDashboardAccessScope tier = ErmDashboardRoleResolver.resolveScope(user);
             Long creator = tier == ErmDashboardAccessScope.CREATOR_ONLY ? user.getId() : null;
             boolean restricted = tier == ErmDashboardAccessScope.ADVANCED_USER_SCOPED;
+            if (tier == ErmDashboardAccessScope.CREATOR_ONLY && (branchId != null || departmentId != null))
+                throw new ResourceNotFoundException("Branch and department filters are outside the caller's dashboard scope.");
             if (tier == ErmDashboardAccessScope.COMPANY_SCOPED || restricted) {
                 if (user.getCompany() == null || user.getCompany().getId() == null)
                     throw new ResourceNotFoundException("User company required.");
