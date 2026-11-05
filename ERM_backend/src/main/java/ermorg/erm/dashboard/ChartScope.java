@@ -10,7 +10,12 @@ import ermorg.erm.util.*;
 
 public record ChartScope(Long organizationId, Long companyId, Long creatorId,
                          Long branchId, Long departmentId, boolean restricted,
-                         Long assignedBranchId, Long assignedDepartmentId) {
+                         Long assignedBranchId, Long assignedDepartmentId, Long userId) {
+    public ChartScope(Long organizationId, Long companyId, Long creatorId, Long branchId, Long departmentId,
+            boolean restricted, Long assignedBranchId, Long assignedDepartmentId) {
+        this(organizationId, companyId, creatorId, branchId, departmentId, restricted,
+            assignedBranchId, assignedDepartmentId, null);
+    }
     @Component
     public static class Resolver {
         private final UserRepository users;
@@ -49,7 +54,7 @@ public record ChartScope(Long organizationId, Long companyId, Long creatorId,
             var assignedDepartments = ErmDashboardRoleResolver.resolveAssignedDepartmentIds(user);
             return new ChartScope(orgId, companyId, creator, branchId, departmentId, restricted,
                 assignedBranches.isEmpty() ? null : assignedBranches.get(0),
-                assignedDepartments.isEmpty() ? null : assignedDepartments.get(0));
+                assignedDepartments.isEmpty() ? null : assignedDepartments.get(0),user.getId());
         }
     }
 }
