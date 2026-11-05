@@ -145,6 +145,11 @@ public class KpaKpiReviewService {
     }
 
     private void mapRequestToEntity(KpaKpiReviewRequestDTO request, KpaKpiReview review) {
+        var period = ermorg.erm.dashboard.ReportingPeriodMetadata.resolve(request.getReportingYear(),
+            request.getReportingYearType(),review.getReportingYear(),review.getReportingYearType());
+        period.validateFrequency(request.getKpiEvaluationFrequency(),request.getReportingFrequency());
+        review.setReportingYear(period.year());
+        review.setReportingYearType(period.yearType());
         review.setKpa(request.getKpa());
         review.setBusinessObjectives(request.getBusinessObjectives());
         review.setBusinessFunction(resolveFirstText(
@@ -325,6 +330,8 @@ public class KpaKpiReviewService {
                 ? review.getBusinessFunction() : review.getStakeholderDepartments();
         response.setDepartmentName(fieldMapperUtils.resolveDepartmentFromObject(rawDept));
         response.setTargetValue(review.getTargetValue());
+        response.setReportingYear(review.getReportingYear());
+        response.setReportingYearType(review.getReportingYearType());
         response.setActualValue(review.getActualValue());
         response.setActuals(review.getActualValue());
         response.setJanuary(review.getJanuary());

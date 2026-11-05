@@ -21,7 +21,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class LicenseServiceImpl implements ILicenseService{
 	private final LicenseRepository licenseRepository;
-	private OrganizationRepository organizationRepository;
+	private final OrganizationRepository organizationRepository;
 	@Override
 	public License getActiveLicense(Long orgId) {
 

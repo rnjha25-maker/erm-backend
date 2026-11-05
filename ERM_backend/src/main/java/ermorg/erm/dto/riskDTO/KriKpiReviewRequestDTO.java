@@ -17,6 +17,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class KriKpiReviewRequestDTO {
+    private Integer reportingYear;
+    private ermorg.erm.dashboard.ChartPeriod.YearType reportingYearType;
 	
 	private long kriId;
     private String businessObjectives;

@@ -93,6 +93,9 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 				.orElseThrow(() -> new ResourceNotFoundException("KriKpiReview not found."));
 		}
 
+        var period = ermorg.erm.dashboard.ReportingPeriodMetadata.resolve(request.getReportingYear(),
+            request.getReportingYearType(),kriKpiReview.getReportingYear(),kriKpiReview.getReportingYearType());
+        period.validateFrequency(request.getKriEvaluationFrequency(),request.getReportingFrequency());
 		subRisks = subRisks.stream()
 				.map(sbRisk -> {
 					sbRisk.setKriKpiReview(kriKpiReview);
@@ -101,6 +104,8 @@ public class KripKpiRiskService implements IKriKpiRiskService {
 				 .collect(Collectors.toList());
 		
 		createMapper().map(request, kriKpiReview);
+        kriKpiReview.setReportingYear(period.year());
+        kriKpiReview.setReportingYearType(period.yearType());
 		kriKpiReview.setLevelOfMeasurementLevel(request.getMeasurableParameters());
 		String lastEvaluation = request.getLastKriEvaluationDate();
 		kriKpiReview.setLastKriEvaluationDate(lastEvaluation == null || lastEvaluation.isBlank()

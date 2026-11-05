@@ -21,6 +21,15 @@ import io.swagger.v3.oas.annotations.Hidden;
 @Slf4j
 @ControllerAdvice(name = "ermGlobalExceptionHandler")
 public class GlobalExceptionHandler {
+    @ExceptionHandler({org.springframework.web.servlet.resource.NoResourceFoundException.class,
+            org.springframework.web.servlet.NoHandlerFoundException.class})
+    public ResponseEntity<GeneralResponse<Object>> handleMissingEndpoint(Exception ex) {
+        GeneralResponse<Object> response = new GeneralResponse<>();
+        response.setStatus(ResponseStatus.FAILED);
+        response.setMessage("Requested endpoint not found.");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
 	@ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
 	public ResponseEntity<GeneralResponse<Object>> handleUploadTooLarge(
 			org.springframework.web.multipart.MaxUploadSizeExceededException ex) {
@@ -60,6 +69,15 @@ public class GlobalExceptionHandler {
 		
 		log.error(ex.getMessage());
 		return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+	}
+
+	@ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+	public ResponseEntity<GeneralResponse<Object>> handleResponseStatusException(
+			org.springframework.web.server.ResponseStatusException ex) {
+		GeneralResponse<Object> response = new GeneralResponse<>();
+		response.setMessage(ex.getReason());
+		response.setStatus(ResponseStatus.FAILED);
+		return ResponseEntity.status(ex.getStatusCode()).body(response);
 	}
 	
 	@ExceptionHandler(IllegalArgumentException.class)

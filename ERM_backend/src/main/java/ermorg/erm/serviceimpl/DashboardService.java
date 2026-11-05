@@ -19,8 +19,10 @@ import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import ermorg.erm.constant.ErmDashboardAccessScope;
 import ermorg.erm.constant.ErmDashboardPeriodType;
@@ -109,31 +111,42 @@ public class DashboardService implements IDashboardService {
 	public BasicDashboardResponse getBasicDashboardData(String period, Pageable pageable)
 			throws ResourceNotFoundException {
 
-		Organization organization = OrganizationContext.getOrganization(); // TODO: check if this is correct.U
-		User user = UserContext.getUser();
-		if (user == null) {
-			throw new ResourceNotFoundException("User not found.");
+		Organization organization = OrganizationContext.getOrganization();
+		User user = requireDashboardUser();
+		if (organization == null) {
+			throw new ResourceNotFoundException("No organization found.");
 		}
 
-		List<Risk> allRisksByOrgIdAndCreatedBy = new ArrayList<>();
+		ErmDashboardAccessScope scope = resolveDashboardScope(user, organization);
+		List<Risk> allRisks = new ArrayList<>();
 		List<Date> calculatePeriod = calculatePeriod(period);
 		Date startDate = calculatePeriod.get(0);
 		Date endDate = calculatePeriod.get(1);
+		Long companyId = scope == ErmDashboardAccessScope.ORGANIZATION_WIDE ? null
+				: user.getCompany() == null ? null : user.getCompany().getId();
+		if (scope != ErmDashboardAccessScope.ORGANIZATION_WIDE && companyId == null) {
+			throw new ResourceNotFoundException("User company required for dashboard scope.");
+		}
 		if (startDate == null || endDate == null) {
-			allRisksByOrgIdAndCreatedBy = riskRepository
-					.getAllRisksByOrgIdAndCreatedByNoPage(user.getOrganization().getId(), user.getId());
-
+			allRisks = scope == ErmDashboardAccessScope.CREATOR_ONLY
+					? riskRepository.getAllRisksByOrgIdAndCreatedByNoPage(organization.getId(), user.getId())
+					: scope == ErmDashboardAccessScope.ORGANIZATION_WIDE
+							? riskRepository.getAllRisksByOrgIdNoPage(organization.getId())
+							: riskRepository.getAllRisksByCompanyNoPage(companyId);
 		} else {
-			allRisksByOrgIdAndCreatedBy = riskRepository.getAllRisksByOrgIdAndCreatedByDateRangeNoPage(
-					organization.getId(), user.getId(), startDate, endDate);
-
+			allRisks = scope == ErmDashboardAccessScope.CREATOR_ONLY
+					? riskRepository.getAllRisksByOrgIdAndCreatedByDateRangeNoPage(
+							organization.getId(), user.getId(), startDate, endDate)
+					: scope == ErmDashboardAccessScope.ORGANIZATION_WIDE
+							? riskRepository.getAllRisksByOrgIdDateRangeNoPage(organization.getId(), startDate, endDate)
+							: riskRepository.getAllRisksByCompanyDateRangeNoPage(companyId, startDate, endDate);
 		}
 
-		Map<String, Long> countByStatus = allRisksByOrgIdAndCreatedBy.stream()
+		Map<String, Long> countByStatus = allRisks.stream()
 				.collect(Collectors.groupingBy(Risk::getRiskStatus, Collectors.counting()));
 
 		// For the response list, use pageable to limit
-		List<Risk> topRisks = allRisksByOrgIdAndCreatedBy.stream().limit(pageable.getPageSize())
+		List<Risk> topRisks = allRisks.stream().limit(pageable.getPageSize())
 				.collect(Collectors.toList());
 		List<List<CustomResponse>> responseList = toCustomReponse(topRisks);
 
@@ -143,11 +156,16 @@ public class DashboardService implements IDashboardService {
 	@Override
 	public OrgAdminDashboardDto getAdminDashboardData(String period, Pageable pageable)
 			throws ResourceNotFoundException {
+		User user = requireDashboardUser();
 
 		Organization organization = OrganizationContext.getOrganization();
 
 		if (organization == null) {
 			throw new ResourceNotFoundException("No organization found.");
+		}
+		if (resolveDashboardScope(user, organization) != ErmDashboardAccessScope.ORGANIZATION_WIDE) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+					"Organization-wide dashboard access requires the existing organization admin scope.");
 		}
 
 		List<Date> calculatePeriod = calculatePeriod(period);
@@ -201,12 +219,23 @@ public class DashboardService implements IDashboardService {
 	@Override
 	public CompanyAdminDashboardDto getCompanyAdminDashboardData(String period, Pageable pageable)
 			throws ResourceNotFoundException {
-
 		Organization organization = OrganizationContext.getOrganization();
 		Company company = CompanyContext.getCompany();
+		User user = requireDashboardUser();
 
-		if (company == null) {
-			throw new ResourceNotFoundException("No company found.");
+		if (company == null || organization == null || company.getOrganization() == null
+				|| !Objects.equals(company.getOrganization().getId(), organization.getId())) {
+			throw new ResourceNotFoundException("Company is outside the authenticated organization.");
+		}
+		ErmDashboardAccessScope scope = resolveDashboardScope(user, organization);
+		if (scope == ErmDashboardAccessScope.CREATOR_ONLY) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+					"Company dashboard access is not available for the caller's role scope.");
+		}
+		if (scope != ErmDashboardAccessScope.ORGANIZATION_WIDE
+				&& (user.getCompany() == null || !Objects.equals(user.getCompany().getId(), company.getId()))) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+					"Company is outside the caller's assigned dashboard scope.");
 		}
 
 		List<Date> calculatePeriod = calculatePeriod(period);
@@ -223,8 +252,30 @@ public class DashboardService implements IDashboardService {
 			branches = branchRepository.getBranchesByCompany(company.getId(), organization.getId(), startDate, endDate);
 			allRisksByCompany = riskRepository.getAllRisksByCompanyDateRangeNoPage(company.getId(), startDate, endDate);
 		}
+		List<Long> assignedDepartmentIds = ErmDashboardRoleResolver.resolveAssignedDepartmentIds(user);
+		List<Long> visibleDepartmentIds = new ArrayList<>(assignedDepartmentIds);
+		if (scope == ErmDashboardAccessScope.ADVANCED_USER_SCOPED) {
+			List<Long> branchIds = ErmDashboardRoleResolver.resolveAssignedBranchIds(user);
+			if (!branchIds.isEmpty()) {
+				List<Long> departmentsInBranches = departmentRepostory.findActiveIdsByOrganizationAndBranchIds(
+						organization.getId(), branchIds);
+				visibleDepartmentIds.addAll(departmentsInBranches);
+			}
+			allRisksByCompany = allRisksByCompany.stream()
+					.filter(risk -> (risk.getBranchId() != null && branchIds.contains(risk.getBranchId()))
+							|| (risk.getFunction() != null && visibleDepartmentIds.contains(risk.getFunction())))
+					.toList();
+			branches = branches.stream()
+					.filter(branch -> (branch.getId() != null && branchIds.contains(branch.getId()))
+							|| (branch.getDepartments() != null && branch.getDepartments().stream()
+									.anyMatch(department -> department.getId() != null && visibleDepartmentIds.contains(department.getId()))))
+					.toList();
+		}
 
-		Long totalDepartments = branches.stream().flatMap(branch -> branch.getDepartments().stream()).count();
+		Long totalDepartments = branches.stream().flatMap(branch -> branch.getDepartments().stream())
+				.filter(department -> scope != ErmDashboardAccessScope.ADVANCED_USER_SCOPED
+						|| (department.getId() != null && visibleDepartmentIds.contains(department.getId())))
+				.count();
 
 		List<List<CustomResponse>> customReponse = toCustomReponse(
 				allRisksByCompany.stream().limit(pageable.getPageSize()).collect(Collectors.toList()));
@@ -334,11 +385,13 @@ public class DashboardService implements IDashboardService {
 			response.setByCompanyCategory(null);
 		}
 
-		boolean scopeByDepartment = applyBranchDepartmentScope && !scopeDepartmentIds.isEmpty();
+		boolean scopeByDepartment = applyBranchDepartmentScope;
 		List<ERMMaturityAssessment> scopedMaturities = loadScopedMaturityAssessments(organization, bounds,
-				scopeCompanyId, functionId, applyBranchDepartmentScope, scopeByDepartment, scopeDepartmentIds);
+				scopeCompanyId, functionId, applyBranchDepartmentScope, scopeByDepartment,
+				dashboardData.scopeDepartmentIds());
 		response.setCardCounts(buildCardCounts(organization.getId(), risks, bounds, scopeCompanyId,
-				scopeCreatorUserId, scopedMaturities));
+				scopeCreatorUserId, scopedMaturities, applyBranchDepartmentScope, dashboardData.scopeBranchIds(),
+				dashboardData.scopeDepartmentIds()));
 		ErmMaturitySummary maturity = buildErmMaturitySummary(scopedMaturities);
 		response.setErmMaturityCompanyWise(maturity.companyWise());
 		response.setErmMaturityFunctionWise(maturity.functionWise());
@@ -368,8 +421,7 @@ public class DashboardService implements IDashboardService {
 		ErmDashboardSummaryV2Response response = ermDashboardV2Service.build(organization.getId(), risks, bounds,
 				companyLabels, branchLabels, functionLabels, ownerLabels);
 
-		boolean scopeByDepartment = dashboardData.applyBranchDepartmentScope()
-				&& !dashboardData.scopeDepartmentIds().isEmpty();
+		boolean scopeByDepartment = dashboardData.applyBranchDepartmentScope();
 		ErmMaturitySummary maturity = buildErmMaturitySummary(loadScopedMaturityAssessments(organization, bounds,
 				dashboardData.scopeCompanyId(), functionId, dashboardData.applyBranchDepartmentScope(),
 				scopeByDepartment, dashboardData.scopeDepartmentIds()));
@@ -385,7 +437,7 @@ public class DashboardService implements IDashboardService {
 			Long branchId, Long functionId, int page, int size) throws ResourceNotFoundException {
 
 		ErmDashboardData data = loadErmDashboardData(year, periodType, companyId, branchId, functionId);
-		boolean scopeByDepartment = data.applyBranchDepartmentScope() && !data.scopeDepartmentIds().isEmpty();
+		boolean scopeByDepartment = data.applyBranchDepartmentScope();
 		return riskRegisterService.buildPage(data.organization().getId(), data.risks(),
 				data.bounds().getStartInclusive(), data.bounds().getEndInclusive(), functionId, scopeByDepartment,
 				data.scopeDepartmentIds(), page, size);
@@ -397,7 +449,7 @@ public class DashboardService implements IDashboardService {
 			Long functionId) throws ResourceNotFoundException {
 
 		ErmDashboardData data = loadErmDashboardData(year, periodType, companyId, branchId, functionId);
-		boolean scopeByDepartment = data.applyBranchDepartmentScope() && !data.scopeDepartmentIds().isEmpty();
+		boolean scopeByDepartment = data.applyBranchDepartmentScope();
 		return riskRegisterService.exportCsv(data.organization().getId(), data.risks(),
 				data.bounds().getStartInclusive(), data.bounds().getEndInclusive(), functionId, scopeByDepartment,
 				data.scopeDepartmentIds());
@@ -418,7 +470,7 @@ public class DashboardService implements IDashboardService {
 
 		User user = userRepository.findActiveByIdWithRolesAndCompany(ctxUser.getId())
 				.orElseThrow(() -> new ResourceNotFoundException("User not found."));
-		ErmDashboardAccessScope scope = ErmDashboardRoleResolver.resolveScope(user);
+		ErmDashboardAccessScope scope = resolveDashboardScope(user, organization);
 
 		Long scopeCompanyId = null;
 		Long scopeCreatorUserId = null;
@@ -443,6 +495,12 @@ public class DashboardService implements IDashboardService {
 			scopeBranchIds = ErmDashboardRoleResolver.resolveAssignedBranchIds(user);
 			scopeDepartmentIds = ErmDashboardRoleResolver.resolveAssignedDepartmentIds(user);
 			applyBranchDepartmentScope = true;
+			if (!scopeBranchIds.isEmpty()) {
+				scopeDepartmentIds = new ArrayList<>(scopeDepartmentIds);
+				scopeDepartmentIds.addAll(departmentRepostory.findActiveIdsByOrganizationAndBranchIds(
+						organization.getId(), scopeBranchIds));
+				scopeDepartmentIds = scopeDepartmentIds.stream().distinct().toList();
+			}
 			break;
 		case CREATOR_ONLY:
 			scopeCreatorUserId = user.getId();
@@ -465,17 +523,57 @@ public class DashboardService implements IDashboardService {
 		}
 
 		return new ErmDashboardData(organization, scope, scopeCompanyId, scopeCreatorUserId,
-				applyBranchDepartmentScope, scopeDepartmentIds, bounds, risks);
+				applyBranchDepartmentScope, scopeBranchIds, scopeDepartmentIds, bounds, risks);
+	}
+
+	/**
+	 * Load the trusted user and verify that the authenticated organization and
+	 * the endpoint's role tier agree. The legacy /basic, /advanced and /admin
+	 * routes return different breadths of data, so callers must not be able to
+	 * select a broader route by changing the URL.
+	 */
+	private User requireDashboardUser() throws ResourceNotFoundException {
+		Organization organization = OrganizationContext.getOrganization();
+		User contextUser = UserContext.getUser();
+		if (organization == null || organization.getId() == null || contextUser == null || contextUser.getId() == null) {
+			throw new ResourceNotFoundException("Authenticated organization and user required.");
+		}
+		User user = userRepository.findActiveByIdWithRolesAndCompany(contextUser.getId())
+				.orElseThrow(() -> new ResourceNotFoundException("User not found."));
+		resolveDashboardScope(user, organization);
+		return user;
+	}
+
+	/** Apply the same tenant-link validation used by the combined dashboard scope resolver. */
+	private ErmDashboardAccessScope resolveDashboardScope(User user, Organization organization)
+			throws ResourceNotFoundException {
+		Long directOrgId = user.getOrganization() == null ? null : user.getOrganization().getId();
+		UserDetail detail = user.getUserDetail();
+		Long profileOrgId = detail == null || detail.getOrganization() == null
+				? null : detail.getOrganization().getId();
+		Long assignedOrgId = directOrgId != null ? directOrgId : profileOrgId;
+		if (organization == null || organization.getId() == null
+				|| !Objects.equals(organization.getId(), assignedOrgId)
+				|| (directOrgId != null && profileOrgId != null && !Objects.equals(directOrgId, profileOrgId))) {
+			throw new ResourceNotFoundException("User is outside the organization.");
+		}
+		try {
+			return ErmDashboardRoleResolver.resolveScope(user);
+		} catch (IllegalArgumentException ex) {
+			throw new ResourceNotFoundException(ex.getMessage());
+		}
 	}
 
 	private record ErmDashboardData(Organization organization, ErmDashboardAccessScope scope, Long scopeCompanyId,
-			Long scopeCreatorUserId, boolean applyBranchDepartmentScope, List<Long> scopeDepartmentIds,
+			Long scopeCreatorUserId, boolean applyBranchDepartmentScope, List<Long> scopeBranchIds,
+			List<Long> scopeDepartmentIds,
 			ErmDashboardPeriodBounds bounds, List<Risk> risks) {
 	}
 
 	private ErmDashboardCardCounts buildCardCounts(Long organizationId, List<Risk> risks,
 			ErmDashboardPeriodBounds bounds, Long scopeCompanyId, Long scopeCreatorUserId,
-			List<ERMMaturityAssessment> scopedMaturities) {
+			List<ERMMaturityAssessment> scopedMaturities, boolean applyBranchDepartmentScope,
+			List<Long> scopeBranchIds, List<Long> scopeDepartmentIds) {
 
 		ErmDashboardCardCounts cardCounts = new ErmDashboardCardCounts();
 		cardCounts.setTotalRiskCount(risks.size());
@@ -488,8 +586,12 @@ public class DashboardService implements IDashboardService {
 					bounds.getStartInclusive(), bounds.getEndInclusive()));
 		}
 
-		cardCounts.setTotalRiskTolerance(kpaKpiReviewRepository.countForErmDashboard(organizationId,
-				bounds.getStartInclusive(), bounds.getEndInclusive(), scopeCompanyId, scopeCreatorUserId));
+		List<Long> queryBranchIds = scopeBranchIds.isEmpty() ? List.of(-1L) : scopeBranchIds;
+		List<String> queryDepartmentIds = scopeDepartmentIds.isEmpty() ? List.of("-1")
+				: scopeDepartmentIds.stream().map(String::valueOf).toList();
+		cardCounts.setTotalRiskTolerance(kpaKpiReviewRepository.countForErmDashboardScoped(organizationId,
+				bounds.getStartInclusive(), bounds.getEndInclusive(), scopeCompanyId, scopeCreatorUserId,
+				applyBranchDepartmentScope, queryBranchIds, queryDepartmentIds));
 
 		Date now = new Date();
 		long overdue = scopedMaturities.stream()
@@ -588,13 +690,13 @@ public class DashboardService implements IDashboardService {
 
 	private static boolean passesMaturityDepartmentScope(List<Long> activeDeptIds, boolean applyBranchDepartmentScope,
 			boolean scopeByDepartment, List<Long> scopeDepartmentIds) {
-		if (!applyBranchDepartmentScope || !scopeByDepartment) {
+		if (!applyBranchDepartmentScope) {
 			return true;
 		}
 		if (ErmMaturityGroupingUtil.isCompanyWiseMaturity(activeDeptIds)) {
-			return true;
+			return false;
 		}
-		return activeDeptIds.stream().anyMatch(scopeDepartmentIds::contains);
+		return scopeByDepartment && activeDeptIds.stream().anyMatch(scopeDepartmentIds::contains);
 	}
 
 	private Map<String, String> resolveDepartmentLabelsByIds(Set<Long> ids) {
