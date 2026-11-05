@@ -389,11 +389,15 @@ public class DashboardOverviewService {
         return result;
     }
     private static List<String> appendUnknown(List<String> fixed,List<Map<String,Object>> rows,String field) {
-        var keys=new LinkedHashSet<>(fixed);rows.stream().map(r->text(r,field)).filter(Objects::nonNull).sorted().forEach(keys::add);
+        var keys=new LinkedHashSet<>(fixed);rows.stream()
+            .map(r->Optional.ofNullable(text(r,field)).filter(value->!value.isBlank()).orElse("UNKNOWN"))
+            .sorted().forEach(keys::add);
         return new ArrayList<>(keys);
     }
     private static List<NamedCount> counts(List<Map<String,Object>> rows,String field,List<String> fixed) {
-        var counts=rows.stream().collect(Collectors.groupingBy(r->text(r,field),Collectors.counting()));
+        var counts=rows.stream().collect(Collectors.groupingBy(
+            r->Optional.ofNullable(text(r,field)).filter(value->!value.isBlank()).orElse("UNKNOWN"),
+            Collectors.counting()));
         return appendUnknown(fixed,rows,field).stream().map(k->new NamedCount(k,counts.getOrDefault(k,0L),label(k))).toList();
     }
     static String appetite(String value) {
